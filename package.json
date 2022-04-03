@@ -1,0 +1,11 @@
+{
+  "name": "lobsterjs",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "npx vitest run lobster.test.js"
+  },
+  "devDependencies": {
+    "vitest": "^0.8.4"
+  }
+}
