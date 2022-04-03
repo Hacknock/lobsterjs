@@ -1,9 +1,3 @@
-export default function lobster() {}
+import lobster_utils from "./lobster_utils";
 
-lobster.add = function (a, b) {
-  return a + b;
-};
-
-lobster.times = function (a, b) {
-  return a * b;
-};
+export default function lobster(markdown) {}

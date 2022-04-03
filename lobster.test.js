@@ -1,10 +1,16 @@
-import { test, expect } from "vitest";
-import lobster from "./lobster";
+import { describe, it, expect } from "vitest";
+import lobster_utils from "./lobster_utils";
 
-test("1+1=2", () => {
-  expect(lobster.add(1, 1)).toBe(2);
-});
+describe("matchStrikethrough", () => {
+  it("find simple text", () => {
+    const sut = "hoge hoge ~~hoge hoge~~ hoge hoge";
+    const actual = lobster_utils.matchStrikethrough(sut);
+    expect(actual).toBe("~~hoge hoge~~");
+  });
 
-test("2*2=4", () => {
-  expect(lobster.times(2, 2)).toBe(4);
+  it("not found", () => {
+    const sut = "hoge hoge ~hoge hoge~ hoge hoge";
+    const actual = lobster_utils.matchStrikethrough(sut);
+    expect(actual).toBeNull();
+  });
 });
