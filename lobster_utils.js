@@ -12,3 +12,7 @@ const lobster_utils = {
 };
 
 export default lobster_utils;
+
+const sut = "hoge hoge ~~hoge hoge~~ hoge hoge";
+const res = matchStrikethrough(sut);
+console.log(res);

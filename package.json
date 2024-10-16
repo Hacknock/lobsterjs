@@ -2,6 +2,7 @@
   "name": "lobsterjs",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "test": "npx vitest run lobster.test.js"
   },
