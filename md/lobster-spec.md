@@ -403,6 +403,7 @@ piyo piyo piyo
 
 ## 参考
 
+- [Markdown Syntax](https://daringfireball.net/projects/markdown/syntax)
 - [HTML リファレンス](https://www.tohoho-web.com/html/index.htm)
 
 ### 非推奨のタグ
