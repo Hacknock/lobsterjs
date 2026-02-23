@@ -17,7 +17,7 @@
     "build": "vite build && tsc --emitDeclarationOnly --declaration --outDir dist",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build:docs": "vite build && cp dist/lobster.umd.cjs docs/lobster.js"
+    "build:docs": "vite build && cp dist/lobster.js docs/lobster.js"
   },
   "devDependencies": {
     "typescript": "^5.5.0",
