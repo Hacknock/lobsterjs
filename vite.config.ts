@@ -10,6 +10,7 @@ export default defineConfig({
       formats: ["es", "umd"],
     },
     outDir: "dist",
+    minify: true,
   },
   test: {
     include: ["tests/**/*.test.ts"],
