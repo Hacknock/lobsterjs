@@ -230,19 +230,19 @@ pnpm build:docs    # Copy bundle to docs/ for GitHub Pages
 
 ```
 src/
-├── core/               # Platform-agnostic parser (no DOM dependency)
-│   ├── types.ts        # All AST type definitions
-│   ├── block-parser.ts # Block-level parser
-│   ├── inline-parser.ts# Inline-level parser
+├── core/                # Platform-agnostic parser (no DOM dependency)
+│   ├── types.ts         # All AST type definitions
+│   ├── block-parser.ts  # Block-level parser
+│   ├── inline-parser.ts # Inline-level parser
 │   └── index.ts
 ├── renderer/html/
-│   ├── renderer.ts     # AST → HTML string
-│   └── dom.ts          # DOM helpers (browser only)
-└── index.ts            # Public API entry point
+│   ├── renderer.ts      # AST → HTML string
+│   └── dom.ts           # DOM helpers (browser only)
+└── index.ts             # Public API entry point
 
-tests/                  # Vitest test suites
-markdowns/              # Specification documents
-docs/                   # GitHub Pages demo site
+tests/                   # Vitest test suites
+markdowns/               # Specification documents
+docs/                    # GitHub Pages demo site
 ```
 
 ---
