@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,15 +11,29 @@
     <script type="module">
       import { loadMarkdown } from './lobster.js';
       const app = document.getElementById('app');
-      loadMarkdown('./content.md', app)
-        .then(() => fetch('./content.md'))
+      const lang = new URLSearchParams(location.search).get('lang') ?? 'en';
+      const src  = lang === 'ja' ? './content-ja.md' : './content.md';
+
+      document.documentElement.lang = lang === 'ja' ? 'ja' : 'en';
+
+      loadMarkdown(src, app)
+        .then(() => {
+          // Language toggle button
+          const toggle = document.createElement('a');
+          toggle.href = lang === 'ja' ? './' : './?lang=ja';
+          toggle.textContent = lang === 'ja' ? 'English' : '日本語';
+          toggle.className = 'lbs-lang-toggle';
+          document.querySelector('.lbs-header')?.appendChild(toggle);
+        })
+        .then(() => fetch(src))
         .then(r => r.text())
         .then(md => {
           const escaped = md.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const label = lang === 'ja' ? 'このページの Markdown ソースを見る' : 'View source Markdown of this page';
           const details = document.createElement('details');
           details.className = 'lbs-details';
           details.innerHTML =
-            '<summary class="lbs-summary">View source Markdown of this page</summary>' +
+            `<summary class="lbs-summary">${label}</summary>` +
             '<div class="lbs-code-block"><pre><code>' + escaped + '</code></pre></div>';
           app.appendChild(details);
         })

@@ -77,8 +77,17 @@
 .lbs-image       { max-width: 100%; height: auto; }
 
 /* Header / Footer */
-.lbs-header      { padding: 1rem 0; margin-bottom: 2rem; border-bottom: 2px solid var(--lbs-border); }
+.lbs-header      { position: relative; padding: 1rem 0; margin-bottom: 2rem; border-bottom: 2px solid var(--lbs-border); }
 .lbs-footer      { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--lbs-border); color: var(--lbs-muted); font-size: 0.9em; }
+
+/* Language toggle (injected by index.html) */
+.lbs-lang-toggle {
+  position: absolute; top: 1rem; right: 0;
+  font-size: 0.85em; color: var(--lbs-link);
+  text-decoration: none; border: 1px solid var(--lbs-border);
+  border-radius: 4px; padding: 0.2em 0.6em;
+}
+.lbs-lang-toggle:hover { background: var(--lbs-code-bg); }
 
 /* Details */
 .lbs-details     { margin: 1em 0; border: 1px solid var(--lbs-border); border-radius: 6px; padding: 0.5em 1em; }
