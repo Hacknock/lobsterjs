@@ -404,6 +404,10 @@ When the opening delimiter is two or more backticks, one leading and one trailin
 
 ## Lobster Extensions
 
+All custom blocks (`:::header`, `:::footer`, `:::details`, `:::warp`) are closed by a `:::` line. Leading whitespace before `:::` is ignored, so formatter-indented closing markers work correctly.
+
+> **Recommended style:** Place a blank line before the closing `:::`. This prevents Markdown formatters (e.g. Prettier) from treating `:::` as a continuation of the preceding block (such as a list item) and indenting it unexpectedly.
+
 ### Header (`:::header`)
 
 ```
