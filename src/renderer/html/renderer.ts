@@ -205,7 +205,8 @@ function renderCodeBlock(node: CodeBlockNode): string {
   const header = node.filename
     ? `<div class="lbs-code-filename">${escapeHtml(node.filename)}</div>`
     : "";
-  return `<div class="lbs-code-block">${header}<pre${lang}${filename}><code>${escapeHtml(node.code)}</code></pre></div>`;
+  const langClass = node.language ? ` class="language-${escapeHtml(node.language)}"` : "";
+  return `<div class="lbs-code-block">${header}<pre${lang}${filename}><code${langClass}>${escapeHtml(node.code)}</code></pre></div>`;
 }
 
 function renderBlockquote(node: BlockquoteNode, ctx: RenderContext): string {

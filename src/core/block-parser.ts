@@ -110,10 +110,20 @@ function matchListItem(line: string): {
   return null;
 }
 
-/** Parse `| a | b | c |` into cell strings (strips leading/trailing `|`) */
+/** Parse `| a | b | c |` into cell strings (strips leading/trailing `|`).
+ *  Does not split on `|` inside backtick code spans. */
 function splitTableRow(line: string): string[] {
   const stripped = line.replace(/^\s*~?\s*\|?\s*/, "").replace(/\s*\|?\s*$/, "");
-  return stripped.split("|").map((c) => c.trim());
+  const cells: string[] = [];
+  let cur = "";
+  let inCode = false;
+  for (const ch of stripped) {
+    if (ch === "`") { inCode = !inCode; cur += ch; }
+    else if (ch === "|" && !inCode) { cells.push(cur.trim()); cur = ""; }
+    else { cur += ch; }
+  }
+  cells.push(cur.trim());
+  return cells;
 }
 
 /** Parse alignment row cell like `---`, `:---`, `:---:`, `---:` */
