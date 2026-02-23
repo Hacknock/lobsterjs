@@ -207,11 +207,13 @@ function extractCustomBlocks(
     if (/^:::header\s*$/.test(line)) {
       const innerLines: string[] = [];
       i++;
-      while (i < lines.length && !/^\s*:::\s*$/.test(lines[i])) {
-        innerLines.push(lines[i]);
-        i++;
-      }
-      i++; // skip :::
+      { let depth = 0;
+        while (i < lines.length) {
+          const l = lines[i];
+          if (/^:::(header|footer)\s*$/.test(l) || /^:::warp\s+\S/.test(l) || /^:::details\s+/.test(l)) { depth++; }
+          else if (/^\s*:::\s*$/.test(l)) { if (depth === 0) break; depth--; }
+          innerLines.push(l); i++;
+        } i++; } // skip :::
       // Parse header content (later, after ctx is populated)
       header = { type: "header_container", children: [] };
       header.children = parseBlocks(innerLines, ctx);
@@ -221,11 +223,13 @@ function extractCustomBlocks(
     if (/^:::footer\s*$/.test(line)) {
       const innerLines: string[] = [];
       i++;
-      while (i < lines.length && !/^\s*:::\s*$/.test(lines[i])) {
-        innerLines.push(lines[i]);
-        i++;
-      }
-      i++;
+      { let depth = 0;
+        while (i < lines.length) {
+          const l = lines[i];
+          if (/^:::(header|footer)\s*$/.test(l) || /^:::warp\s+\S/.test(l) || /^:::details\s+/.test(l)) { depth++; }
+          else if (/^\s*:::\s*$/.test(l)) { if (depth === 0) break; depth--; }
+          innerLines.push(l); i++;
+        } i++; }
       footer = { type: "footer_container", children: [] };
       footer.children = parseBlocks(innerLines, ctx);
       continue;
@@ -236,11 +240,13 @@ function extractCustomBlocks(
       const id = warpM[1];
       const innerLines: string[] = [];
       i++;
-      while (i < lines.length && !/^\s*:::\s*$/.test(lines[i])) {
-        innerLines.push(lines[i]);
-        i++;
-      }
-      i++;
+      { let depth = 0;
+        while (i < lines.length) {
+          const l = lines[i];
+          if (/^:::(header|footer)\s*$/.test(l) || /^:::warp\s+\S/.test(l) || /^:::details\s+/.test(l)) { depth++; }
+          else if (/^\s*:::\s*$/.test(l)) { if (depth === 0) break; depth--; }
+          innerLines.push(l); i++;
+        } i++; }
       const warpNode: WarpDefinitionNode = {
         type: "warp_definition",
         id,
@@ -262,15 +268,38 @@ function extractCustomBlocks(
       const innerLines: string[] = [];
       const startIdx = remainingLines.length;
       i++;
-      while (i < lines.length && !/^\s*:::\s*$/.test(lines[i])) {
-        innerLines.push(lines[i]);
-        i++;
+      { let depth = 0;
+        while (i < lines.length) {
+          const l = lines[i];
+          if (/^:::(header|footer)\s*$/.test(l) || /^:::warp\s+\S/.test(l) || /^:::details\s+/.test(l)) { depth++; }
+          else if (/^\s*:::\s*$/.test(l)) { if (depth === 0) break; depth--; }
+          innerLines.push(l); i++;
+        } i++; }
+      // Recursively extract nested :::warp / :::details from this block's content
+      // so that parseBlocks never sees raw :::xxx lines (which would cause infinite loop)
+      const nestedExtracted = extractCustomBlocks(innerLines, ctx);
+      // Bubble nested warp defs up to parent scope
+      Object.assign(warpDefs, nestedExtracted.warpDefs);
+      // Parse the cleaned content (:::warp etc. already removed)
+      let detailsChildren = parseBlocks(nestedExtracted.remainingLines, ctx);
+      // Replace any nested :::details placeholders
+      if (nestedExtracted.detailsBlocks.length > 0) {
+        detailsChildren = detailsChildren.map((node) => {
+          if (node.type === "paragraph" && node.children.length === 1 && node.children[0].type === "text") {
+            const txt = (node.children[0] as { type: string; text: string }).text;
+            const pm = txt.match(/^__DETAILS_PLACEHOLDER_(\d+)__$/);
+            if (pm) {
+              const idx = parseInt(pm[1], 10);
+              if (nestedExtracted.detailsBlocks[idx]) return nestedExtracted.detailsBlocks[idx].node;
+            }
+          }
+          return node;
+        });
       }
-      i++;
       const detailsNode: DetailsNode = {
         type: "details",
         title,
-        children: parseBlocks(innerLines, ctx),
+        children: detailsChildren,
       };
       // Insert a placeholder line so position is preserved
       remainingLines.push(`__DETAILS_PLACEHOLDER_${detailsBlocks.length}__`);

@@ -272,6 +272,37 @@ describe("parseDocument", () => {
     expect(doc.warpDefs["col"]).toBeDefined();
   });
 
+  it(":::warp nested inside :::details is extracted correctly", () => {
+    const md = [
+      ":::details Title",
+      ":::warp inner",
+      "Inner warp content",
+      ":::",
+      ":::",
+    ].join("\n");
+    const doc = parseDocument(md);
+    expect(doc.body[0].type).toBe("details");
+    // warp defined inside details is accessible
+    expect(doc.warpDefs["inner"]).toBeDefined();
+  });
+
+  it(":::details closes at correct ::: when nested :::warp is present", () => {
+    const md = [
+      ":::details Title",
+      "before",
+      ":::warp col",
+      "warp content",
+      ":::",
+      "after",
+      ":::",
+      "outside",
+    ].join("\n");
+    const doc = parseDocument(md);
+    expect(doc.body[0].type).toBe("details");
+    // "outside" should be a separate paragraph, not inside details
+    expect(doc.body[1].type).toBe("paragraph");
+  });
+
   it("footnote definition collected", () => {
     const md = "Hello[^note]\n\n[^note]: This is a footnote";
     const doc = parseDocument(md);
