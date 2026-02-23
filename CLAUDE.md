@@ -1,78 +1,105 @@
-# lobster.js — CLAUDE.md
+# CLAUDE.md
 
-## プロジェクト概要
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-拡張Markdownパーサーライブラリ。独自記法を含むMarkdownをパースしてリッチなHTMLを生成する。
-文書構造のみを提供し、見た目はCSSに委ねる設計。
+## Overview
 
-仕様書: `markdowns/lobster-spec.md`
+lobster.js is an extended Markdown parser library. It parses Markdown (including lobster-specific syntax) into an AST, then renders rich HTML. The design principle is that the library provides document structure only — visual styling is entirely left to CSS.
 
-## アーキテクチャ決定事項
+Spec: `markdowns/spec.md` (English), `markdowns/spec-ja.md` (Japanese)
 
-- **言語:** TypeScript（型定義がiOS/Android移植時の設計ドキュメントになる）
-- **パイプライン:** Markdown → AST → HTML（コアはプラットフォーム非依存）
-- **配布:** ViteでESMバンドル（npm公開 + CDN利用想定）
-- **テスト:** Vitest
+## Commands
 
-## ディレクトリ構成（目標）
+This project uses **pnpm** (enforced — npm/yarn will error).
+
+```bash
+pnpm test           # Run all tests once (Vitest)
+pnpm test:watch     # Run tests in watch mode
+pnpm run build      # Build ESM bundle + emit .d.ts declarations
+pnpm run build:docs # Build and copy dist/lobster.js → docs/lobster.js
+```
+
+To run a single test file:
+```bash
+pnpm vitest run tests/block-parser.test.ts
+```
+
+## Architecture
+
+**Pipeline:** `parseDocument(markdown)` → `Document` AST → `renderDocument(doc)` → HTML string
+
+The convenience function `toHTML(markdown)` combines both steps.
+
+### Source layout
 
 ```
 src/
-├── core/               # プラットフォーム非依存のコアロジック
-│   ├── types.ts        # ASTノード型定義
-│   ├── block-parser.ts # ブロック要素パーサー
-│   ├── inline-parser.ts# インライン要素パーサー
+├── core/
+│   ├── types.ts          # All AST node type definitions (union types)
+│   ├── block-parser.ts   # Block-level parser (entry: parseDocument, parseBlocks)
+│   ├── inline-parser.ts  # Inline-level parser (entry: parseInline)
 │   └── index.ts
-├── renderer/
-│   └── html/
-│       ├── renderer.ts # AST → HTML文字列
-│       └── dom.ts      # DOM操作（ブラウザ向け）
-└── index.ts            # メインエントリーポイント
-tests/                  # Vitestテスト
-docs/                   # GitHub Pages（lobster.js自身で構築）
-markdowns/              # 仕様書・テストケースMD
+├── renderer/html/
+│   ├── renderer.ts       # AST → HTML string (entry: renderDocument)
+│   └── dom.ts            # Browser API: renderToDOM, loadMarkdown, autoInit
+└── index.ts              # Public API surface
+tests/                    # Vitest tests (mirrors src/core/ and src/renderer/)
+markdowns/                # Spec docs and test-case Markdown files
+docs/                     # GitHub Pages demo site (lobster.js loads its own content)
 ```
 
-## 評価順序（仕様書より）
+### Parsing pipeline (block-parser.ts)
 
-パーサーはこの順序でブロック要素を評価する:
+`parseDocument` runs in three passes:
+
+1. **Pre-scan** (`collectDefinitions`): Extracts link definitions `[id]: url` and footnote definitions `[^id]: text` from all lines.
+2. **Custom block extraction** (`extractCustomBlocks`): Pulls out `:::header`, `:::footer`, `:::warp id`, and `:::details Title` blocks before main parsing. Details blocks use a placeholder string mechanism to preserve position.
+3. **Block parsing** (`parseBlocks`): Processes remaining lines via `tryParse*` functions in priority order: heading → horizontal_rule → code_block → blockquote → list → table → paragraph (fallback).
+
+### Evaluation order (per spec)
 
 ```
-ヘッダー > フッター >>> 詳細折りたたみ =>
-  引用 => リスト > 見出し > 水平線 > コードブロック > サイレントテーブル > テーブル >
-    画像 > インライン脚注 > 脚注 > ワープ > リンク > インラインリンク >
-      コードスパン > 強調 > 強勢 > 打ち消し線
+header / footer / details (extracted before block parse)
+  blockquote → list → heading → horizontal_rule → code_block → silent_table → table
+    image → inline_footnote → footnote_ref → warp_ref → link → inline_link
+      code_span → emphasis → strong → strikethrough
 ```
 
-## 開発コマンド
+### Key types (types.ts)
 
-```bash
-npm test          # Vitestでテスト実行
-npm run build     # Viteでバンドル生成
-npm run dev       # 開発サーバー（docs/確認用）
-```
+- `Document`: `{ header?, footer?, body, linkDefs, footnoteDefs, footnoteRefs, warpDefs }`
+- `BlockNode`: union of all block node types, discriminated by `type` field
+- `InlineNode`: union of all inline node types, discriminated by `type` field
+- `ParseContext`: shared mutable state during parsing (linkDefs, footnoteDefs, warpDefs, footnoteRefs, inlineFootnoteCount)
 
-## コーディング規約
+### HTML output conventions
 
-- コアロジック（`src/core/`）はDOM/ブラウザAPIに依存しない純粋関数のみ
-- ASTノードはunion型で定義し、`type`フィールドで判別
-- 各パーサー関数は単体テストを必ず書く
-- 仕様書の記述と実装の対応がわかるようにコメントを入れる
+All rendered elements carry `lbs-*` CSS class names (e.g. `lbs-heading-1`, `lbs-paragraph`, `lbs-code-block`, `lbs-table`, `lbs-table-silent`). No inline styles except for table cell alignment (`style="text-align:..."`).
 
-## Lobster独自記法まとめ
+Headings are rendered as `<p class="lbs-heading-N">` (not `<hN>`).
 
-| 記法 | 説明 |
-|------|------|
-| `:::header` ... `:::` | ページヘッダー領域 |
-| `:::footer` ... `:::` | ページフッター領域 |
-| `:::details タイトル` ... `:::` | 折りたたみ要素 |
-| `:::warp id` ... `:::` | コンテンツのワープ（別場所への転記） |
-| `~ \| ... \|` | サイレントテーブル（枠線なし） |
-| `\|` (テーブル内) | 水平セル結合 |
-| `\---` (テーブル内) | 垂直セル結合 |
-| `![alt](url =WxH)` | 画像サイズ指定 |
+### Browser API (dom.ts)
 
-## GitHub Pages方針
+- `renderToDOM(doc, element)` — renders into a container element
+- `loadMarkdown(src, element?)` — fetches a `.md` file and renders it
+- `autoInit()` — auto-loads from `<script src="lobster.js" data-src="content.md">`
 
-`docs/` 以下にlobster.js自身を使って構築したドキュメントサイトを置く。
-lobster.jsをロードしたindex.htmlがMarkdownファイルを読み込んでDOMを構築するデモになる。
+## Lobster-specific syntax
+
+| Syntax | Description |
+|--------|-------------|
+| `:::header` ... `:::` | Page header region → `<header class="lbs-header">` |
+| `:::footer` ... `:::` | Page footer region → `<footer class="lbs-footer">` |
+| `:::details Title` ... `:::` | Collapsible block → `<details><summary>` |
+| `:::warp id` ... `:::` | Named content block; referenced via `[~id]` |
+| `~ \| ... \|` | Silent table (no border) → adds `lbs-table-silent` class |
+| `\|` in table cell | Horizontal cell merge (colspan) |
+| `\---` in table cell | Vertical cell merge (rowspan) |
+| `![alt](url =WxH)` | Image with explicit width/height |
+
+## Coding rules
+
+- `src/core/` must be pure functions with no DOM/browser API dependencies.
+- AST nodes use union types discriminated by `type` field.
+- Comments should map implementation to the corresponding spec section.
+- Each parser function should have corresponding Vitest tests.
