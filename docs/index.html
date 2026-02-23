@@ -10,9 +10,21 @@
     <div id="app">Loading...</div>
     <script type="module">
       import { loadMarkdown } from './lobster.js';
-      loadMarkdown('./content.md', document.getElementById('app'))
+      const app = document.getElementById('app');
+      loadMarkdown('./content.md', app)
+        .then(() => fetch('./content.md'))
+        .then(r => r.text())
+        .then(md => {
+          const escaped = md.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const details = document.createElement('details');
+          details.className = 'lbs-details';
+          details.innerHTML =
+            '<summary class="lbs-summary">View source Markdown of this page</summary>' +
+            '<pre class="lbs-code-block"><code>' + escaped + '</code></pre>';
+          app.appendChild(details);
+        })
         .catch(err => {
-          document.getElementById('app').textContent = 'Failed to load: ' + err.message;
+          app.textContent = 'Failed to load: ' + err.message;
         });
     </script>
   </body>
