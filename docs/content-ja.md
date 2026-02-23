@@ -2,7 +2,7 @@
 
 # lobster.js
 
-Markdownだけで、Webページを設計しよう。
+**Markdownだけで、Webページを設計しよう。**
 
 lobster.js を使えば拡張Markdown記法で簡単にリッチな静的Webサイトが作れます。
 
