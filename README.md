@@ -11,13 +11,13 @@ It provides **document structure only**; appearance is entirely up to CSS via pr
 <!DOCTYPE html>
 <html>
   <head>
-    <link rel="stylesheet" href="lobster-default.css">
+    <link rel="stylesheet" href="lobster-default.css" />
   </head>
   <body>
     <div id="app"></div>
     <script type="module">
-      import { loadMarkdown } from './lobster.js';
-      loadMarkdown('./content.md', document.getElementById('app'));
+      import { loadMarkdown } from "./lobster.js";
+      loadMarkdown("./content.md", document.getElementById("app"));
     </script>
   </body>
 </html>
@@ -50,8 +50,8 @@ Download `lobster.js` from the [releases page](https://github.com/Hacknock/lobst
 
 ```html
 <script type="module">
-  import { loadMarkdown } from './lobster.js';
-  loadMarkdown('./content.md', document.getElementById('app'));
+  import { loadMarkdown } from "./lobster.js";
+  loadMarkdown("./content.md", document.getElementById("app"));
 </script>
 ```
 
@@ -62,8 +62,8 @@ pnpm add lobsterjs
 ```
 
 ```ts
-import { toHTML } from 'lobsterjs';
-const html = toHTML('# Hello **world**');
+import { toHTML } from "lobsterjs";
+const html = toHTML("# Hello **world**");
 ```
 
 ---
@@ -75,8 +75,8 @@ const html = toHTML('# Hello **world**');
 Convenience one-liner. Parses and renders Markdown to an HTML string.
 
 ```ts
-import { toHTML } from 'lobsterjs';
-const html = toHTML('# Hello');
+import { toHTML } from "lobsterjs";
+const html = toHTML("# Hello");
 ```
 
 ### `parseDocument(markdown: string): Document`
@@ -84,7 +84,7 @@ const html = toHTML('# Hello');
 Parses Markdown into an AST. Useful for inspecting or transforming the document tree before rendering.
 
 ```ts
-import { parseDocument } from 'lobsterjs';
+import { parseDocument } from "lobsterjs";
 const doc = parseDocument(markdown);
 console.log(doc.body); // BlockNode[]
 ```
@@ -94,7 +94,7 @@ console.log(doc.body); // BlockNode[]
 Converts a `Document` AST into an HTML string.
 
 ```ts
-import { parseDocument, renderDocument } from 'lobsterjs';
+import { parseDocument, renderDocument } from "lobsterjs";
 const html = renderDocument(parseDocument(markdown));
 ```
 
@@ -103,8 +103,8 @@ const html = renderDocument(parseDocument(markdown));
 Fetches a Markdown file and renders it into the given DOM element (defaults to `document.body`). Browser only.
 
 ```ts
-import { loadMarkdown } from 'lobsterjs';
-await loadMarkdown('./content.md', document.getElementById('app'));
+import { loadMarkdown } from "lobsterjs";
+await loadMarkdown("./content.md", document.getElementById("app"));
 ```
 
 ---
@@ -178,18 +178,18 @@ For the full syntax reference see [markdowns/spec.md](./markdowns/spec.md) (Engl
 
 Every rendered element carries a `lbs-*` class name so any stylesheet can target it:
 
-| Class | Element |
-| :---- | :------ |
-| `lbs-heading-1` … `lbs-heading-6` | Headings |
-| `lbs-paragraph` | Paragraph |
+| Class                                               | Element            |
+| :-------------------------------------------------- | :----------------- |
+| `lbs-heading-1` … `lbs-heading-6`                   | Headings           |
+| `lbs-paragraph`                                     | Paragraph          |
 | `lbs-emphasis` / `lbs-strong` / `lbs-strikethrough` | Inline decorations |
-| `lbs-code-span` / `lbs-code-block` | Code |
-| `lbs-blockquote` | Blockquote |
-| `lbs-ul` / `lbs-ol` / `lbs-list-item` | Lists |
-| `lbs-table` / `lbs-table-silent` | Tables |
-| `lbs-header` / `lbs-footer` | Page regions |
-| `lbs-details` / `lbs-summary` | Collapsible |
-| `lbs-footnote-ref` / `lbs-footnotes` | Footnotes |
+| `lbs-code-span` / `lbs-code-block`                  | Code               |
+| `lbs-blockquote`                                    | Blockquote         |
+| `lbs-ul` / `lbs-ol` / `lbs-list-item`               | Lists              |
+| `lbs-table` / `lbs-table-silent`                    | Tables             |
+| `lbs-header` / `lbs-footer`                         | Page regions       |
+| `lbs-details` / `lbs-summary`                       | Collapsible        |
+| `lbs-footnote-ref` / `lbs-footnotes`                | Footnotes          |
 
 ---
 
@@ -197,11 +197,11 @@ Every rendered element carries a `lbs-*` class name so any stylesheet can target
 
 ### Requirements
 
-| Tool | Version |
-| :--- | :------ |
+| Tool                          | Version    |
+| :---------------------------- | :--------- |
 | [mise](https://mise.jdx.dev/) | 2026.2.19+ |
-| pnpm | 10.30.1+ |
-| Node.js | 24.11.0+ |
+| pnpm                          | 10.30.1    |
+| Node.js                       | 24.13.1    |
 
 ### Setup
 
