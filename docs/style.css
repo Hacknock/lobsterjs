@@ -64,8 +64,13 @@
 .lbs-table th,
 .lbs-table td    { border: 1px solid var(--lbs-border); padding: 0.5em 0.75em; text-align: left; }
 .lbs-table th    { background: var(--lbs-code-bg); font-weight: 600; }
+
+/* Silent table — used as a layout grid */
+.lbs-table-silent thead { display: none; }
 .lbs-table-silent th,
-.lbs-table-silent td { border: none; }
+.lbs-table-silent td { border: none; vertical-align: top; padding: 0.5rem 1.5rem 0.5rem 0; }
+.lbs-table-silent th:last-child,
+.lbs-table-silent td:last-child { padding-right: 0; }
 
 /* Image */
 .lbs-image       { max-width: 100%; height: auto; }
