@@ -2,7 +2,9 @@
 
 # lobster.js
 
-An extended Markdown parser — build pages that plain Markdown simply cannot.
+**Design web pages using only Markdown.**
+
+With lobster.js, you can easily create rich static websites using extended Markdown syntax.
 
 :::
 

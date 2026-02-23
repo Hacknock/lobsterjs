@@ -2,7 +2,9 @@
 
 # lobster.js
 
-拡張 Markdown パーサー — 普通の Markdown では作れないページを作ろう。
+Markdownだけで、Webページを設計しよう。
+
+lobster.js を使えば拡張Markdown記法で簡単にリッチな静的Webサイトが作れます。
 
 :::
 
