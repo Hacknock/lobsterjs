@@ -11,7 +11,7 @@ It provides **document structure only**; appearance is entirely up to CSS via pr
 <!DOCTYPE html>
 <html>
   <head>
-    <link rel="stylesheet" href="lobster-default.css" />
+    <link rel="stylesheet" href="your-style.css" /> <!-- bring your own CSS -->
   </head>
   <body>
     <div id="app"></div>
@@ -22,6 +22,8 @@ It provides **document structure only**; appearance is entirely up to CSS via pr
   </body>
 </html>
 ```
+
+lobster.js outputs semantic HTML with `lbs-*` class names. No default stylesheet is bundled — styling is entirely up to you. See [`docs/style.css`](./docs/style.css) for a starter example.
 
 ---
 
@@ -46,14 +48,16 @@ It provides **document structure only**; appearance is entirely up to CSS via pr
 
 ### CDN / local file
 
-Download `lobster.js` from the [releases page](https://github.com/Hacknock/lobsterjs/releases) and reference it directly:
+The latest build is available via GitHub Pages:
 
 ```html
 <script type="module">
-  import { loadMarkdown } from "./lobster.js";
+  import { loadMarkdown } from "https://hacknock.github.io/lobsterjs/lobster.js";
   loadMarkdown("./content.md", document.getElementById("app"));
 </script>
 ```
+
+Or download `lobster.js` from the [releases page](https://github.com/Hacknock/lobsterjs/releases) and host it yourself.
 
 ### npm / pnpm
 
@@ -136,8 +140,9 @@ Hidden content goes here.
 ### Multi-column layout with Warp
 
 ```
-~ |      left      |      right      |
-~ | [~col-left]    | [~col-right]    |
+~ |             left              |             right             |
+~ | :---                          | :---                          |
+~ | [~col-left]                   | [~col-right]                  |
 
 :::warp col-left
 Left column content
