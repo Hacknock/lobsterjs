@@ -125,6 +125,20 @@ describe("parseBlocks — blockquote", () => {
     const bq = blocks[0] as BlockquoteNode;
     expect(bq.children[0].type).toBe("blockquote");
   });
+
+  it("blockquote followed by paragraph does not swallow paragraph", () => {
+    const blocks = parseBlocks(["> quote", "regular text"], makeCtx());
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0].type).toBe("blockquote");
+    expect(blocks[1].type).toBe("paragraph");
+  });
+
+  it("blockquote contains heading and list", () => {
+    const blocks = parseBlocks(["> # Title", "> - item1", "> - item2"], makeCtx());
+    const bq = blocks[0] as BlockquoteNode;
+    expect(bq.children[0].type).toBe("heading");
+    expect(bq.children[1].type).toBe("bullet_list");
+  });
 });
 
 // ============================================================
@@ -220,6 +234,22 @@ describe("parseBlocks — table", () => {
     expect(blocks[0].type).toBe("table");
     const table = blocks[0] as TableNode;
     expect(table.isSilent).toBe(true);
+  });
+
+  it("\\--- sets rowspan on the cell above", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| X | 1 |",
+      "| \\--- | 2 |",
+      "| \\--- | 3 |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    // First data row: col 0 should get rowspan=3 (spans itself + 2 \\--- rows)
+    expect(table.rows[0][0].rowspan).toBe(3);
+    // Second and third rows: col 0 are placeholders
+    expect(table.rows[1][0].children[0]).toMatchObject({ type: "text", text: "__ROWSPAN__" });
+    expect(table.rows[2][0].children[0]).toMatchObject({ type: "text", text: "__ROWSPAN__" });
   });
 });
 

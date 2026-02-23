@@ -388,16 +388,9 @@ function tryParseBlockquote(
 
   const bqLines: string[] = [];
   let j = i;
-  while (j < lines.length && (lines[j].startsWith(">") || !isBlankLine(lines[j]))) {
-    if (lines[j].startsWith(">")) {
-      bqLines.push(lines[j]);
-    } else {
-      // Continuation line (not starting with >) — include as continuation
-      bqLines.push(lines[j]);
-    }
+  while (j < lines.length && lines[j].startsWith(">")) {
+    bqLines.push(lines[j]);
     j++;
-    // Stop at blank line
-    if (j < lines.length && isBlankLine(lines[j])) break;
   }
 
   const stripped = stripBlockquotePrefix(bqLines);
@@ -633,6 +626,40 @@ function tryParseTable(
     }
     rows.push(rowCells);
     j++;
+  }
+
+  // Compute rowspan values: for each __ROWSPAN__ cell, find the nearest
+  // non-placeholder cell above in the same column and increment its rowspan.
+  const isRowspanCell = (cell: TableCellNode): boolean =>
+    cell.children.length === 1 &&
+    cell.children[0].type === "text" &&
+    (cell.children[0] as { type: string; text: string }).text === "__ROWSPAN__";
+
+  // Build per-row map: starting column index → cell (accounts for colspan)
+  const colMaps: Map<number, TableCellNode>[] = rows.map((row) => {
+    const map = new Map<number, TableCellNode>();
+    let col = 0;
+    for (const cell of row) {
+      map.set(col, cell);
+      col += cell.colspan ?? 1;
+    }
+    return map;
+  });
+
+  for (let r = 0; r < rows.length; r++) {
+    let col = 0;
+    for (const cell of rows[r]) {
+      if (isRowspanCell(cell)) {
+        for (let rr = r - 1; rr >= 0; rr--) {
+          const above = colMaps[rr].get(col);
+          if (above && !isRowspanCell(above)) {
+            above.rowspan = (above.rowspan ?? 1) + 1;
+            break;
+          }
+        }
+      }
+      col += cell.colspan ?? 1;
+    }
   }
 
   const node: TableNode = {
