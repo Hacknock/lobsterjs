@@ -599,7 +599,6 @@ function tryParseTable(
       }
       rowCells.push({
         children: parseInline(cells[c], ctx),
-        align: alignments[colIdx] !== "default" ? alignments[colIdx] : undefined,
       });
       colIdx++;
     }

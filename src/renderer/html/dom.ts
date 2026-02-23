@@ -1,4 +1,5 @@
 import type { Document } from "../../core/types.js";
+import { parseDocument } from "../../core/block-parser.js";
 import { renderDocument } from "./renderer.js";
 
 /**
@@ -20,7 +21,6 @@ export async function loadMarkdown(
   src: string,
   container: HTMLElement = document.body
 ): Promise<void> {
-  const { parseDocument } = await import("../../core/block-parser.js");
   const response = await fetch(src);
   if (!response.ok) {
     throw new Error(`Failed to fetch ${src}: ${response.status} ${response.statusText}`);
