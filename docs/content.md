@@ -14,8 +14,8 @@ This page itself is rendered by lobster.js^[index.html is just 15 lines. Load lo
 
 ## What plain Markdown can't do
 
-Things that require raw HTML in standard Markdown are native syntax in lobster.js.
-The two-column layout below? Pure Markdown.
+Tasks requiring embedded HTML in standard Markdown can be done with simple extended syntax in lobster.js.
+Even the 2-column layout below is possible without any HTML.
 
 ~ | | |
 ~ | :--- | :--- |
@@ -85,7 +85,7 @@ The core parser is pure functions with no DOM dependency. Works in Node.js and D
 
 ## :::details — collapsible blocks
 
-Standard Markdown requires you to write raw `<details>` HTML. With lobster.js, it's just Markdown.
+Standard Markdown requires you to write raw `<details>` HTML. With lobster.js, just wrap it with `:::details` and `:::`.
 
 :::details Inline syntax cheatsheet (click to expand)
 
@@ -122,7 +122,6 @@ Checklist:
 - [x] Multi-column layout
 - [x] Collapsible blocks
 - [x] Cell-merging tables
-- [x] Syntax highlighting (via `language-*` class, bring your own highlighter)
 
 :::
 
