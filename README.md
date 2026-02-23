@@ -181,20 +181,67 @@ For the full syntax reference see [markdowns/spec.md](./markdowns/spec.md) (Engl
 
 ## CSS classes
 
-Every rendered element carries a `lbs-*` class name so any stylesheet can target it:
+Every rendered element carries a `lbs-*` class name so any stylesheet can target it.
+For the complete HTML output reference, minimum viable stylesheet, dark mode tips, and
+an AI prompt template, see **[markdowns/styling.md](./markdowns/styling.md)**.
+
+Quick reference:
 
 | Class                                               | Element            |
 | :-------------------------------------------------- | :----------------- |
-| `lbs-heading-1` … `lbs-heading-6`                   | Headings           |
+| `lbs-heading-1` … `lbs-heading-6`                   | Headings (`<p>`)   |
 | `lbs-paragraph`                                     | Paragraph          |
 | `lbs-emphasis` / `lbs-strong` / `lbs-strikethrough` | Inline decorations |
-| `lbs-code-span` / `lbs-code-block`                  | Code               |
+| `lbs-code-span` / `lbs-code-block` / `lbs-code-filename` | Code          |
 | `lbs-blockquote`                                    | Blockquote         |
-| `lbs-ul` / `lbs-ol` / `lbs-list-item`               | Lists              |
+| `lbs-ul` / `lbs-ol` / `lbs-list-item` / `lbs-checkbox` | Lists          |
 | `lbs-table` / `lbs-table-silent`                    | Tables             |
 | `lbs-header` / `lbs-footer`                         | Page regions       |
 | `lbs-details` / `lbs-summary`                       | Collapsible        |
-| `lbs-footnote-ref` / `lbs-footnotes`                | Footnotes          |
+| `lbs-footnote-ref` / `lbs-footnotes` / `lbs-footnote-item` | Footnotes  |
+
+---
+
+## Syntax highlighting
+
+lobster.js has no built-in highlighter, but fenced code blocks with a language tag emit a `language-*` class on the `<code>` element — the convention used by Prism.js, highlight.js, and most other highlighters.
+
+````markdown
+```js
+console.log("hello");
+```
+````
+
+Rendered output:
+
+```html
+<div class="lbs-code-block">
+  <pre data-language="js"><code class="language-js">console.log(&quot;hello&quot;);</code></pre>
+</div>
+```
+
+### Prism.js
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs/themes/prism.min.css">
+<script src="https://cdn.jsdelivr.net/npm/prismjs/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs/plugins/autoloader/prism-autoloader.min.js"></script>
+```
+
+```js
+import { loadMarkdown } from './lobster.js';
+loadMarkdown('./content.md', document.getElementById('app'))
+  .then(() => Prism.highlightAll());
+```
+
+### highlight.js
+
+```js
+import { loadMarkdown } from './lobster.js';
+import hljs from 'highlight.js';
+loadMarkdown('./content.md', document.getElementById('app'))
+  .then(() => hljs.highlightAll());
+```
 
 ---
 
