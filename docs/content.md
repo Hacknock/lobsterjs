@@ -1,19 +1,148 @@
 :::header
+
 # lobster.js
+
+An extended Markdown parser — build pages that plain Markdown simply cannot.
 :::
 
-# What is lobster.js?
+This page itself is rendered by lobster.js^[index.html is just 15 lines. Load lobster.js, point it at a Markdown file, and you're done.].
 
-**lobster.js** is an extended Markdown parser that renders rich HTML web pages directly in the browser.
+---
 
-Drop a single `<script>` tag into a minimal HTML file, point it at a Markdown document, and you get a fully structured web page — no build step required for the reader.
+## What plain Markdown can't do
 
-~~~html
+Things that require raw HTML in standard Markdown are native syntax in lobster.js.
+The two-column layout below? Pure Markdown.
+
+~ | | |
+~ | :--- | :--- |
+~ | [~compare-no] | [~compare-yes] |
+
+:::warp compare-no
+
+### Standard Markdown
+
+- Multi-column layout → **not possible**
+- Table cell merging → **not possible**
+- Collapsible blocks → needs `<details>` tag
+- Page header / footer → needs HTML structure
+- Footnotes → parser-dependent, often unsupported
+  :::
+
+:::warp compare-yes
+
+### lobster.js
+
+- Multi-column → `:::warp` + silent table
+- Cell merging → `\|` (horizontal) / `\---` (vertical)
+- Collapsible → `:::details Title`
+- Header / footer → `:::header` / `:::footer`
+- Footnotes → `[^id]` or inline `^[text]`
+  :::
+
+---
+
+## :::warp — multi-column layouts in Markdown
+
+Define a named content block with `:::warp id`, then place it anywhere using `[~id]`.
+Put warp references into a silent table (`~ |`) and you get a full column layout — no HTML, no CSS required.
+
+~ | | | |
+~ | :--- | :--- | :--- |
+~ | [~card-light] | [~card-portable] | [~card-ast] |
+
+:::warp card-light
+
+### Lightweight
+
+Zero dependencies. ESM bundle is **22 KB** (gzip: 6 KB).
+
+One `<script type="module">` line and you're running.
+:::
+
+:::warp card-portable
+
+### Portable
+
+The core parser is pure functions with no DOM dependency. Works in Node.js and Deno, with iOS/Android portability in mind.
+:::
+
+:::warp card-ast
+
+### AST-first
+
+`parseDocument()` gives you the full intermediate AST. Build custom renderers or integrate with your own tooling.
+:::
+
+---
+
+## :::details — collapsible blocks
+
+Standard Markdown requires you to write raw `<details>` HTML. With lobster.js, it's just Markdown.
+
+:::details Inline syntax cheatsheet (click to expand)
+
+~ | | |
+~ | :--- | :--- |
+~ | [~cheat-inline] | [~cheat-block] |
+
+:::warp cheat-inline
+**Inline syntax**
+
+| Syntax        | Output                                                                |
+| :------------ | :-------------------------------------------------------------------- |
+| `**bold**`    | **bold**                                                              |
+| `*italic*`    | _italic_                                                              |
+| `~~strike~~`  | ~~strike~~                                                            |
+| `` `code` ``  | `code`                                                                |
+| `[text](url)` | [link](https://github.com/Hacknock/lobsterjs)                         |
+| `^[note]`     | inline footnote^[Footnotes are collected at the end of the document.] |
+
+:::
+
+:::warp cheat-block
+**Block syntax**
+
+> Blockquote
+>
+> > Nested blockquote
+
+Checklist:
+
+- [x] Header / footer
+- [x] Multi-column layout
+- [x] Collapsible blocks
+- [x] Cell-merging tables
+- [ ] Syntax highlighting (planned)
+      :::
+
+:::
+
+---
+
+## Table cell merging
+
+Standard Markdown has no cell-merging spec. lobster.js supports `\---` (vertical span) and `\|` (horizontal span).
+
+| Category | Feature               | Syntax                    |
+| :------- | :-------------------- | :------------------------ |
+| Layout   | Multi-column layout   | `:::warp` + silent table  |
+| \---     | Collapsible block     | `:::details Title`        |
+| \---     | Header / footer       | `:::header` / `:::footer` |
+| Tables   | Horizontal cell merge | `\|`                      |
+| \---     | Vertical cell merge   | `\---`                    |
+| \---     | Silent table          | `~ \|` prefix             |
+
+"Layout" and "Tables" in the left column each span three rows via vertical cell merging.
+
+---
+
+## Quick start
+
+```html:index.html
 <!DOCTYPE html>
 <html>
-  <head>
-    <link rel="stylesheet" href="lobster-default.css">
-  </head>
+  <head><link rel="stylesheet" href="style.css"></head>
   <body>
     <div id="app"></div>
     <script type="module">
@@ -22,78 +151,22 @@ Drop a single `<script>` tag into a minimal HTML file, point it at a Markdown do
     </script>
   </body>
 </html>
-~~~
-
-## Features
-
-- [x] All standard Markdown syntax
-- [x] Extended Lobster syntax (`:::header`, `:::footer`, `:::details`, `:::warp`)
-- [x] Tables with alignment and cell merging
-- [x] Silent tables (borderless layout grids)
-- [x] Footnotes and inline footnotes
-- [x] Image sizing (`=WxH`)
-- [ ] Syntax highlighting (Prism.js integration — coming soon)
-- [ ] Dark mode CSS theme
-
-## Inline Syntax
-
-| Syntax | Result |
-| :--- | :--- |
-| `**bold**` | **bold** |
-| `*italic*` | *italic* |
-| `~~strike~~` | ~~strike~~ |
-| `` `code` `` | `code` |
-| `[text](url)` | link |
-| `![alt](url)` | image |
-
-## Custom Blocks
-
-### :::details
-
-:::details Click to see example
-This content is hidden until the user clicks the summary.
-
-You can put any Markdown inside a `:::details` block.
-:::
-
-### :::warp
-
-The `:::warp` block lets you define content once and place it anywhere using `[~id]`:
-
-~~~
-~ |     left     |     right    |
-~ | [~col-left]  | [~col-right] |
-
-:::warp col-left
-Left column content
-:::
-
-:::warp col-right
-Right column content
-:::
-~~~
-
-## API
-
-```typescript
-import { toHTML, parseDocument, renderDocument } from 'lobsterjs';
-
-// One-liner
-const html = toHTML('# Hello **world**');
-
-// Step by step (useful for tooling)
-const doc = parseDocument(markdownString);
-const html = renderDocument(doc);
 ```
 
-## Design Philosophy
+Works in Node.js / Deno too:
 
-lobster.js provides **document structure only** — styling is entirely up to CSS. The rendered HTML uses predictable `lbs-*` class names so any stylesheet can target them.
+```typescript
+import { toHTML, parseDocument } from "lobsterjs";
 
-The core parser (`src/core/`) contains no DOM or browser dependencies, making it portable to Node.js, Deno, and potentially iOS/Android in the future.
+// One-liner
+const html = toHTML("# Hello **lobster**");
+
+// Via AST (for custom renderers / tooling)
+const ast = parseDocument(markdownString);
+```
 
 ---
 
 :::footer
-lobster.js — MIT License
+[lobster.js on GitHub](https://github.com/Hacknock/lobsterjs) — MIT License
 :::
