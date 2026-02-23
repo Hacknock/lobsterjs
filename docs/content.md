@@ -3,6 +3,7 @@
 # lobster.js
 
 An extended Markdown parser — build pages that plain Markdown simply cannot.
+
 :::
 
 This page itself is rendered by lobster.js^[index.html is just 15 lines. Load lobster.js, point it at a Markdown file, and you're done.].
@@ -27,7 +28,8 @@ The two-column layout below? Pure Markdown.
 - Collapsible blocks → needs `<details>` tag
 - Page header / footer → needs HTML structure
 - Footnotes → parser-dependent, often unsupported
-  :::
+
+:::
 
 :::warp compare-yes
 
@@ -58,6 +60,7 @@ Put warp references into a silent table (`~ |`) and you get a full column layout
 Zero dependencies. ESM bundle is **22 KB** (gzip: 6 KB).
 
 One `<script type="module">` line and you're running.
+
 :::
 
 :::warp card-portable
@@ -65,6 +68,7 @@ One `<script type="module">` line and you're running.
 ### Portable
 
 The core parser is pure functions with no DOM dependency. Works in Node.js and Deno, with iOS/Android portability in mind.
+
 :::
 
 :::warp card-ast
@@ -72,6 +76,7 @@ The core parser is pure functions with no DOM dependency. Works in Node.js and D
 ### AST-first
 
 `parseDocument()` gives you the full intermediate AST. Build custom renderers or integrate with your own tooling.
+
 :::
 
 ---
@@ -87,6 +92,7 @@ Standard Markdown requires you to write raw `<details>` HTML. With lobster.js, i
 ~ | [~cheat-inline] | [~cheat-block] |
 
 :::warp cheat-inline
+
 **Inline syntax**
 
 | Syntax        | Output                                                                |
@@ -101,6 +107,7 @@ Standard Markdown requires you to write raw `<details>` HTML. With lobster.js, i
 :::
 
 :::warp cheat-block
+
 **Block syntax**
 
 > Blockquote
@@ -114,7 +121,8 @@ Checklist:
 - [x] Collapsible blocks
 - [x] Cell-merging tables
 - [ ] Syntax highlighting (planned)
-      :::
+
+:::
 
 :::
 
