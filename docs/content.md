@@ -120,7 +120,7 @@ Checklist:
 - [x] Multi-column layout
 - [x] Collapsible blocks
 - [x] Cell-merging tables
-- [ ] Syntax highlighting (planned)
+- [x] Syntax highlighting (via `language-*` class, bring your own highlighter)
 
 :::
 
@@ -137,9 +137,9 @@ Standard Markdown has no cell-merging spec. lobster.js supports `\---` (vertical
 | Layout   | Multi-column layout   | `:::warp` + silent table  |
 | \---     | Collapsible block     | `:::details Title`        |
 | \---     | Header / footer       | `:::header` / `:::footer` |
-| Tables   | Horizontal cell merge | `\|`                      |
-| \---     | Vertical cell merge   | `\---`                    |
-| \---     | Silent table          | `~ \|` prefix             |
+| Tables   | Horizontal cell merge | `` `\|` ``                |
+| \---     | Vertical cell merge   | `` `\---` ``              |
+| \---     | Silent table          | `` `~ \|` `` prefix       |
 
 "Layout" and "Tables" in the left column each span three rows via vertical cell merging.
 
@@ -150,11 +150,14 @@ Standard Markdown has no cell-merging spec. lobster.js supports `\---` (vertical
 ```html:index.html
 <!DOCTYPE html>
 <html>
-  <head><link rel="stylesheet" href="style.css"></head>
+  <head>
+    <!-- starter CSS — swap for your own stylesheet -->
+    <link rel="stylesheet" href="https://hacknock.github.io/lobsterjs/style.css">
+  </head>
   <body>
     <div id="app"></div>
     <script type="module">
-      import { loadMarkdown } from './lobster.js';
+      import { loadMarkdown } from 'https://hacknock.github.io/lobsterjs/lobster.js';
       loadMarkdown('./content.md', document.getElementById('app'));
     </script>
   </body>

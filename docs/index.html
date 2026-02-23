@@ -20,7 +20,7 @@
           details.className = 'lbs-details';
           details.innerHTML =
             '<summary class="lbs-summary">View source Markdown of this page</summary>' +
-            '<pre class="lbs-code-block"><code>' + escaped + '</code></pre>';
+            '<div class="lbs-code-block"><pre><code>' + escaped + '</code></pre></div>';
           app.appendChild(details);
         })
         .catch(err => {
