@@ -1,7 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
   <head>
-    <script type="text/javascript" src="./lobster.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>lobster.js</title>
+    <link rel="stylesheet" href="./style.css">
   </head>
-  <body></body>
+  <body>
+    <div id="app">Loading...</div>
+    <script type="module">
+      import { loadMarkdown } from './lobster.js';
+      loadMarkdown('./content.md', document.getElementById('app'))
+        .catch(err => {
+          document.getElementById('app').textContent = 'Failed to load: ' + err.message;
+        });
+    </script>
+  </body>
 </html>
