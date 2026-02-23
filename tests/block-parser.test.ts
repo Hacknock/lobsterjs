@@ -259,6 +259,19 @@ describe("parseDocument", () => {
     expect(doc.warpDefs["my-section"]).toBeDefined();
   });
 
+  it("closes :::details with indented :::", () => {
+    // Formatters (e.g. Prettier) may indent ::: inside a list
+    const md = ":::details Title\n- item\n  :::";
+    const doc = parseDocument(md);
+    expect(doc.body[0].type).toBe("details");
+  });
+
+  it("closes :::warp with indented :::", () => {
+    const md = ":::warp col\n- item\n      :::";
+    const doc = parseDocument(md);
+    expect(doc.warpDefs["col"]).toBeDefined();
+  });
+
   it("footnote definition collected", () => {
     const md = "Hello[^note]\n\n[^note]: This is a footnote";
     const doc = parseDocument(md);

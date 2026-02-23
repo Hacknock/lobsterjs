@@ -207,7 +207,7 @@ function extractCustomBlocks(
     if (/^:::header\s*$/.test(line)) {
       const innerLines: string[] = [];
       i++;
-      while (i < lines.length && !/^:::\s*$/.test(lines[i])) {
+      while (i < lines.length && !/^\s*:::\s*$/.test(lines[i])) {
         innerLines.push(lines[i]);
         i++;
       }
@@ -221,7 +221,7 @@ function extractCustomBlocks(
     if (/^:::footer\s*$/.test(line)) {
       const innerLines: string[] = [];
       i++;
-      while (i < lines.length && !/^:::\s*$/.test(lines[i])) {
+      while (i < lines.length && !/^\s*:::\s*$/.test(lines[i])) {
         innerLines.push(lines[i]);
         i++;
       }
@@ -236,7 +236,7 @@ function extractCustomBlocks(
       const id = warpM[1];
       const innerLines: string[] = [];
       i++;
-      while (i < lines.length && !/^:::\s*$/.test(lines[i])) {
+      while (i < lines.length && !/^\s*:::\s*$/.test(lines[i])) {
         innerLines.push(lines[i]);
         i++;
       }
@@ -262,7 +262,7 @@ function extractCustomBlocks(
       const innerLines: string[] = [];
       const startIdx = remainingLines.length;
       i++;
-      while (i < lines.length && !/^:::\s*$/.test(lines[i])) {
+      while (i < lines.length && !/^\s*:::\s*$/.test(lines[i])) {
         innerLines.push(lines[i]);
         i++;
       }
