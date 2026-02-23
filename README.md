@@ -1,5 +1,12 @@
 # lobster.js
 
+<p align="center">
+  <picture>
+    <source srcset="docs/lobsterjs-dark.png" media="(prefers-color-scheme: dark)">
+    <img src="docs/lobsterjs-light.png" alt="lobster.js" width="64" height="64">
+  </picture>
+</p>
+
 > Extended Markdown parser that renders rich, structured web pages directly in the browser.
 
 **[Demo & Docs →](https://Hacknock.github.io/lobsterjs/)**
@@ -11,7 +18,8 @@ It provides **document structure only**; appearance is entirely up to CSS via pr
 <!DOCTYPE html>
 <html>
   <head>
-    <link rel="stylesheet" href="your-style.css" /> <!-- bring your own CSS -->
+    <link rel="stylesheet" href="your-style.css" />
+    <!-- bring your own CSS -->
   </head>
   <body>
     <div id="app"></div>
@@ -187,18 +195,18 @@ an AI prompt template, see **[markdowns/styling.md](./markdowns/styling.md)**.
 
 Quick reference:
 
-| Class                                               | Element            |
-| :-------------------------------------------------- | :----------------- |
-| `lbs-heading-1` … `lbs-heading-6`                   | Headings (`<p>`)   |
-| `lbs-paragraph`                                     | Paragraph          |
-| `lbs-emphasis` / `lbs-strong` / `lbs-strikethrough` | Inline decorations |
-| `lbs-code-span` / `lbs-code-block` / `lbs-code-filename` | Code          |
-| `lbs-blockquote`                                    | Blockquote         |
-| `lbs-ul` / `lbs-ol` / `lbs-list-item` / `lbs-checkbox` | Lists          |
-| `lbs-table` / `lbs-table-silent`                    | Tables             |
-| `lbs-header` / `lbs-footer`                         | Page regions       |
-| `lbs-details` / `lbs-summary`                       | Collapsible        |
-| `lbs-footnote-ref` / `lbs-footnotes` / `lbs-footnote-item` | Footnotes  |
+| Class                                                      | Element            |
+| :--------------------------------------------------------- | :----------------- |
+| `lbs-heading-1` … `lbs-heading-6`                          | Headings (`<p>`)   |
+| `lbs-paragraph`                                            | Paragraph          |
+| `lbs-emphasis` / `lbs-strong` / `lbs-strikethrough`        | Inline decorations |
+| `lbs-code-span` / `lbs-code-block` / `lbs-code-filename`   | Code               |
+| `lbs-blockquote`                                           | Blockquote         |
+| `lbs-ul` / `lbs-ol` / `lbs-list-item` / `lbs-checkbox`     | Lists              |
+| `lbs-table` / `lbs-table-silent`                           | Tables             |
+| `lbs-header` / `lbs-footer`                                | Page regions       |
+| `lbs-details` / `lbs-summary`                              | Collapsible        |
+| `lbs-footnote-ref` / `lbs-footnotes` / `lbs-footnote-item` | Footnotes          |
 
 ---
 
@@ -223,24 +231,22 @@ Rendered output:
 ### Prism.js
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs/themes/prism.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs/themes/prism.min.css" />
 <script src="https://cdn.jsdelivr.net/npm/prismjs/prism.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/prismjs/plugins/autoloader/prism-autoloader.min.js"></script>
 ```
 
 ```js
-import { loadMarkdown } from './lobster.js';
-loadMarkdown('./content.md', document.getElementById('app'))
-  .then(() => Prism.highlightAll());
+import { loadMarkdown } from "./lobster.js";
+loadMarkdown("./content.md", document.getElementById("app")).then(() => Prism.highlightAll());
 ```
 
 ### highlight.js
 
 ```js
-import { loadMarkdown } from './lobster.js';
-import hljs from 'highlight.js';
-loadMarkdown('./content.md', document.getElementById('app'))
-  .then(() => hljs.highlightAll());
+import { loadMarkdown } from "./lobster.js";
+import hljs from "highlight.js";
+loadMarkdown("./content.md", document.getElementById("app")).then(() => hljs.highlightAll());
 ```
 
 ---
