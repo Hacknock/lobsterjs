@@ -24,17 +24,29 @@ export async function loadMarkdown(
   container: HTMLElement = document.body
 ): Promise<void> {
   const srcs = Array.isArray(src) ? src : [src];
-  const texts = await Promise.all(
+  const results = await Promise.all(
     srcs.map(async (s) => {
-      const response = await fetch(s);
+      const absoluteSrc = new URL(s, location.href).href;
+      const response = await fetch(absoluteSrc);
       if (!response.ok) {
         throw new Error(`Failed to fetch ${s}: ${response.status} ${response.statusText}`);
       }
-      return response.text();
+      return { text: await response.text(), base: absoluteSrc };
     })
   );
-  const doc = parseDocument(texts.join("\n\n"));
+  const doc = parseDocument(results.map((r) => r.text).join("\n\n"));
   renderToDOM(doc, container);
+
+  // Rebase relative image src attributes to the first markdown file's location.
+  // Without this, the browser resolves relative paths against the HTML document
+  // rather than the markdown file, causing images to not load.
+  const baseUrl = results[0].base;
+  container.querySelectorAll<HTMLImageElement>("img.lbs-image").forEach((img) => {
+    const imgSrc = img.getAttribute("src");
+    if (imgSrc && !/^(?:[a-z][a-z\d+\-.]*:|\/\/)/i.test(imgSrc)) {
+      img.src = new URL(imgSrc, baseUrl).href;
+    }
+  });
 }
 
 /**
