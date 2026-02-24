@@ -142,6 +142,64 @@ function isAlignmentRow(line: string): boolean {
   return cells.length > 0 && cells.every((c) => /^:?-+:?$/.test(c));
 }
 
+/**
+ * Converts raw cell strings (from splitTableRow) into TableCellNode[],
+ * applying the lobster.js cell-merge rules:
+ *
+ * Horizontal merge — a cell whose content ends with `\` (produced when the
+ * source contains `cell \|`) signals colspan.  The trailing `\` is stripped
+ * from the content, colspan is incremented by 1, and any immediately
+ * following "phantom" slots produced by the pipe-split (`\\` intermediate
+ * markers or the terminal `""` empty cell) are consumed.
+ *
+ * Vertical merge — a cell whose content is `\-{1,}` is replaced with a
+ * `__ROWSPAN__` placeholder (body rows only; controlled by `allowRowspan`).
+ */
+function buildTableCells(
+  cells: string[],
+  ctx: ParseContext,
+  allowRowspan: boolean
+): TableCellNode[] {
+  const result: TableCellNode[] = [];
+  let c = 0;
+  while (c < cells.length) {
+    const raw = cells[c];
+
+    // Horizontal merge: cell ends with \ but is NOT a \--- marker
+    if (raw.endsWith("\\") && !/^\\-+$/.test(raw)) {
+      const content = raw.slice(0, -1).trimEnd();
+      let colspan = 2;
+      c++;
+      // Consume phantom slots that splitTableRow produced from the \| split:
+      //   intermediate \\ cells and the terminal "" empty cell.
+      while (c < cells.length) {
+        if (cells[c] === "\\") {
+          colspan++;
+          c++;
+        } else if (cells[c] === "") {
+          c++; // consume the terminal empty phantom
+          break;
+        } else {
+          break; // real content — stop consuming
+        }
+      }
+      result.push({ children: parseInline(content, ctx), colspan });
+      continue;
+    }
+
+    // Vertical merge placeholder (body rows only)
+    if (allowRowspan && /^\\-+$/.test(raw)) {
+      result.push({ children: [{ type: "text", text: "__ROWSPAN__" }] });
+      c++;
+      continue;
+    }
+
+    result.push({ children: parseInline(raw, ctx) });
+    c++;
+  }
+  return result;
+}
+
 // ============================================================
 // Pre-scan: collect definitions
 // ============================================================
@@ -588,25 +646,16 @@ function tryParseTable(
 
   // Parse header row
   const rawHeader = isSilent ? line.replace(/^\s*~\s*/, "") : line;
-  const rawHeaderCells = splitTableRow(rawHeader);
-  const headerCells: TableCellNode[] = [];
-  for (const c of rawHeaderCells) {
-    if (c === "\\") {
-      // \| → merge with previous header cell
-      if (headerCells.length > 0) {
-        const prev = headerCells[headerCells.length - 1];
-        prev.colspan = (prev.colspan ?? 1) + 1;
-      }
-      continue;
-    }
-    headerCells.push({ children: parseInline(c, ctx) });
-  }
+  const headerCells = buildTableCells(splitTableRow(rawHeader), ctx, false);
 
   // Parse alignment row
   const rawAlign = isSilent
     ? lines[i + 1].replace(/^\s*~\s*/, "")
     : lines[i + 1];
   const alignments: TableAlignment[] = splitTableRow(rawAlign).map(parseAlignment);
+
+  // Total column count = sum of all header colspans (used for body-row padding)
+  const totalCols = headerCells.reduce((sum, cell) => sum + (cell.colspan ?? 1), 0);
 
   // Parse data rows
   const rows: TableCellNode[][] = [];
@@ -615,34 +664,10 @@ function tryParseTable(
     const rawRow = isSilent ? lines[j].replace(/^\s*~\s*/, "") : lines[j];
     const cells = splitTableRow(rawRow);
 
-    // Pad to header count if shorter
-    while (cells.length < headerCells.length) cells.push("");
+    // Pad to total column count if shorter
+    while (cells.length < totalCols) cells.push("");
 
-    // Handle horizontal cell merge (\|)
-    const rowCells: TableCellNode[] = [];
-    let colIdx = 0;
-    for (let c = 0; c < cells.length; c++) {
-      if (cells[c] === "\\") {
-        // \| escape → merge with previous cell
-        if (rowCells.length > 0) {
-          const prev = rowCells[rowCells.length - 1];
-          prev.colspan = (prev.colspan ?? 1) + 1;
-        }
-        colIdx++;
-        continue;
-      }
-      // Handle \--- (vertical merge placeholder)
-      if (/^\\-+$/.test(cells[c])) {
-        rowCells.push({ children: [{ type: "text", text: "__ROWSPAN__" }] });
-        colIdx++;
-        continue;
-      }
-      rowCells.push({
-        children: parseInline(cells[c], ctx),
-      });
-      colIdx++;
-    }
-    rows.push(rowCells);
+    rows.push(buildTableCells(cells, ctx, true));
     j++;
   }
 

@@ -236,16 +236,53 @@ describe("parseBlocks — table", () => {
     expect(table.isSilent).toBe(true);
   });
 
-  it("\\| in header row sets colspan on the previous header cell", () => {
+  it("\\| at end of header cell sets colspan (spec syntax)", () => {
+    // "Q1 \|" → Q1 spans 2 columns; trailing pipe handled correctly too
     const blocks = parseBlocks([
-      "| Feature | Q1 | \\|",
+      "| Feature | Q1 \\|",
       "| :--- | :--- | :--- |",
       "| Foo | 100 | 200 |",
     ], makeCtx());
     const table = blocks[0] as TableNode;
-    // Second header cell "Q1" should have colspan=2; \| is consumed
     expect(table.headers).toHaveLength(2);
     expect(table.headers[1].colspan).toBe(2);
+  });
+
+  it("\\| at end of header cell works with trailing pipe", () => {
+    // "Q1 \| |" — trailing | should not produce a spurious empty cell
+    const blocks = parseBlocks([
+      "| Feature | Q1 \\| |",
+      "| :--- | :--- | :--- |",
+      "| Foo | 100 | 200 |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.headers).toHaveLength(2);
+    expect(table.headers[1].colspan).toBe(2);
+  });
+
+  it("\\| at end of body cell sets colspan (spec syntax)", () => {
+    const blocks = parseBlocks([
+      "| A | B | C |",
+      "| --- | --- | --- |",
+      "| item | merged \\| |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    const row = table.rows[0];
+    // "item" + "merged \|" (colspan=2) = 2 cell nodes covering 3 columns
+    expect(row).toHaveLength(2);
+    expect(row[1].colspan).toBe(2);
+  });
+
+  it("chained \\| extends colspan by multiple columns", () => {
+    // "EMEA \| \|" → EMEA spans 3 columns
+    const blocks = parseBlocks([
+      "| Name | EMEA \\| \\| |",
+      "| --- | --- | --- | --- |",
+      "| Alpha | 1 | 2 | 3 |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.headers).toHaveLength(2);
+    expect(table.headers[1].colspan).toBe(3);
   });
 
   it("\\--- sets rowspan on the cell above", () => {
