@@ -8,7 +8,7 @@
  *
  * Browser API:
  *   renderToDOM(doc, element)  → void
- *   loadMarkdown(src, element) → Promise<void>
+ *   loadMarkdown(src, element) → Promise<void>  (src: string | string[])
  *   autoInit()                 → void (auto-loads from data-src attribute)
  */
 

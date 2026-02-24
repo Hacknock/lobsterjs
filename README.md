@@ -45,6 +45,7 @@ lobster.js outputs semantic HTML with `lbs-*` class names. No default stylesheet
   - Image sizing — `![alt](url =800x600)`
   - Footnotes — reference (`[^id]`) and inline (`^[text]`)
 - **CSS-first styling** — all elements get `lbs-*` class names; bring your own stylesheet
+- **Multi-file loading** — pass an array of paths to `loadMarkdown` to merge multiple Markdown files into one page; all warp/link/footnote definitions are shared across files
 - **Platform-agnostic core** — `src/core/` has zero DOM/browser dependencies; portable to Node.js, Deno, and potentially native mobile
 - **TypeScript** — full type definitions included
 
@@ -108,13 +109,23 @@ import { parseDocument, renderDocument } from "lobsterjs";
 const html = renderDocument(parseDocument(markdown));
 ```
 
-### `loadMarkdown(src: string, container?: HTMLElement): Promise<void>`
+### `loadMarkdown(src: string | string[], container?: HTMLElement): Promise<void>`
 
-Fetches a Markdown file and renders it into the given DOM element (defaults to `document.body`). Browser only.
+Fetches one or more Markdown files and renders them into the given DOM element (defaults to `document.body`). Browser only.
+
+When an array is passed, all files are fetched in parallel, concatenated with a blank line, and parsed as a single document — so warp/link/footnote definitions are shared across all files.
 
 ```ts
 import { loadMarkdown } from "lobsterjs";
+
+// Single file
 await loadMarkdown("./content.md", document.getElementById("app"));
+
+// Multiple files — fetched in parallel, merged before parsing
+await loadMarkdown(
+  ["./shared.md", "./content.md"],
+  document.getElementById("app")
+);
 ```
 
 ---

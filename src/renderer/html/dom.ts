@@ -11,22 +11,29 @@ export function renderToDOM(doc: Document, container: HTMLElement): void {
 }
 
 /**
- * Fetches a Markdown file, parses it, and renders it into the container.
- * Requires the `parseDocument` function to be available at runtime.
+ * Fetches one or more Markdown files, concatenates them, parses, and renders
+ * into the container. Multiple files are fetched in parallel and joined with
+ * a blank line before parsing, so warp/link/footnote definitions are shared
+ * across all files.
  *
- * @param src - URL or path to the Markdown file
+ * @param src - URL(s) or path(s) to Markdown file(s)
  * @param container - Target DOM element (defaults to document.body)
  */
 export async function loadMarkdown(
-  src: string,
+  src: string | string[],
   container: HTMLElement = document.body
 ): Promise<void> {
-  const response = await fetch(src);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${src}: ${response.status} ${response.statusText}`);
-  }
-  const markdown = await response.text();
-  const doc = parseDocument(markdown);
+  const srcs = Array.isArray(src) ? src : [src];
+  const texts = await Promise.all(
+    srcs.map(async (s) => {
+      const response = await fetch(s);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${s}: ${response.status} ${response.statusText}`);
+      }
+      return response.text();
+    })
+  );
+  const doc = parseDocument(texts.join("\n\n"));
   renderToDOM(doc, container);
 }
 
