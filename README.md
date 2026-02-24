@@ -5,7 +5,7 @@
 
 # lobster.js
 
-> Extended Markdown parser that renders rich, structured web pages directly in the browser.
+> Extended Markdown parser for rich, structured web pages — works in the browser and Node.js.
 
 **[Demo & Docs →](https://Hacknock.github.io/lobsterjs/)** · **[Showcase →](https://Hacknock.github.io/lobsterjs-showcase/)**
 
@@ -53,6 +53,19 @@ lobster.js outputs semantic HTML with `lbs-*` class names. No default stylesheet
 
 ## Installation
 
+### npm / pnpm
+
+```sh
+npm install @hacknock/lobster
+# or
+pnpm add @hacknock/lobster
+```
+
+```ts
+import { toHTML } from "@hacknock/lobster";
+const html = toHTML("# Hello\n\nThis is **lobster**.");
+```
+
 ### CDN / local file
 
 The latest build is available via GitHub Pages:
@@ -75,7 +88,7 @@ Or download `lobster.js` from the [releases page](https://github.com/Hacknock/lo
 Convenience one-liner. Parses and renders Markdown to an HTML string.
 
 ```ts
-import { toHTML } from "lobsterjs";
+import { toHTML } from "@hacknock/lobster";
 const html = toHTML("# Hello");
 ```
 
@@ -84,7 +97,7 @@ const html = toHTML("# Hello");
 Parses Markdown into an AST. Useful for inspecting or transforming the document tree before rendering.
 
 ```ts
-import { parseDocument } from "lobsterjs";
+import { parseDocument } from "@hacknock/lobster";
 const doc = parseDocument(markdown);
 console.log(doc.body); // BlockNode[]
 ```
@@ -94,7 +107,7 @@ console.log(doc.body); // BlockNode[]
 Converts a `Document` AST into an HTML string.
 
 ```ts
-import { parseDocument, renderDocument } from "lobsterjs";
+import { parseDocument, renderDocument } from "@hacknock/lobster";
 const html = renderDocument(parseDocument(markdown));
 ```
 
@@ -105,7 +118,7 @@ Fetches one or more Markdown files and renders them into the given DOM element (
 When an array is passed, all files are fetched in parallel, concatenated with a blank line, and parsed as a single document — so warp/link/footnote definitions are shared across all files.
 
 ```ts
-import { loadMarkdown } from "lobsterjs";
+import { loadMarkdown } from "@hacknock/lobster";
 
 // Single file
 await loadMarkdown("./content.md", document.getElementById("content"));
@@ -294,7 +307,8 @@ src/
 ├── renderer/html/
 │   ├── renderer.ts      # AST → HTML string
 │   └── dom.ts           # DOM helpers (browser only)
-└── index.ts             # Public API entry point
+├── index.ts             # Browser entry point (full API)
+└── index.node.ts        # Node.js entry point (pure functions only)
 
 tests/                   # Vitest test suites
 markdowns/               # Specification documents

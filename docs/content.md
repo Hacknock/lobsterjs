@@ -140,6 +140,8 @@ Standard Markdown has no cell-merging spec. lobster.js supports `\---` (vertical
 
 ## Quick start
 
+### Browser
+
 ```html:index.html
 <!DOCTYPE html>
 <html>
@@ -155,6 +157,17 @@ Standard Markdown has no cell-merging spec. lobster.js supports `\---` (vertical
     </script>
   </body>
 </html>
+```
+
+### Node.js
+
+```sh
+npm install @hacknock/lobster
+```
+
+```js
+import { toHTML } from '@hacknock/lobster';
+const html = toHTML('# Hello\n\nThis is **lobster**.');
 ```
 
 ---
