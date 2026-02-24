@@ -236,6 +236,18 @@ describe("parseBlocks — table", () => {
     expect(table.isSilent).toBe(true);
   });
 
+  it("\\| in header row sets colspan on the previous header cell", () => {
+    const blocks = parseBlocks([
+      "| Feature | Q1 | \\|",
+      "| :--- | :--- | :--- |",
+      "| Foo | 100 | 200 |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    // Second header cell "Q1" should have colspan=2; \| is consumed
+    expect(table.headers).toHaveLength(2);
+    expect(table.headers[1].colspan).toBe(2);
+  });
+
   it("\\--- sets rowspan on the cell above", () => {
     const blocks = parseBlocks([
       "| A | B |",

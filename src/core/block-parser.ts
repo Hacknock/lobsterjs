@@ -588,11 +588,19 @@ function tryParseTable(
 
   // Parse header row
   const rawHeader = isSilent ? line.replace(/^\s*~\s*/, "") : line;
-  const headerCells = splitTableRow(rawHeader).map(
-    (c): TableCellNode => ({
-      children: parseInline(c, ctx),
-    })
-  );
+  const rawHeaderCells = splitTableRow(rawHeader);
+  const headerCells: TableCellNode[] = [];
+  for (const c of rawHeaderCells) {
+    if (c === "\\") {
+      // \| → merge with previous header cell
+      if (headerCells.length > 0) {
+        const prev = headerCells[headerCells.length - 1];
+        prev.colspan = (prev.colspan ?? 1) + 1;
+      }
+      continue;
+    }
+    headerCells.push({ children: parseInline(c, ctx) });
+  }
 
   // Parse alignment row
   const rawAlign = isSilent
