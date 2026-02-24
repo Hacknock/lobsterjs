@@ -179,6 +179,18 @@ const ast = parseDocument(markdownString);
 
 ---
 
+## Showcase
+
+Want to see lobster.js in action across a wider set of examples?
+The **[lobster.js Showcase](https://Hacknock.github.io/lobsterjs-showcase/)** is a wiki-style site built entirely with lobster.js, covering:
+
+- Tables, cell merging, and silent layout grids
+- Warp-based multi-column layouts
+- Image sizing and image+text layouts
+- Footnotes, code blocks, and collapsible details
+
+---
+
 :::footer
-[lobster.js on GitHub](https://github.com/Hacknock/lobsterjs) — MIT License
+[lobster.js on GitHub](https://github.com/Hacknock/lobsterjs) — MIT License · [Showcase](https://Hacknock.github.io/lobsterjs-showcase/)
 :::

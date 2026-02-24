@@ -7,7 +7,7 @@
 
 > Extended Markdown parser that renders rich, structured web pages directly in the browser.
 
-**[Demo & Docs →](https://Hacknock.github.io/lobsterjs/)**
+**[Demo & Docs →](https://Hacknock.github.io/lobsterjs/)** · **[Showcase →](https://Hacknock.github.io/lobsterjs-showcase/)**
 
 lobster.js takes a Markdown file with its own extended syntax and turns a near-empty HTML page into a fully structured document — no build step, no framework.
 It provides **document structure only**; appearance is entirely up to CSS via predictable `lbs-*` class names.
