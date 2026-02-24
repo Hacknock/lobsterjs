@@ -569,7 +569,7 @@ const html = renderDocument(doc);           // → HTML string
 
 // Browser: fetch and render a Markdown file into a DOM element
 import { loadMarkdown } from 'lobsterjs';
-await loadMarkdown('./content.md', document.getElementById('app'));
+await loadMarkdown('./content.md', document.getElementById('content'));
 ```
 
 ### Document AST

@@ -7,16 +7,16 @@
     <link rel="stylesheet" href="./style.css">
   </head>
   <body>
-    <div id="app">Loading...</div>
+    <div id="content">Loading...</div>
     <script type="module">
       import { loadMarkdown } from './lobster.js';
-      const app = document.getElementById('app');
+      const content = document.getElementById('content');
       const lang = new URLSearchParams(location.search).get('lang') ?? 'en';
       const src  = lang === 'ja' ? './content-ja.md' : './content.md';
 
       document.documentElement.lang = lang === 'ja' ? 'ja' : 'en';
 
-      loadMarkdown(src, app)
+      loadMarkdown(src, content)
         .then(() => {
           // Language toggle button
           const toggle = document.createElement('a');
@@ -35,10 +35,10 @@
           details.innerHTML =
             `<summary class="lbs-summary">${label}</summary>` +
             '<div class="lbs-code-block"><pre><code>' + escaped + '</code></pre></div>';
-          app.appendChild(details);
+          content.appendChild(details);
         })
         .catch(err => {
-          app.textContent = 'Failed to load: ' + err.message;
+          content.textContent = 'Failed to load: ' + err.message;
         });
     </script>
   </body>

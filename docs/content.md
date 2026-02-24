@@ -156,10 +156,10 @@ Standard Markdown has no cell-merging spec. lobster.js supports `\---` (vertical
     <link rel="stylesheet" href="https://hacknock.github.io/lobsterjs/style.css">
   </head>
   <body>
-    <div id="app"></div>
+    <div id="content"></div>
     <script type="module">
       import { loadMarkdown } from 'https://hacknock.github.io/lobsterjs/lobster.js';
-      loadMarkdown('./content.md', document.getElementById('app'));
+      loadMarkdown('./content.md', document.getElementById('content'));
     </script>
   </body>
 </html>

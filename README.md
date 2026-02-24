@@ -20,10 +20,10 @@ It provides **document structure only**; appearance is entirely up to CSS via pr
     <!-- bring your own CSS -->
   </head>
   <body>
-    <div id="app"></div>
+    <div id="content"></div>
     <script type="module">
       import { loadMarkdown } from "./lobster.js";
-      loadMarkdown("./content.md", document.getElementById("app"));
+      loadMarkdown("./content.md", document.getElementById("content"));
     </script>
   </body>
 </html>
@@ -60,7 +60,7 @@ The latest build is available via GitHub Pages:
 ```html
 <script type="module">
   import { loadMarkdown } from "https://hacknock.github.io/lobsterjs/lobster.js";
-  loadMarkdown("./content.md", document.getElementById("app"));
+  loadMarkdown("./content.md", document.getElementById("content"));
 </script>
 ```
 
@@ -119,12 +119,12 @@ When an array is passed, all files are fetched in parallel, concatenated with a 
 import { loadMarkdown } from "lobsterjs";
 
 // Single file
-await loadMarkdown("./content.md", document.getElementById("app"));
+await loadMarkdown("./content.md", document.getElementById("content"));
 
 // Multiple files — fetched in parallel, merged before parsing
 await loadMarkdown(
   ["./shared.md", "./content.md"],
-  document.getElementById("app")
+  document.getElementById("content")
 );
 ```
 
@@ -247,7 +247,7 @@ Rendered output:
 
 ```js
 import { loadMarkdown } from "./lobster.js";
-loadMarkdown("./content.md", document.getElementById("app")).then(() => Prism.highlightAll());
+loadMarkdown("./content.md", document.getElementById("content")).then(() => Prism.highlightAll());
 ```
 
 ### highlight.js
@@ -255,7 +255,7 @@ loadMarkdown("./content.md", document.getElementById("app")).then(() => Prism.hi
 ```js
 import { loadMarkdown } from "./lobster.js";
 import hljs from "highlight.js";
-loadMarkdown("./content.md", document.getElementById("app")).then(() => hljs.highlightAll());
+loadMarkdown("./content.md", document.getElementById("content")).then(() => hljs.highlightAll());
 ```
 
 ---

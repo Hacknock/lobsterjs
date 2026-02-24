@@ -567,7 +567,7 @@ const html = renderDocument(doc);           // → HTML文字列
 
 // ブラウザ: MarkdownファイルをフェッチしてDOM要素にレンダリング
 import { loadMarkdown } from 'lobsterjs';
-await loadMarkdown('./content.md', document.getElementById('app'));
+await loadMarkdown('./content.md', document.getElementById('content'));
 ```
 
 ### Document AST
