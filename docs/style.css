@@ -74,10 +74,11 @@
 .lbs-table-silent td:last-child { padding-right: 0; }
 
 /* Image */
-.lbs-image       { max-width: 100%; height: auto; }
+.lbs-image       { max-width: 100%; }
 
 /* Header / Footer */
 .lbs-header      { position: relative; padding: 1rem 0; margin-bottom: 2rem; border-bottom: 2px solid var(--lbs-border); }
+.lbs-header .lbs-heading-1 .lbs-image { vertical-align: middle; margin-right: 0.4rem; }
 .lbs-footer      { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--lbs-border); color: var(--lbs-muted); font-size: 0.9em; }
 
 /* Language toggle (injected by index.html) */

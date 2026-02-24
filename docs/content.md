@@ -1,6 +1,6 @@
 :::header
 
-# lobster.js
+# ![lobster.js](./lobsterjs-light.png =48x48) lobster.js
 
 **Design web pages using only Markdown.**
 

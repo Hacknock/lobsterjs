@@ -1,6 +1,6 @@
 :::header
 
-# lobster.js
+# ![lobster.js](./lobsterjs-light.png =48x48) lobster.js
 
 **Markdownだけで、Webページを設計しよう。**
 
