@@ -1,11 +1,9 @@
-# lobster.js
+<picture>
+  <source srcset="docs/lobsterjs-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="docs/lobsterjs-light.png" alt="lobster.js" width="64" height="64">
+</picture>
 
-<p align="center">
-  <picture>
-    <source srcset="docs/lobsterjs-dark.png" media="(prefers-color-scheme: dark)">
-    <img src="docs/lobsterjs-light.png" alt="lobster.js" width="64" height="64">
-  </picture>
-</p>
+# lobster.js
 
 > Extended Markdown parser that renders rich, structured web pages directly in the browser.
 
