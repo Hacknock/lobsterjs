@@ -51,9 +51,9 @@ Even the 2-column layout below is possible without any HTML.
 Define a named content block with `:::warp id`, then place it anywhere using `[~id]`.
 Put warp references into a silent table (`~ |`) and you get a full column layout — no HTML, no CSS required.
 
-~ | | | |
-~ | :--- | :--- | :--- |
-~ | [~card-light] | [~card-portable] | [~card-ast] |
+~ | | |
+~ | :--- | :--- |
+~ | [~card-light] | [~card-ast] |
 
 :::warp card-light
 
@@ -62,14 +62,6 @@ Put warp references into a silent table (`~ |`) and you get a full column layout
 Zero dependencies. ESM bundle is **22 KB** (gzip: 6 KB).
 
 One `<script type="module">` line and you're running.
-
-:::
-
-:::warp card-portable
-
-### Portable
-
-The core parser is pure functions with no DOM dependency. Works in Node.js and Deno, with iOS/Android portability in mind.
 
 :::
 
@@ -163,18 +155,6 @@ Standard Markdown has no cell-merging spec. lobster.js supports `\---` (vertical
     </script>
   </body>
 </html>
-```
-
-Works in Node.js / Deno too:
-
-```typescript
-import { toHTML, parseDocument } from "lobsterjs";
-
-// One-liner
-const html = toHTML("# Hello **lobster**");
-
-// Via AST (for custom renderers / tooling)
-const ast = parseDocument(markdownString);
 ```
 
 ---

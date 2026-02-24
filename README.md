@@ -66,17 +66,6 @@ The latest build is available via GitHub Pages:
 
 Or download `lobster.js` from the [releases page](https://github.com/Hacknock/lobsterjs/releases) and host it yourself.
 
-### npm / pnpm
-
-```sh
-pnpm add lobsterjs
-```
-
-```ts
-import { toHTML } from "lobsterjs";
-const html = toHTML("# Hello **world**");
-```
-
 ---
 
 ## API
