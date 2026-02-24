@@ -1,20 +1,37 @@
 {
-  "name": "lobsterjs",
+  "name": "@hacknock/lobster",
   "version": "0.2.0",
   "description": "Extended Markdown parser for rich web pages",
   "private": false,
   "type": "module",
-  "main": "./dist/lobster.js",
-  "module": "./dist/lobster.js",
-  "types": "./dist/lobster.d.ts",
+  "main": "./dist/lobster.node.cjs",
+  "module": "./dist/lobster.node.js",
+  "types": "./dist/index.node.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/lobster.js",
-      "types": "./dist/lobster.d.ts"
+      "node": {
+        "import": "./dist/lobster.node.js",
+        "require": "./dist/lobster.node.cjs",
+        "types": "./dist/index.node.d.ts"
+      },
+      "browser": {
+        "import": "./dist/lobster.js",
+        "types": "./dist/index.d.ts"
+      },
+      "default": {
+        "import": "./dist/lobster.node.js",
+        "require": "./dist/lobster.node.cjs",
+        "types": "./dist/index.node.d.ts"
+      }
     }
   },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "build": "vite build && tsc --emitDeclarationOnly --declaration --outDir dist",
+    "build": "vite build && vite build --config vite.node.config.ts && tsc --emitDeclarationOnly --declaration --outDir dist",
     "test": "vitest run",
     "test:watch": "vitest",
     "build:docs": "vite build && cp dist/lobster.js docs/lobster.js"
