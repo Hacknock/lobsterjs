@@ -208,7 +208,7 @@ Quick reference:
 
 | Class                                                      | Element            |
 | :--------------------------------------------------------- | :----------------- |
-| `lbs-heading-1` … `lbs-heading-6`                          | Headings (`<p>`)   |
+| `lbs-heading-1` … `lbs-heading-6`                          | Headings (`<h1>`…`<h6>`) |
 | `lbs-paragraph`                                            | Paragraph          |
 | `lbs-emphasis` / `lbs-strong` / `lbs-strikethrough`        | Inline decorations |
 | `lbs-code-span` / `lbs-code-block` / `lbs-code-filename`   | Code               |

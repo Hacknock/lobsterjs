@@ -28,12 +28,11 @@ CSS を自分で書く際、または AI に書かせる際の参照資料とし
 
 ### 見出し
 
-`# H1` ～ `###### H6` は `<hN>` ではなく `<p>` として出力されます。
-ページ見出し階層との衝突を避けるための設計です。
+`# H1` ～ `###### H6` はセマンティックな `<h1>`〜`<h6>` 要素として出力され、`lbs-heading-N` クラスが付与されます。
 
 ```html
-<p class="lbs-heading-1">…</p>
-<p class="lbs-heading-2">…</p>
+<h1 class="lbs-heading-1">…</h1>
+<h2 class="lbs-heading-2">…</h2>
 <!-- … lbs-heading-3 〜 lbs-heading-6 -->
 ```
 
@@ -221,7 +220,7 @@ const x = 1;
 ### AI に CSS を書いてもらう場合のプロンプト例
 
 > lobster.js という Markdown レンダラーを使っています。`lbs-*` クラス名が付与された HTML が出力されます。
-> 見出しは `<p class="lbs-heading-N">`、段落は `<p class="lbs-paragraph">`、
+> 見出しは `<h1 class="lbs-heading-1">`〜`<h6 class="lbs-heading-6">`、段落は `<p class="lbs-paragraph">`、
 > コードブロックは `<div class="lbs-code-block"><pre><code class="language-*">` という構造です。
 > 段組レイアウトは `<table class="lbs-table lbs-table-silent">` を使います。
 > [デザインの要件をここに書く] という CSS を書いてください。

@@ -49,9 +49,9 @@ lobster.js は拡張Markdown方言をパースしてHTML文書構造を生成す
 **HTML出力:**
 
 ```html
-<p class="lbs-heading-1">…</p>
+<h1 class="lbs-heading-1">…</h1>
 <!-- ～ -->
-<p class="lbs-heading-6">…</p>
+<h6 class="lbs-heading-6">…</h6>
 ```
 
 ---
@@ -524,7 +524,7 @@ console.log("Hello");
 
 | クラス | 要素 |
 | :----- | :--- |
-| `lbs-heading-1` 〜 `lbs-heading-6` | 見出し段落 |
+| `lbs-heading-1` 〜 `lbs-heading-6` | 見出し（`<h1>`〜`<h6>`） |
 | `lbs-paragraph` | 本文段落 |
 | `lbs-emphasis` | 斜体スパン |
 | `lbs-strong` | 太字スパン |

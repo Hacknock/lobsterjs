@@ -28,12 +28,11 @@ A rendered document is emitted in this order:
 
 ### Heading
 
-`# H1` through `###### H6` — rendered as `<p>`, not `<hN>`, to avoid conflicts
-with page-level heading hierarchy.
+`# H1` through `###### H6` — rendered as semantic `<h1>`…`<h6>` elements with `lbs-heading-N` class names.
 
 ```html
-<p class="lbs-heading-1">…</p>
-<p class="lbs-heading-2">…</p>
+<h1 class="lbs-heading-1">…</h1>
+<h2 class="lbs-heading-2">…</h2>
 <!-- … lbs-heading-3 through lbs-heading-6 -->
 ```
 
@@ -225,7 +224,7 @@ Add a `[data-theme="dark"]` attribute or use `prefers-color-scheme`:
 When asking an AI to write CSS for lobster.js, start with:
 
 > I'm using lobster.js, a Markdown renderer. It emits `lbs-*` class names.
-> Headings are `<p class="lbs-heading-N">`, paragraphs are `<p class="lbs-paragraph">`,
+> Headings are `<h1 class="lbs-heading-1">`…`<h6 class="lbs-heading-6">`, paragraphs are `<p class="lbs-paragraph">`,
 > code blocks are `<div class="lbs-code-block"><pre><code class="language-*">`.
 > Multi-column layout uses `<table class="lbs-table lbs-table-silent">`.
 > Please write CSS that [your design goal here].

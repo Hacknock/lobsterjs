@@ -51,9 +51,9 @@ Block-level elements (`:::header`, `:::footer`, `:::warp`) are extracted from th
 **HTML output:**
 
 ```html
-<p class="lbs-heading-1">…</p>
+<h1 class="lbs-heading-1">…</h1>
 <!-- through -->
-<p class="lbs-heading-6">…</p>
+<h6 class="lbs-heading-6">…</h6>
 ```
 
 ---
@@ -526,7 +526,7 @@ Prefix every row of a table with `~ ` to suppress borders:
 
 | Class | Element |
 | :---- | :------ |
-| `lbs-heading-1` … `lbs-heading-6` | Heading paragraphs |
+| `lbs-heading-1` … `lbs-heading-6` | Headings (`<h1>`…`<h6>`) |
 | `lbs-paragraph` | Body paragraph |
 | `lbs-emphasis` | Italic span |
 | `lbs-strong` | Bold span |
