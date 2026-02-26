@@ -4,26 +4,70 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>lobster.js</title>
-    <link rel="stylesheet" href="./style.css">
+    <link id="theme-css" rel="stylesheet" href="./style.css">
+    <script>
+      (function() {
+        var t = new URLSearchParams(location.search).get('theme');
+        if (['pop','pastel','formal','engineer'].indexOf(t) !== -1) {
+          document.getElementById('theme-css').href = './themes/' + t + '.css';
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="content">Loading...</div>
     <script type="module">
       import { loadMarkdown } from './lobster.js';
       const content = document.getElementById('content');
-      const lang = new URLSearchParams(location.search).get('lang') ?? 'en';
-      const src  = lang === 'ja' ? './content-ja.md' : './content.md';
+      const params = new URLSearchParams(location.search);
+      const lang  = params.get('lang') ?? 'en';
+      const theme = params.get('theme') || 'default';
+      const src   = lang === 'ja' ? './content-ja.md' : './content.md';
 
       document.documentElement.lang = lang === 'ja' ? 'ja' : 'en';
 
       loadMarkdown(src, content)
         .then(() => {
-          // Language toggle button
+          const header = document.querySelector('.lbs-header');
+          if (!header) return;
+
+          // Theme selector
+          const select = document.createElement('select');
+          select.className = 'lbs-theme-select';
+          [['default','Default'],['pop','Pop'],['pastel','Pastel'],
+           ['formal','Formal'],['engineer','Engineer']].forEach(([val, label]) => {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = label;
+            if (val === theme) opt.selected = true;
+            select.appendChild(opt);
+          });
+          select.addEventListener('change', () => {
+            const p = new URLSearchParams(location.search);
+            if (select.value === 'default') p.delete('theme');
+            else p.set('theme', select.value);
+            const qs = p.toString();
+            location.href = './' + (qs ? '?' + qs : '');
+          });
+          // Language toggle (preserves theme param)
           const toggle = document.createElement('a');
-          toggle.href = lang === 'ja' ? './' : './?lang=ja';
+          const tp = new URLSearchParams(location.search);
+          if (lang === 'ja') {
+            tp.delete('lang');
+          } else {
+            tp.set('lang', 'ja');
+          }
+          const tqs = tp.toString();
+          toggle.href = './' + (tqs ? '?' + tqs : '');
           toggle.textContent = lang === 'ja' ? 'English' : '日本語';
           toggle.className = 'lbs-lang-toggle';
-          document.querySelector('.lbs-header')?.appendChild(toggle);
+
+          // Wrap both controls in a flex container for height alignment
+          const controls = document.createElement('div');
+          controls.className = 'lbs-header-controls';
+          controls.appendChild(select);
+          controls.appendChild(toggle);
+          header.appendChild(controls);
         })
         .then(() => fetch(src))
         .then(r => r.text())
