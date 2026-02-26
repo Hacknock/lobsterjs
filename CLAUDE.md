@@ -76,7 +76,7 @@ header / footer / details (extracted before block parse)
 
 All rendered elements carry `lbs-*` CSS class names (e.g. `lbs-heading-1`, `lbs-paragraph`, `lbs-code-block`, `lbs-table`, `lbs-table-silent`). No inline styles except for table cell alignment (`style="text-align:..."`).
 
-Headings are rendered as `<p class="lbs-heading-N">` (not `<hN>`).
+Headings are rendered as `<hN class="lbs-heading-N">` (e.g. `<h1 class="lbs-heading-1">`).
 
 ### Browser API (dom.ts)
 
