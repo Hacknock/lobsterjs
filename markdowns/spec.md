@@ -247,11 +247,13 @@ Spaces are allowed before/after cell content and alignment markers. No spaces wi
 
 #### Cell Merge (Lobster extension)
 
-**Horizontal merge** — escape `|` inside a cell with `\|`; the cell merges with the adjacent one:
+**Horizontal merge** — the `\|` pattern is a merge marker: the `|` separator between two cells, when immediately preceded by `\`, causes the left cell to span two columns. Place the content in the left cell and leave the right cell empty:
 
 ```
 | A | B \|   |
 ```
+
+> **Constraint:** When both sides of `\|` contain content (e.g. `| A \| B |`), the right-side content (B) is silently dropped. Only the left-side content (A) is kept and given colspan=2. Write `| A \|   |` to clearly express a merge.
 
 **Vertical merge** — use `\---` (one or more dashes) in a cell to merge upward:
 
@@ -503,8 +505,28 @@ content
 
 **Example:**
 
+A silent table requires at least a header row and an alignment row. Warp references can appear in either the header row (Pattern A) or a data row (Pattern B).
+
+**Pattern A — warp refs in header row** (content rendered in `<th>`):
+
+```
+~ | [~col-left]  | [~col-right] |
+~ | :---         | :---         |
+
+:::warp col-left
+Left column content
+:::
+
+:::warp col-right
+Right column content
+:::
+```
+
+**Pattern B — warp refs in data row** (content rendered in `<td>`, recommended for layouts):
+
 ```
 ~ |     left     |     right    |
+~ | :---         | :---         |
 ~ | [~col-left]  | [~col-right] |
 
 :::warp col-left
