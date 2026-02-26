@@ -1,7 +1,10 @@
 {
   "name": "lobster-starter",
   "private": true,
+  "dependencies": {
+    "serve": "^14.0.0"
+  },
   "scripts": {
-    "start": "npx serve ."
+    "start": "serve ."
   }
 }
