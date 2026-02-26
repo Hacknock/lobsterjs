@@ -278,6 +278,40 @@ loadMarkdown("./content.md", document.getElementById("content")).then(() => hljs
 
 ---
 
+## Diagrams with Mermaid
+
+lobster.js renders fenced ` ```mermaid ` blocks as `<code class="language-mermaid">`. After `loadMarkdown()` resolves, replace those elements with Mermaid's expected `<div class="mermaid">` and call `mermaid.run()`.
+
+````markdown
+```mermaid
+flowchart LR
+  A[Plan] --> B[Delay] --> C[Cancel] --> D[Apologize] --> A
+```
+````
+
+```html
+<script type="module">
+  import { loadMarkdown } from "https://hacknock.github.io/lobsterjs/lobster.js";
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+  mermaid.initialize({ startOnLoad: false });
+
+  await loadMarkdown("./content.md", document.getElementById("content"));
+
+  document.querySelectorAll("code.language-mermaid").forEach(code => {
+    const wrapper = code.closest(".lbs-code-block");
+    const div = document.createElement("div");
+    div.className = "mermaid";
+    div.textContent = code.textContent;
+    (wrapper ?? code).replaceWith(div);
+  });
+
+  await mermaid.run();
+</script>
+```
+
+---
+
 ## Claude Code skills
 
 If you use [Claude Code](https://claude.ai/code), this repository ships two slash commands in `.claude/commands/`:
