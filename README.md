@@ -29,7 +29,7 @@ It provides **document structure only**; appearance is entirely up to CSS via pr
 </html>
 ```
 
-lobster.js outputs semantic HTML with `lbs-*` class names. No default stylesheet is bundled — styling is entirely up to you. See [`docs/style.css`](./docs/style.css) for a starter example.
+lobster.js outputs semantic HTML with `lbs-*` class names. No stylesheet is bundled in the package — styling is entirely up to you. Ready-to-use CSS themes are provided in [`docs/themes/`](./docs/themes/) for quick starts and inspiration.
 
 ---
 
@@ -218,6 +218,22 @@ Quick reference:
 | `lbs-header` / `lbs-footer`                                | Page regions       |
 | `lbs-details` / `lbs-summary`                              | Collapsible        |
 | `lbs-footnote-ref` / `lbs-footnotes` / `lbs-footnote-item` | Footnotes          |
+
+---
+
+## Themes
+
+The repository ships several ready-to-use stylesheets you can copy and adapt:
+
+| File | Style |
+| :--- | :---- |
+| [`docs/style.css`](./docs/style.css) | **Default** — clean, minimal, light |
+| [`docs/themes/pop.css`](./docs/themes/pop.css) | **Pop** — bright, rounded, playful (coral/pink) |
+| [`docs/themes/pastel.css`](./docs/themes/pastel.css) | **Pastel** — soft, dreamy, gentle (lavender/mint) |
+| [`docs/themes/formal.css`](./docs/themes/formal.css) | **Formal** — strict, professional, serif (navy) |
+| [`docs/themes/engineer.css`](./docs/themes/engineer.css) | **Engineer** — dark, terminal-like, dev-tool feel |
+
+You can switch between them on the [demo page](https://Hacknock.github.io/lobsterjs/) using the theme selector in the page header.
 
 ---
 
