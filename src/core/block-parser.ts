@@ -39,11 +39,16 @@ function isHorizontalRule(line: string): boolean {
   return /^\s*(-\s*){3,}$/.test(line) || /^\s*(\*\s*){3,}$/.test(line);
 }
 
-/** Returns heading level and content, or null */
-function matchHeading(line: string): { level: number; text: string } | null {
+/** Returns heading level, content, and optional anchor id, or null */
+function matchHeading(line: string): { level: number; text: string; id?: string } | null {
   const m = line.match(/^(#{1,6})\s+(.+?)(\s+#+\s*)?$/);
   if (!m) return null;
-  return { level: m[1].length, text: m[2].trimEnd() };
+  const raw = m[2].trimEnd();
+  const idMatch = raw.match(/^(.*?)\s*\{#([^}]+)\}\s*$/);
+  if (idMatch) {
+    return { level: m[1].length, text: idMatch[1].trimEnd(), id: idMatch[2] };
+  }
+  return { level: m[1].length, text: raw };
 }
 
 /** Returns code fence info (marker + language + filename) or null */
@@ -398,6 +403,7 @@ function tryParseHeading(
   const node: HeadingNode = {
     type: "heading",
     level: m.level as HeadingNode["level"],
+    ...(m.id !== undefined && { id: m.id }),
     children: parseInline(m.text, ctx),
   };
   return { node, nextIndex: i + 1 };

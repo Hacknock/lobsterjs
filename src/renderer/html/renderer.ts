@@ -187,7 +187,8 @@ function renderBlockNode(node: BlockNode, ctx: RenderContext): string {
 
 function renderHeading(node: HeadingNode, ctx: RenderContext): string {
   const content = renderInlineNodes(node.children, ctx);
-  return `<h${node.level} class="lbs-heading-${node.level}">${content}</h${node.level}>`;
+  const idAttr = node.id ? ` id="${node.id}"` : "";
+  return `<h${node.level} class="lbs-heading-${node.level}"${idAttr}>${content}</h${node.level}>`;
 }
 
 function renderParagraph(node: ParagraphNode, ctx: RenderContext): string {
