@@ -1,0 +1,7 @@
+{
+  "name": "lobster-starter",
+  "private": true,
+  "scripts": {
+    "start": "npx serve ."
+  }
+}
