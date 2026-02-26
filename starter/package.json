@@ -1,10 +1,10 @@
 {
   "name": "lobster-starter",
   "private": true,
-  "dependencies": {
-    "serve": "^14.0.0"
-  },
   "scripts": {
-    "start": "serve ."
+    "start": "vite"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
   }
 }
