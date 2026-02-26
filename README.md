@@ -278,6 +278,19 @@ loadMarkdown("./content.md", document.getElementById("content")).then(() => hljs
 
 ---
 
+## Claude Code skills
+
+If you use [Claude Code](https://claude.ai/code), this repository ships two slash commands in `.claude/commands/`:
+
+| Command | What it does |
+| :--- | :--- |
+| `/lobster-init` | Scaffolds `index.html` + `content.md`. Pass a description to generate real content, or omit it for a bare skeleton. |
+| `/lobster-css` | Generates a CSS stylesheet targeting `lbs-*` class names. Describe the design you want. |
+
+Clone the repo and the commands are immediately available in any Claude Code session opened in this directory.
+
+---
+
 ## Development
 
 ### Requirements
