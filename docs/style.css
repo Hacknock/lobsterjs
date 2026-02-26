@@ -20,11 +20,7 @@
   line-height: 1.7;
 }
 
-/* Headings — reset UA defaults, then apply lbs styles */
-h1.lbs-heading-1, h2.lbs-heading-2, h3.lbs-heading-3,
-h4.lbs-heading-4, h5.lbs-heading-5, h6.lbs-heading-6 {
-  font-size: inherit; font-weight: inherit; margin: 0; padding: 0;
-}
+/* Headings */
 .lbs-heading-1 { font-size: 2em; font-weight: 700; margin: 1.5em 0 0.5em; }
 .lbs-heading-2 { font-size: 1.5em; font-weight: 600; margin: 1.4em 0 0.4em; border-bottom: 1px solid var(--lbs-border); padding-bottom: 0.3em; }
 .lbs-heading-3 { font-size: 1.25em; font-weight: 600; margin: 1.3em 0 0.3em; }
