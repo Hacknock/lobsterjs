@@ -46,12 +46,26 @@ lobster.js は拡張Markdown方言をパースしてHTML文書構造を生成す
 - 行末のスペース + `#` は無視する: `# タイトル ##` → H1「タイトル」。
 - 同じ行内の他のMarkdown記法も内包できる。
 
+**アンカーID（任意）:**
+
+見出し行の末尾に `{#id}` を付けると、HTML の `id` 属性を明示的に指定できる:
+
+```
+## セクション名 {#section-name}
+```
+
+- `{#id}` は表示テキストから除去され、HTML の `id` 属性として出力される。
+- ページ内リンク（`href="#section-name"`）や深いリンクに利用できる。
+
 **HTML出力:**
 
 ```html
 <h1 class="lbs-heading-1">…</h1>
 <!-- ～ -->
 <h6 class="lbs-heading-6">…</h6>
+
+<!-- アンカーID付き -->
+<h2 class="lbs-heading-2" id="section-name">セクション名</h2>
 ```
 
 ---

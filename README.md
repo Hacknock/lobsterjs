@@ -43,6 +43,7 @@ lobster.js outputs semantic HTML with `lbs-*` class names. No stylesheet is bund
   - Silent tables (`~ | … |`) — borderless layout grids
   - Table cell merging — horizontal (`\|`) and vertical (`\---`) colspan/rowspan
   - Image sizing — `![alt](url =800x600)`
+  - Heading anchors — `## My Section {#my-section}` adds an `id` attribute for deep linking
   - Footnotes — reference (`[^id]`) and inline (`^[text]`)
 - **CSS-first styling** — all elements get `lbs-*` class names; bring your own stylesheet
 - **Multi-file loading** — pass an array of paths to `loadMarkdown` to merge multiple Markdown files into one page; all warp/link/footnote definitions are shared across files

@@ -48,12 +48,26 @@ Block-level elements (`:::header`, `:::footer`, `:::warp`) are extracted from th
 - Trailing `#` characters preceded by a space are ignored: `# Title ##` → H1 "Title".
 - Text on the same line (including other Markdown) forms the heading content.
 
+**Anchor ID (optional):**
+
+Append `{#id}` at the end of a heading line to set an explicit `id` attribute:
+
+```
+## My Section {#my-section}
+```
+
+- The `{#id}` suffix is stripped from the visible text and emitted as an HTML `id`.
+- Useful for deep-linking and in-page navigation (`href="#my-section"`).
+
 **HTML output:**
 
 ```html
 <h1 class="lbs-heading-1">…</h1>
 <!-- through -->
 <h6 class="lbs-heading-6">…</h6>
+
+<!-- with anchor id -->
+<h2 class="lbs-heading-2" id="my-section">My Section</h2>
 ```
 
 ---
