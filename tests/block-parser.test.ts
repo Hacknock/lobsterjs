@@ -351,6 +351,44 @@ describe("parseDocument", () => {
     expect(doc.warpDefs["col"]).toBeDefined();
   });
 
+  it(":::warp nested inside :::header does not cause infinite loop", () => {
+    const md = [
+      ":::header",
+      "",
+      "~ | [~hdr-icon] | [~hdr-title] |",
+      "~ | :--- | :--- |",
+      "",
+      ":::warp hdr-icon",
+      "![icon](./icon.png =100x)",
+      ":::",
+      "",
+      ":::warp hdr-title",
+      "# Title",
+      ":::",
+      "",
+      ":::",
+    ].join("\n");
+    const doc = parseDocument(md);
+    expect(doc.header).toBeDefined();
+    expect(doc.warpDefs["hdr-icon"]).toBeDefined();
+    expect(doc.warpDefs["hdr-title"]).toBeDefined();
+  });
+
+  it(":::warp nested inside :::footer does not cause infinite loop", () => {
+    const md = [
+      ":::footer",
+      "",
+      ":::warp col",
+      "Footer content",
+      ":::",
+      "",
+      ":::",
+    ].join("\n");
+    const doc = parseDocument(md);
+    expect(doc.footer).toBeDefined();
+    expect(doc.warpDefs["col"]).toBeDefined();
+  });
+
   it(":::warp nested inside :::details is extracted correctly", () => {
     const md = [
       ":::details Title",

@@ -287,9 +287,25 @@ function extractCustomBlocks(
           else if (/^\s*:::\s*$/.test(l)) { if (depth === 0) break; depth--; }
           innerLines.push(l); i++;
         } i++; } // skip :::
-      // Parse header content (later, after ctx is populated)
-      header = { type: "header_container", children: [] };
-      header.children = parseBlocks(innerLines, ctx);
+      // Recursively extract nested :::warp / :::details from this block's content
+      // so that parseBlocks never sees raw :::xxx lines (which would cause infinite loop)
+      const nestedHeader = extractCustomBlocks(innerLines, ctx);
+      Object.assign(warpDefs, nestedHeader.warpDefs);
+      let headerChildren = parseBlocks(nestedHeader.remainingLines, ctx);
+      if (nestedHeader.detailsBlocks.length > 0) {
+        headerChildren = headerChildren.map((node) => {
+          if (node.type === "paragraph" && node.children.length === 1 && node.children[0].type === "text") {
+            const txt = (node.children[0] as { type: string; text: string }).text;
+            const pm = txt.match(/^__DETAILS_PLACEHOLDER_(\d+)__$/);
+            if (pm) {
+              const idx = parseInt(pm[1], 10);
+              if (nestedHeader.detailsBlocks[idx]) return nestedHeader.detailsBlocks[idx].node;
+            }
+          }
+          return node;
+        });
+      }
+      header = { type: "header_container", children: headerChildren };
       continue;
     }
 
@@ -303,8 +319,25 @@ function extractCustomBlocks(
           else if (/^\s*:::\s*$/.test(l)) { if (depth === 0) break; depth--; }
           innerLines.push(l); i++;
         } i++; }
-      footer = { type: "footer_container", children: [] };
-      footer.children = parseBlocks(innerLines, ctx);
+      // Recursively extract nested :::warp / :::details from this block's content
+      // so that parseBlocks never sees raw :::xxx lines (which would cause infinite loop)
+      const nestedFooter = extractCustomBlocks(innerLines, ctx);
+      Object.assign(warpDefs, nestedFooter.warpDefs);
+      let footerChildren = parseBlocks(nestedFooter.remainingLines, ctx);
+      if (nestedFooter.detailsBlocks.length > 0) {
+        footerChildren = footerChildren.map((node) => {
+          if (node.type === "paragraph" && node.children.length === 1 && node.children[0].type === "text") {
+            const txt = (node.children[0] as { type: string; text: string }).text;
+            const pm = txt.match(/^__DETAILS_PLACEHOLDER_(\d+)__$/);
+            if (pm) {
+              const idx = parseInt(pm[1], 10);
+              if (nestedFooter.detailsBlocks[idx]) return nestedFooter.detailsBlocks[idx].node;
+            }
+          }
+          return node;
+        });
+      }
+      footer = { type: "footer_container", children: footerChildren };
       continue;
     }
 
