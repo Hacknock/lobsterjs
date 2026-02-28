@@ -17,9 +17,8 @@ This page itself is rendered by lobster.js^[index.html is just 15 lines. Load lo
 Tasks requiring embedded HTML in standard Markdown can be done with simple extended syntax in lobster.js.
 Even the 2-column layout below is possible without any HTML.
 
-~ | | |
-~ | :--- | :--- |
 ~ | [~compare-no] | [~compare-yes] |
+~ | :--- | :--- |
 
 :::warp compare-no
 
@@ -42,7 +41,8 @@ Even the 2-column layout below is possible without any HTML.
 - Collapsible → `:::details Title`
 - Header / footer → `:::header` / `:::footer`
 - Footnotes → `[^id]` or inline `^[text]`
-  :::
+
+:::
 
 ---
 
@@ -51,9 +51,8 @@ Even the 2-column layout below is possible without any HTML.
 Define a named content block with `:::warp id`, then place it anywhere using `[~id]`.
 Put warp references into a silent table (`~ |`) and you get a full column layout — no HTML, no CSS required.
 
-~ | | |
-~ | :--- | :--- |
 ~ | [~card-light] | [~card-ast] |
+~ | :--- | :--- |
 
 :::warp card-light
 
@@ -81,9 +80,8 @@ Standard Markdown requires you to write raw `<details>` HTML. With lobster.js, j
 
 :::details Inline syntax cheatsheet (click to expand)
 
-~ | | |
-~ | :--- | :--- |
 ~ | [~cheat-inline] | [~cheat-block] |
+~ | :--- | :--- |
 
 :::warp cheat-inline
 
@@ -166,8 +164,8 @@ npm install @hacknock/lobster
 ```
 
 ```js
-import { toHTML } from '@hacknock/lobster';
-const html = toHTML('# Hello\n\nThis is **lobster**.');
+import { toHTML } from "@hacknock/lobster";
+const html = toHTML("# Hello\n\nThis is **lobster**.");
 ```
 
 ---
