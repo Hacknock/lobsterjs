@@ -67,7 +67,6 @@
 
 /* Silent table — used as a layout grid */
 .lbs-table-silent { table-layout: fixed; width: 100%; }
-.lbs-table-silent thead { display: none; }
 .lbs-table-silent th,
 .lbs-table-silent td { border: none; vertical-align: top; padding: 0.5rem 1.5rem 0.5rem 0; }
 .lbs-table-silent th:last-child,

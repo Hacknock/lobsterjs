@@ -75,7 +75,6 @@ body { background: var(--lbs-bg); }
 
 /* Silent table */
 .lbs-table-silent { table-layout: fixed; width: 100%; border: none; border-radius: 0; }
-.lbs-table-silent thead { display: none; }
 .lbs-table-silent th,
 .lbs-table-silent td { border: none; background: none; vertical-align: top; padding: 0.5rem 1.5rem 0.5rem 0; }
 .lbs-table-silent th:last-child,
