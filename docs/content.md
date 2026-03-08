@@ -58,7 +58,7 @@ Put warp references into a silent table (`~ |`) and you get a full column layout
 
 ### Lightweight
 
-Zero dependencies. ESM bundle is **22 KB** (gzip: 6 KB).
+Zero dependencies. ESM bundle is **26 KB** (gzip: 7 KB).
 
 One `<script type="module">` line and you're running.
 
