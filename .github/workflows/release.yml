@@ -30,14 +30,11 @@ jobs:
       - run: pnpm build
 
       - name: Package skills
-        run: |
-          cd skills/lobster-init && zip -r ../../lobster-init.skill . && cd ../..
-          cd skills/lobster-css  && zip -r ../../lobster-css.skill  . && cd ../..
+        run: zip -r lobster-skills.zip skills/
 
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
             dist/lobster.js
-            lobster-init.skill
-            lobster-css.skill
+            lobster-skills.zip
