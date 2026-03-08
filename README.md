@@ -125,10 +125,7 @@ import { loadMarkdown } from "@hacknock/lobster";
 await loadMarkdown("./content.md", document.getElementById("content"));
 
 // Multiple files — fetched in parallel, merged before parsing
-await loadMarkdown(
-  ["./shared.md", "./content.md"],
-  document.getElementById("content")
-);
+await loadMarkdown(["./shared.md", "./content.md"], document.getElementById("content"));
 ```
 
 ---
@@ -207,18 +204,18 @@ an AI prompt template, see **[markdowns/styling.md](./markdowns/styling.md)**.
 
 Quick reference:
 
-| Class                                                      | Element            |
-| :--------------------------------------------------------- | :----------------- |
+| Class                                                      | Element                  |
+| :--------------------------------------------------------- | :----------------------- |
 | `lbs-heading-1` … `lbs-heading-6`                          | Headings (`<h1>`…`<h6>`) |
-| `lbs-paragraph`                                            | Paragraph          |
-| `lbs-emphasis` / `lbs-strong` / `lbs-strikethrough`        | Inline decorations |
-| `lbs-code-span` / `lbs-code-block` / `lbs-code-filename`   | Code               |
-| `lbs-blockquote`                                           | Blockquote         |
-| `lbs-ul` / `lbs-ol` / `lbs-list-item` / `lbs-checkbox`     | Lists              |
-| `lbs-table` / `lbs-table-silent`                           | Tables             |
-| `lbs-header` / `lbs-footer`                                | Page regions       |
-| `lbs-details` / `lbs-summary`                              | Collapsible        |
-| `lbs-footnote-ref` / `lbs-footnotes` / `lbs-footnote-item` | Footnotes          |
+| `lbs-paragraph`                                            | Paragraph                |
+| `lbs-emphasis` / `lbs-strong` / `lbs-strikethrough`        | Inline decorations       |
+| `lbs-code-span` / `lbs-code-block` / `lbs-code-filename`   | Code                     |
+| `lbs-blockquote`                                           | Blockquote               |
+| `lbs-ul` / `lbs-ol` / `lbs-list-item` / `lbs-checkbox`     | Lists                    |
+| `lbs-table` / `lbs-table-silent`                           | Tables                   |
+| `lbs-header` / `lbs-footer`                                | Page regions             |
+| `lbs-details` / `lbs-summary`                              | Collapsible              |
+| `lbs-footnote-ref` / `lbs-footnotes` / `lbs-footnote-item` | Footnotes                |
 
 ---
 
@@ -226,12 +223,12 @@ Quick reference:
 
 The repository ships several ready-to-use stylesheets you can copy and adapt:
 
-| File | Style |
-| :--- | :---- |
-| [`docs/style.css`](./docs/style.css) | **Default** — clean, minimal, light |
-| [`docs/themes/pop.css`](./docs/themes/pop.css) | **Pop** — bright, rounded, playful (coral/pink) |
-| [`docs/themes/pastel.css`](./docs/themes/pastel.css) | **Pastel** — soft, dreamy, gentle (lavender/mint) |
-| [`docs/themes/formal.css`](./docs/themes/formal.css) | **Formal** — strict, professional, serif (navy) |
+| File                                                     | Style                                             |
+| :------------------------------------------------------- | :------------------------------------------------ |
+| [`docs/style.css`](./docs/style.css)                     | **Default** — clean, minimal, light               |
+| [`docs/themes/pop.css`](./docs/themes/pop.css)           | **Pop** — bright, rounded, playful (coral/pink)   |
+| [`docs/themes/pastel.css`](./docs/themes/pastel.css)     | **Pastel** — soft, dreamy, gentle (lavender/mint) |
+| [`docs/themes/formal.css`](./docs/themes/formal.css)     | **Formal** — strict, professional, serif (navy)   |
 | [`docs/themes/engineer.css`](./docs/themes/engineer.css) | **Engineer** — dark, terminal-like, dev-tool feel |
 
 You can switch between them on the [demo page](https://Hacknock.github.io/lobsterjs/) using the theme selector in the page header.
@@ -299,7 +296,7 @@ flowchart LR
 
   await loadMarkdown("./content.md", document.getElementById("content"));
 
-  document.querySelectorAll("code.language-mermaid").forEach(code => {
+  document.querySelectorAll("code.language-mermaid").forEach((code) => {
     const wrapper = code.closest(".lbs-code-block");
     const div = document.createElement("div");
     div.className = "mermaid";
@@ -315,14 +312,24 @@ flowchart LR
 
 ## Claude Code skills
 
-If you use [Claude Code](https://claude.ai/code), this repository ships two slash commands in `.claude/commands/`:
+If you use [Claude Code](https://claude.ai/code), two skills are available for lobster.js:
 
-| Command | What it does |
-| :--- | :--- |
-| `/lobster-init` | Scaffolds `index.html` + `content.md`. Pass a description to generate real content, or omit it for a bare skeleton. |
-| `/lobster-css` | Generates a CSS stylesheet targeting `lbs-*` class names. Describe the design you want. |
+| Skill          | What it does                                                                                                    |
+| :------------- | :-------------------------------------------------------------------------------------------------------------- |
+| `lobster-init` | Scaffolds `index.html` + `content.md`. Describe the page to generate real content, or omit for a bare skeleton. |
+| `lobster-css`  | Generates a CSS stylesheet targeting `lbs-*` class names. Describe the design you want.                         |
 
-Clone the repo and the commands are immediately available in any Claude Code session opened in this directory.
+### Installation
+
+Download `lobster-init.skill` and `lobster-css.skill` from the [latest release](https://github.com/Hacknock/lobsterjs/releases/latest) and install them:
+
+```sh
+# Global install — available in every Claude Code session
+unzip lobster-init.skill -d ~/.claude/skills/lobster-init
+unzip lobster-css.skill  -d ~/.claude/skills/lobster-css
+```
+
+Once installed, Claude will use the skills automatically when you ask to create or style a lobster.js page, or invoke them explicitly as `/lobster-init` and `/lobster-css`.
 
 ---
 
