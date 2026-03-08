@@ -321,12 +321,11 @@ If you use [Claude Code](https://claude.ai/code), two skills are available for l
 
 ### Installation
 
-Download `lobster-init.skill` and `lobster-css.skill` from the [latest release](https://github.com/Hacknock/lobsterjs/releases/latest) and install them:
+Download `lobster-skills.zip` from the [latest release](https://github.com/Hacknock/lobsterjs/releases/latest) and install them:
 
 ```sh
 # Global install — available in every Claude Code session
-unzip lobster-init.skill -d ~/.claude/skills/lobster-init
-unzip lobster-css.skill  -d ~/.claude/skills/lobster-css
+unzip lobster-skills.zip -d ~/.claude/
 ```
 
 Once installed, Claude will use the skills automatically when you ask to create or style a lobster.js page, or invoke them explicitly as `/lobster-init` and `/lobster-css`.
