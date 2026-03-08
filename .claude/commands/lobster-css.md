@@ -58,8 +58,18 @@ lobster.js outputs semantic HTML where every element has a predictable `lbs-*` c
   <tbody><tr><td> … </td></tr></tbody>
 </table>
 
-<!-- Table (silent — borderless layout grid) -->
-<table class="lbs-table lbs-table-silent"> … </table>
+<!-- Table (silent — Warp layout grid) -->
+<!-- CRITICAL: Warp column content renders in <thead><tr><th>, NOT <tbody><tr><td> -->
+<!-- Never apply display:none to thead on silent tables — it hides all Warp content -->
+<table class="lbs-table lbs-table-silent">
+  <thead>
+    <tr>
+      <th><!-- :::warp col-a content rendered here --></th>
+      <th><!-- :::warp col-b content rendered here --></th>
+    </tr>
+  </thead>
+  <tbody><!-- typically empty --></tbody>
+</table>
 
 <!-- Image -->
 <img class="lbs-image" src="…" alt="…" />
@@ -89,3 +99,8 @@ lobster.js outputs semantic HTML where every element has a predictable `lbs-*` c
 - For dark themes, also style `::-webkit-scrollbar` for a polished feel
 - Do not add inline styles or JavaScript — CSS only
 - If `$ARGUMENTS` is empty, generate a clean minimal light theme
+- **Warp / silent table layout:**
+  - Warp content lives in `th` cells — style `.lbs-table-silent th` (not `td`)
+  - To create column gaps, use `padding-right` on `th` (e.g. `padding: 0 0.75rem 0 0`) and `padding-right: 0` on `th:last-child`
+  - Do NOT use `border-collapse: separate` + `border-spacing` — it can break the layout
+  - Do NOT hide `thead` on silent tables (`display: none` will hide all Warp content)
