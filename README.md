@@ -54,19 +54,6 @@ lobster.js outputs semantic HTML with `lbs-*` class names. No stylesheet is bund
 
 ## Installation
 
-### npm / pnpm
-
-```sh
-npm install @hacknock/lobster
-# or
-pnpm add @hacknock/lobster
-```
-
-```ts
-import { toHTML } from "@hacknock/lobster";
-const html = toHTML("# Hello\n\nThis is **lobster**.");
-```
-
 ### CDN / local file
 
 The latest build is available via GitHub Pages:
@@ -79,6 +66,19 @@ The latest build is available via GitHub Pages:
 ```
 
 Or download `lobster.js` from the [releases page](https://github.com/Hacknock/lobsterjs/releases) and host it yourself.
+
+### npm / pnpm
+
+```sh
+npm install @hacknock/lobster
+# or
+pnpm add @hacknock/lobster
+```
+
+```ts
+import { toHTML } from "@hacknock/lobster";
+const html = toHTML("# Hello\n\nThis is **lobster**.");
+```
 
 ---
 
