@@ -274,8 +274,28 @@ function extractCustomBlocks(
   const detailsBlocks: { startIdx: number; node: DetailsNode }[] = [];
 
   let i = 0;
+  let inCodeFence: string | null = null; // tracks the fence marker (``` or ~~~)
   while (i < lines.length) {
     const line = lines[i];
+
+    // Track code fences so we don't extract ::: blocks inside them
+    const fenceMatch = line.match(/^(`{3,}|~{3,})/);
+    if (fenceMatch) {
+      if (inCodeFence === null) {
+        inCodeFence = fenceMatch[1];
+      } else if (line.startsWith(inCodeFence[0]) && line.trimEnd().length >= inCodeFence.length && line.trimEnd() === inCodeFence[0].repeat(line.trimEnd().length)) {
+        inCodeFence = null;
+      }
+      remainingLines.push(line);
+      i++;
+      continue;
+    }
+
+    if (inCodeFence !== null) {
+      remainingLines.push(line);
+      i++;
+      continue;
+    }
 
     if (/^:::header\s*$/.test(line)) {
       const innerLines: string[] = [];

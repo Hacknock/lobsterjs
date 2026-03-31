@@ -351,6 +351,51 @@ describe("parseDocument", () => {
     expect(doc.warpDefs["col"]).toBeDefined();
   });
 
+  it(":::warp inside a code fence is treated as plain text", () => {
+    const md = [
+      "```markdown",
+      ":::warp my-block",
+      "This content can be placed anywhere.",
+      ":::",
+      "",
+      "See it here: [~my-block]",
+      "```",
+    ].join("\n");
+    const doc = parseDocument(md);
+    expect(doc.warpDefs["my-block"]).toBeUndefined();
+    expect(doc.body[0].type).toBe("code_block");
+    const code = doc.body[0] as CodeBlockNode;
+    expect(code.code).toContain(":::warp my-block");
+    expect(code.code).toContain("See it here: [~my-block]");
+  });
+
+  it(":::header inside a code fence is treated as plain text", () => {
+    const md = [
+      "```",
+      ":::header",
+      "# Title",
+      ":::",
+      "```",
+    ].join("\n");
+    const doc = parseDocument(md);
+    expect(doc.header).toBeUndefined();
+    expect(doc.body[0].type).toBe("code_block");
+  });
+
+  it(":::details inside a code fence is treated as plain text", () => {
+    const md = [
+      "~~~",
+      ":::details Click me",
+      "Hidden content",
+      ":::",
+      "~~~",
+    ].join("\n");
+    const doc = parseDocument(md);
+    expect(doc.body[0].type).toBe("code_block");
+    const code = doc.body[0] as CodeBlockNode;
+    expect(code.code).toContain(":::details Click me");
+  });
+
   it(":::warp nested inside :::header does not cause infinite loop", () => {
     const md = [
       ":::header",
