@@ -448,6 +448,31 @@ describe("parseDocument", () => {
     expect(doc.warpDefs["inner"]).toBeDefined();
   });
 
+  it(":::warp nested inside :::warp does not cause infinite loop", () => {
+    const md = [
+      ":::warp outer",
+      ":::warp inner",
+      "Inner content",
+      ":::",
+      ":::",
+    ].join("\n");
+    const doc = parseDocument(md);
+    expect(doc.warpDefs["outer"]).toBeDefined();
+    expect(doc.warpDefs["inner"]).toBeDefined();
+  });
+
+  it(":::details nested inside :::warp does not cause infinite loop", () => {
+    const md = [
+      ":::warp warp-with-details",
+      ":::details Click me",
+      "Hidden content",
+      ":::",
+      ":::",
+    ].join("\n");
+    const doc = parseDocument(md);
+    expect(doc.warpDefs["warp-with-details"]).toBeDefined();
+  });
+
   it(":::details closes at correct ::: when nested :::warp is present", () => {
     const md = [
       ":::details Title",
