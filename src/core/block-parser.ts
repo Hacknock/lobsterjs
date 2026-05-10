@@ -378,7 +378,25 @@ function extractCustomBlocks(
         id,
         children: [], // filled below
       };
-      warpNode.children = parseBlocks(innerLines, ctx);
+      // Recursively extract nested :::warp / :::details from this block's content
+      // so that parseBlocks never sees raw :::xxx lines (which would cause infinite loop)
+      const nestedWarp = extractCustomBlocks(innerLines, ctx);
+      Object.assign(warpDefs, nestedWarp.warpDefs);
+      let warpChildren = parseBlocks(nestedWarp.remainingLines, ctx);
+      if (nestedWarp.detailsBlocks.length > 0) {
+        warpChildren = warpChildren.map((node) => {
+          if (node.type === "paragraph" && node.children.length === 1 && node.children[0].type === "text") {
+            const txt = (node.children[0] as { type: string; text: string }).text;
+            const pm = txt.match(/^__DETAILS_PLACEHOLDER_(\d+)__$/);
+            if (pm) {
+              const idx = parseInt(pm[1], 10);
+              if (nestedWarp.detailsBlocks[idx]) return nestedWarp.detailsBlocks[idx].node;
+            }
+          }
+          return node;
+        });
+      }
+      warpNode.children = warpChildren;
       // If id is duplicated, treat as plain text (spec) — simple: just overwrite
       if (warpDefs[id]) {
         // Duplicate: mark as invalid (renderer will treat as plain text)
