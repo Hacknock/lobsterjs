@@ -10,18 +10,18 @@ Spec: `markdowns/spec.md` (English), `markdowns/spec-ja.md` (Japanese)
 
 ## Commands
 
-This project uses **pnpm** (enforced — npm/yarn will error).
+This project uses **npm** (declared via `devEngines`; requires npm `>=11.10.0` for the `min-release-age` setting in `.npmrc`).
 
 ```bash
-pnpm test           # Run all tests once (Vitest)
-pnpm test:watch     # Run tests in watch mode
-pnpm run build      # Build ESM bundle + emit .d.ts declarations
-pnpm run build:docs # Build and copy dist/lobster.js → docs/lobster.js
+npm test           # Run all tests once (Vitest)
+npm run test:watch # Run tests in watch mode
+npm run build      # Build ESM bundle + emit .d.ts declarations
+npm run build:docs # Build and copy dist/lobster.js → docs/lobster.js
 ```
 
 To run a single test file:
 ```bash
-pnpm vitest run tests/block-parser.test.ts
+npx vitest run tests/block-parser.test.ts
 ```
 
 ## Architecture

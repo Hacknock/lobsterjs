@@ -336,33 +336,34 @@ Once installed, Claude will use the skills automatically when you ask to create 
 
 ### Requirements
 
-| Tool                          | Version    |
-| :---------------------------- | :--------- |
-| [mise](https://mise.jdx.dev/) | 2026.2.19+ |
-| pnpm                          | 10.30.1    |
-| Node.js                       | 24.13.1    |
+| Tool    | Version   |
+| :------ | :-------- |
+| Node.js | 24.13.1   |
+| npm     | >=11.10.0 |
+
+`.npmrc` sets `min-release-age=7` so newly published package versions (less than 7 days old) are not installed — a mitigation against npm supply-chain attacks. This requires npm 11.10.0 or later.
 
 ### Setup
 
 ```sh
-# Install mise
-brew install mise
-echo 'eval "$(mise activate zsh)"' >> ~/.zshrc
+# Use any Node version manager (nodenv, fnm, asdf, etc.) — .node-version pins 24.13.1
+nodenv install   # if using nodenv
 
-# Install pnpm and Node.js (versions defined in mise.toml)
-mise install
+# Node 24.13.1 ships with npm 11.x but may be older than 11.10.0;
+# upgrade so the min-release-age policy in .npmrc takes effect.
+npm install -g npm@latest
 
-# Install dependencies
-pnpm install
+# Install dependencies (uses package-lock.json)
+npm ci
 ```
 
 ### Commands
 
 ```sh
-pnpm test          # Run tests (Vitest)
-pnpm test:watch    # Watch mode
-pnpm build         # Bundle to dist/
-pnpm build:docs    # Copy bundle to docs/ for GitHub Pages
+npm test           # Run tests (Vitest)
+npm run test:watch # Watch mode
+npm run build      # Bundle to dist/
+npm run build:docs # Copy bundle to docs/ for GitHub Pages
 ```
 
 ### Project structure
@@ -394,7 +395,7 @@ Issues and pull requests are welcome.
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feat/my-feature`
 3. Add tests for any new behaviour
-4. Run `pnpm test` and make sure all tests pass
+4. Run `npm test` and make sure all tests pass
 5. Open a pull request
 
 ---
