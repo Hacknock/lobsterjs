@@ -1,7 +1,7 @@
 {
   "name": "@hacknock/lobster",
   "version": "0.3.1",
-  "description": "Build web pages from Markdown only \u2014 extended parser with layout blocks, no build step, CSS-first",
+  "description": "Build web pages from Markdown only — extended parser with layout blocks, no build step, CSS-first",
   "keywords": [
     "markdown",
     "markdown-parser",
@@ -65,8 +65,7 @@
   "devEngines": {
     "packageManager": {
       "name": "npm",
-      "onFail": "error",
-      "version": "12.2.1"
+      "onFail": "error"
     }
   }
 }
