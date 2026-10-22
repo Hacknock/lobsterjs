@@ -10,7 +10,7 @@ Spec: `markdowns/spec.md` (English), `markdowns/spec-ja.md` (Japanese)
 
 ## Commands
 
-This project uses **npm** (declared via `devEngines`; requires npm `>=11.10.0` for the `min-release-age` setting in `.npmrc`).
+This project uses **npm** (declared via `devEngines`; requires npm `12.2.1` for the `min-release-age` setting in `.npmrc`).
 
 ```bash
 npm test           # Run all tests once (Vitest)

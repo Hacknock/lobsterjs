@@ -338,20 +338,21 @@ Once installed, Claude will use the skills automatically when you ask to create 
 
 | Tool    | Version   |
 | :------ | :-------- |
-| Node.js | 24.13.1   |
-| npm     | >=11.10.0 |
+| Node.js | 24.22.1   |
+| npm     | 12.2.1    |
 
 `.npmrc` sets `min-release-age=7` so newly published package versions (less than 7 days old) are not installed — a mitigation against npm supply-chain attacks. This requires npm 11.10.0 or later.
+
+Vitest 4.1.12 was installed on 2026-10-22 with a one-time release-age exception to fix GHSA-qxg6-89mg-rqv8 and GHSA-xp26-3454-mjgp. The repository retains its 7-day policy; `npm ci` uses the reviewed lockfile.
 
 ### Setup
 
 ```sh
-# Use any Node version manager (nodenv, fnm, asdf, etc.) — .node-version pins 24.13.1
+# Use any Node version manager (nodenv, fnm, asdf, etc.) — .node-version pins 24.22.1
 nodenv install   # if using nodenv
 
-# Node 24.13.1 ships with npm 11.x but may be older than 11.10.0;
-# upgrade so the min-release-age policy in .npmrc takes effect.
-npm install -g npm@latest
+# Match the npm version used by CI and devEngines.
+npm install -g npm@12.2.1
 
 # Install dependencies (uses package-lock.json)
 npm ci

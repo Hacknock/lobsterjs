@@ -1,0 +1,24 @@
+name: Validate
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: ".node-version"
+          cache: "npm"
+      - run: npm install -g npm@12.2.1
+      - run: npm ci
+      - run: npm audit
+      - run: npm test
+      - run: npm run build:docs
+      - run: npm run build
