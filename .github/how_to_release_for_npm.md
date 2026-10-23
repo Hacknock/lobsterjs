@@ -2,12 +2,14 @@
 
 ## 前提
 
-- パッケージマネージャは `npm`（`devEngines.packageManager.name=npm`、`engines.npm` で `>=11.10.0`）。
-- `.npmrc` で `min-release-age=1` を設定しているため、npm のバージョンが 11.10.0 以上であること。
+- Node.js は `.node-version` に合わせて `24.22.1` を使う。
+
+- パッケージマネージャは `npm`（`devEngines.packageManager.name=npm`、`engines.npm` で `>=12.2.1`）。
+- `.npmrc` で `min-release-age=7` を設定しているため、npm のバージョンが 12.2.1であること。
   ```sh
-  npm --version  # 11.10.0 以上であること
+  npm --version  # 12.2.1であること
   ```
-  古ければ `npm install -g npm@latest` でアップグレードする。
+  異なれば `npm install -g npm@12.2.1` でアップグレードする。
 
 ## 手順
 
