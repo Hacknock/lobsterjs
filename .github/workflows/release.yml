@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   release:
@@ -21,11 +22,22 @@ jobs:
 
       - run: npm install -g npm@12.2.1
 
+      - name: Verify tag matches package.json version
+        run: |
+          package_version=$(node -p "require('./package.json').version")
+          if [ "$package_version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $package_version"
+            exit 1
+          fi
+
       - run: npm ci
 
       - run: npm test
 
       - run: npm run build
+
+      - name: Stage npm publish
+        run: npm stage publish --access public
 
       - name: Package skills
         run: zip -r lobster-skills.zip skills/
