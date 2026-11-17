@@ -37,7 +37,7 @@ Even the 2-column layout below is possible without any HTML.
 ### lobster.js
 
 - Multi-column → `:::warp` + silent table
-- Cell merging → `\|` (horizontal) / `\---` (vertical)
+- Cell merging → `<<` (horizontal) / `^^` (vertical)
 - Collapsible → `:::details Title`
 - Header / footer → `:::header` / `:::footer`
 - Footnotes → `[^id]` or inline `^[text]`
@@ -121,16 +121,16 @@ Checklist:
 
 ## Table cell merging
 
-Standard Markdown has no cell-merging spec. lobster.js supports `\---` (vertical span) and `\|` (horizontal span).
+Standard Markdown has no cell-merging spec. lobster.js supports `<<` (merge with the cell on the left) and `^^` (merge with the cell above).
 
 | Category | Feature               | Syntax                    |
 | :------- | :-------------------- | :------------------------ |
 | Layout   | Multi-column layout   | `:::warp` + silent table  |
-| \---     | Collapsible block     | `:::details Title`        |
-| \---     | Header / footer       | `:::header` / `:::footer` |
-| Tables   | Horizontal cell merge | `` `\|` ``                |
-| \---     | Vertical cell merge   | `` `\---` ``              |
-| \---     | Silent table          | `` `~ \|` `` prefix       |
+| ^^       | Collapsible block     | `:::details Title`        |
+| ^^       | Header / footer       | `:::header` / `:::footer` |
+| Tables   | Horizontal cell merge | `<<`                      |
+| ^^       | Vertical cell merge   | `^^`                      |
+| ^^       | Silent table          | `~ |` prefix              |
 
 "Layout" and "Tables" in the left column each span three rows via vertical cell merging.
 

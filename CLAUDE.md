@@ -93,8 +93,8 @@ Headings are rendered as `<hN class="lbs-heading-N">` (e.g. `<h1 class="lbs-head
 | `:::details Title` ... `:::` | Collapsible block → `<details><summary>` |
 | `:::warp id` ... `:::` | Named content block; referenced via `[~id]` |
 | `~ \| ... \|` | Silent table (no border) → adds `lbs-table-silent` class |
-| `\|` in table cell | Horizontal cell merge (colspan) |
-| `\---` in table cell | Vertical cell merge (rowspan) |
+| `<<` as a table cell | Merge with the cell on the left (colspan) |
+| `^^` as a table body cell | Merge with the cell above (rowspan) |
 | `![alt](url =WxH)` | Image with explicit width/height |
 
 ## Coding rules

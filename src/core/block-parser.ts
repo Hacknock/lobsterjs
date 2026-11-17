@@ -116,18 +116,22 @@ function matchListItem(line: string): {
 }
 
 /** Parse `| a | b | c |` into cell strings (strips leading/trailing `|`).
- *  Does not split on `|` inside backtick code spans. */
+ *  Does not split on `|` inside backtick code spans or on escaped `\|`. */
 function splitTableRow(line: string): string[] {
-  const stripped = line.replace(/^\s*~?\s*\|?\s*/, "").replace(/\s*\|?\s*$/, "");
+  const stripped = line.replace(/^\s*~?\s*\|?/, "").trim();
   const cells: string[] = [];
   let cur = "";
   let inCode = false;
-  for (const ch of stripped) {
+  let endsWithSeparator = false;
+  for (let i = 0; i < stripped.length; i++) {
+    const ch = stripped[i];
+    endsWithSeparator = false;
     if (ch === "`") { inCode = !inCode; cur += ch; }
-    else if (ch === "|" && !inCode) { cells.push(cur.trim()); cur = ""; }
+    else if (ch === "\\" && !inCode && i + 1 < stripped.length) { cur += ch + stripped[i + 1]; i++; }
+    else if (ch === "|" && !inCode) { cells.push(cur.trim()); cur = ""; endsWithSeparator = true; }
     else { cur += ch; }
   }
-  cells.push(cur.trim());
+  if (!endsWithSeparator || cells.length === 0) cells.push(cur.trim());
   return cells;
 }
 
@@ -147,62 +151,123 @@ function isAlignmentRow(line: string): boolean {
   return cells.length > 0 && cells.every((c) => /^:?-+:?$/.test(c));
 }
 
+const MERGE_LEFT_MARKER = "<<";
+const MERGE_UP_MARKER = "^^";
+
+type CellPosition = { row: number; column: number };
+
+type MergedRegion = { lastRow: number; lastColumn: number; slotCount: number };
+
+function positionKey(position: CellPosition): string {
+  return `${position.row},${position.column}`;
+}
+
 /**
- * Converts raw cell strings (from splitTableRow) into TableCellNode[],
- * applying the lobster.js cell-merge rules:
- *
- * Horizontal merge — a cell whose content ends with `\` (produced when the
- * source contains `cell \|`) signals colspan.  The trailing `\` is stripped
- * from the content, colspan is incremented by 1, and any immediately
- * following "phantom" slots produced by the pipe-split (`\\` intermediate
- * markers or the terminal `""` empty cell) are consumed.
- *
- * Vertical merge — a cell whose content is `\-{1,}` is replaced with a
- * `__ROWSPAN__` placeholder (body rows only; controlled by `allowRowspan`).
+ * spec: テーブル - セルの結合
+ * Assigns every slot of the grid to the origin cell it belongs to.
+ * `<<` follows the origin of the slot on its left, `^^` follows the origin
+ * of the slot above. Markers without a neighbor, markers listed in
+ * `literalSlots`, and `^^` when `allowMergeUp` is false are origins themselves.
  */
-function buildTableCells(
-  cells: string[],
-  ctx: ParseContext,
-  allowRowspan: boolean
-): TableCellNode[] {
-  const result: TableCellNode[] = [];
-  let c = 0;
-  while (c < cells.length) {
-    const raw = cells[c];
-
-    // Horizontal merge: cell ends with \ but is NOT a \--- marker
-    if (raw.endsWith("\\") && !/^\\-+$/.test(raw)) {
-      const content = raw.slice(0, -1).trimEnd();
-      let colspan = 2;
-      c++;
-      // Consume phantom slots that splitTableRow produced from the \| split:
-      //   intermediate \\ cells and the terminal "" empty cell.
-      while (c < cells.length) {
-        if (cells[c] === "\\") {
-          colspan++;
-          c++;
-        } else if (cells[c] === "") {
-          c++; // consume the terminal empty phantom
-          break;
-        } else {
-          break; // real content — stop consuming
-        }
+function assignOrigins(
+  grid: string[][],
+  allowMergeUp: boolean,
+  literalSlots: Set<string>
+): CellPosition[][] {
+  const origins: CellPosition[][] = [];
+  grid.forEach((cells, row) => {
+    const rowOrigins: CellPosition[] = [];
+    cells.forEach((cell, column) => {
+      const isLiteral = literalSlots.has(positionKey({ row, column }));
+      if (!isLiteral && cell === MERGE_LEFT_MARKER && column > 0) {
+        rowOrigins.push(rowOrigins[column - 1]);
+      } else if (!isLiteral && allowMergeUp && cell === MERGE_UP_MARKER && row > 0) {
+        rowOrigins.push(origins[row - 1][column]);
+      } else {
+        rowOrigins.push({ row, column });
       }
-      result.push({ children: parseInline(content, ctx), colspan });
-      continue;
-    }
+    });
+    origins.push(rowOrigins);
+  });
+  return origins;
+}
 
-    // Vertical merge placeholder (body rows only)
-    if (allowRowspan && /^\\-+$/.test(raw)) {
-      result.push({ children: [{ type: "text", text: "__ROWSPAN__" }] });
-      c++;
-      continue;
-    }
+function collectMergedRegions(origins: CellPosition[][]): Map<string, MergedRegion> {
+  const regions = new Map<string, MergedRegion>();
+  origins.forEach((rowOrigins, row) => {
+    rowOrigins.forEach((origin, column) => {
+      const key = positionKey(origin);
+      const region = regions.get(key);
+      if (region) {
+        region.lastRow = Math.max(region.lastRow, row);
+        region.lastColumn = Math.max(region.lastColumn, column);
+        region.slotCount++;
+      } else {
+        regions.set(key, { lastRow: row, lastColumn: column, slotCount: 1 });
+      }
+    });
+  });
+  return regions;
+}
 
-    result.push({ children: parseInline(raw, ctx) });
-    c++;
+function isRectangular(origin: CellPosition, region: MergedRegion): boolean {
+  const height = region.lastRow - origin.row + 1;
+  const width = region.lastColumn - origin.column + 1;
+  return region.slotCount === height * width;
+}
+
+/**
+ * spec: テーブル - セルの結合
+ * Converts a grid of raw cell strings into rows of origin cells with
+ * colspan/rowspan. Slots covered by a merge are omitted from the rows.
+ * When a region is not a rectangle, its last marker in reading order is
+ * treated as plain text, repeating until every region is a rectangle.
+ */
+function buildMergedRows(
+  grid: string[][],
+  ctx: ParseContext,
+  allowMergeUp: boolean
+): TableCellNode[][] {
+  const literalSlots = new Set<string>();
+  let origins = assignOrigins(grid, allowMergeUp, literalSlots);
+  let regions = collectMergedRegions(origins);
+  for (;;) {
+    const invalidOriginKeys = new Set(
+      [...regions].filter(([key, region]) => {
+        const [row, column] = key.split(",").map(Number);
+        return !isRectangular({ row, column }, region);
+      }).map(([key]) => key)
+    );
+    if (invalidOriginKeys.size === 0) break;
+    const lastMarkerByOrigin = new Map<string, CellPosition>();
+    origins.forEach((rowOrigins, row) => {
+      rowOrigins.forEach((origin, column) => {
+        const originKey = positionKey(origin);
+        const isMarker = origin.row !== row || origin.column !== column;
+        if (isMarker && invalidOriginKeys.has(originKey)) {
+          lastMarkerByOrigin.set(originKey, { row, column });
+        }
+      });
+    });
+    for (const marker of lastMarkerByOrigin.values()) literalSlots.add(positionKey(marker));
+    origins = assignOrigins(grid, allowMergeUp, literalSlots);
+    regions = collectMergedRegions(origins);
   }
-  return result;
+
+  return grid.map((cells, row) =>
+    cells.flatMap((cell, column): TableCellNode[] => {
+      const origin = origins[row][column];
+      if (origin.row !== row || origin.column !== column) return [];
+      const region = regions.get(positionKey(origin))!;
+      const colspan = region.lastColumn - column + 1;
+      const rowspan = region.lastRow - row + 1;
+      return [{
+        children: parseInline(cell, ctx),
+        ...(colspan > 1 && { colspan }),
+        ...(rowspan > 1 && { rowspan }),
+      }];
+    })
+  );
 }
 
 // ============================================================
@@ -725,7 +790,9 @@ function tryParseTable(
 
   // Parse header row
   const rawHeader = isSilent ? line.replace(/^\s*~\s*/, "") : line;
-  const headerCells = buildTableCells(splitTableRow(rawHeader), ctx, false);
+  const headerCells = splitTableRow(rawHeader);
+  const columnCount = headerCells.length;
+  const [headers] = buildMergedRows([headerCells], ctx, false);
 
   // Parse alignment row
   const rawAlign = isSilent
@@ -733,61 +800,22 @@ function tryParseTable(
     : lines[i + 1];
   const alignments: TableAlignment[] = splitTableRow(rawAlign).map(parseAlignment);
 
-  // Total column count = sum of all header colspans (used for body-row padding)
-  const totalCols = headerCells.reduce((sum, cell) => sum + (cell.colspan ?? 1), 0);
-
-  // Parse data rows
-  const rows: TableCellNode[][] = [];
+  // Parse data rows: pad short rows and drop cells beyond the header width
+  const bodyGrid: string[][] = [];
   let j = i + 2;
   while (j < lines.length && isTableLine(lines[j])) {
     const rawRow = isSilent ? lines[j].replace(/^\s*~\s*/, "") : lines[j];
-    const cells = splitTableRow(rawRow);
-
-    // Pad to total column count if shorter
-    while (cells.length < totalCols) cells.push("");
-
-    rows.push(buildTableCells(cells, ctx, true));
+    const cells = splitTableRow(rawRow).slice(0, columnCount);
+    while (cells.length < columnCount) cells.push("");
+    bodyGrid.push(cells);
     j++;
   }
-
-  // Compute rowspan values: for each __ROWSPAN__ cell, find the nearest
-  // non-placeholder cell above in the same column and increment its rowspan.
-  const isRowspanCell = (cell: TableCellNode): boolean =>
-    cell.children.length === 1 &&
-    cell.children[0].type === "text" &&
-    (cell.children[0] as { type: string; text: string }).text === "__ROWSPAN__";
-
-  // Build per-row map: starting column index → cell (accounts for colspan)
-  const colMaps: Map<number, TableCellNode>[] = rows.map((row) => {
-    const map = new Map<number, TableCellNode>();
-    let col = 0;
-    for (const cell of row) {
-      map.set(col, cell);
-      col += cell.colspan ?? 1;
-    }
-    return map;
-  });
-
-  for (let r = 0; r < rows.length; r++) {
-    let col = 0;
-    for (const cell of rows[r]) {
-      if (isRowspanCell(cell)) {
-        for (let rr = r - 1; rr >= 0; rr--) {
-          const above = colMaps[rr].get(col);
-          if (above && !isRowspanCell(above)) {
-            above.rowspan = (above.rowspan ?? 1) + 1;
-            break;
-          }
-        }
-      }
-      col += cell.colspan ?? 1;
-    }
-  }
+  const rows = buildMergedRows(bodyGrid, ctx, true);
 
   const node: TableNode = {
     type: "table",
     isSilent,
-    headers: headerCells,
+    headers,
     alignments,
     rows,
   };

@@ -115,10 +115,10 @@ const x = 1;
   <tbody>
     <tr>
       <td style="text-align:left">Alice</td>
-      <td rowspan="2">30</td>   <!-- \--- 垂直結合 -->
+      <td rowspan="2">30</td>   <!-- ^^ 垂直結合 -->
     </tr>
     <tr>
-      <td colspan="2">結合セル</td>   <!-- \| 水平結合 -->
+      <td colspan="2">結合セル</td>   <!-- << 水平結合 -->
     </tr>
   </tbody>
 </table>
