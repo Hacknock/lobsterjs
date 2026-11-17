@@ -131,7 +131,7 @@ function splitTableRow(line: string): string[] {
     else if (ch === "|" && !inCode) { cells.push(cur.trim()); cur = ""; endsWithSeparator = true; }
     else { cur += ch; }
   }
-  if (!endsWithSeparator || cells.length === 0) cells.push(cur.trim());
+  if (!endsWithSeparator) cells.push(cur.trim());
   return cells;
 }
 
@@ -156,32 +156,23 @@ const MERGE_UP_MARKER = "^^";
 
 type CellPosition = { row: number; column: number };
 
-type MergedRegion = { lastRow: number; lastColumn: number; slotCount: number };
-
-function positionKey(position: CellPosition): string {
-  return `${position.row},${position.column}`;
-}
+type MergedSpan = { colspan: number; rowspan: number };
 
 /**
  * spec: テーブル - セルの結合
  * Assigns every slot of the grid to the origin cell it belongs to.
- * `<<` follows the origin of the slot on its left, `^^` follows the origin
- * of the slot above. Markers without a neighbor, markers listed in
- * `literalSlots`, and `^^` when `allowMergeUp` is false are origins themselves.
+ * `<<` follows the origin of the slot on its left and `^^` follows the
+ * origin of the slot above. Markers without a neighbor are origins
+ * themselves. Slots that share an origin share the same object.
  */
-function assignOrigins(
-  grid: string[][],
-  allowMergeUp: boolean,
-  literalSlots: Set<string>
-): CellPosition[][] {
+function assignOrigins(grid: string[][]): CellPosition[][] {
   const origins: CellPosition[][] = [];
   grid.forEach((cells, row) => {
     const rowOrigins: CellPosition[] = [];
     cells.forEach((cell, column) => {
-      const isLiteral = literalSlots.has(positionKey({ row, column }));
-      if (!isLiteral && cell === MERGE_LEFT_MARKER && column > 0) {
+      if (cell === MERGE_LEFT_MARKER && column > 0) {
         rowOrigins.push(rowOrigins[column - 1]);
-      } else if (!isLiteral && allowMergeUp && cell === MERGE_UP_MARKER && row > 0) {
+      } else if (cell === MERGE_UP_MARKER && row > 0) {
         rowOrigins.push(origins[row - 1][column]);
       } else {
         rowOrigins.push({ row, column });
@@ -192,75 +183,64 @@ function assignOrigins(
   return origins;
 }
 
-function collectMergedRegions(origins: CellPosition[][]): Map<string, MergedRegion> {
-  const regions = new Map<string, MergedRegion>();
-  origins.forEach((rowOrigins, row) => {
-    rowOrigins.forEach((origin, column) => {
-      const key = positionKey(origin);
-      const region = regions.get(key);
-      if (region) {
-        region.lastRow = Math.max(region.lastRow, row);
-        region.lastColumn = Math.max(region.lastColumn, column);
-        region.slotCount++;
-      } else {
-        regions.set(key, { lastRow: row, lastColumn: column, slotCount: 1 });
-      }
-    });
-  });
-  return regions;
-}
-
-function isRectangular(origin: CellPosition, region: MergedRegion): boolean {
-  const height = region.lastRow - origin.row + 1;
-  const width = region.lastColumn - origin.column + 1;
-  return region.slotCount === height * width;
+/**
+ * spec: テーブル - セルの結合
+ * Shrinks a merged region until it is a rectangle by turning its last
+ * marker in reading order back into plain text. No other slot depends on
+ * that marker, because any slot that follows it would come later in
+ * reading order. `slots` must be in reading order, starting at the origin.
+ */
+function shrinkToRectangle(
+  origin: CellPosition,
+  slots: CellPosition[],
+  origins: CellPosition[][]
+): MergedSpan {
+  const slotCountByColumn: number[] = [];
+  let lastColumn = origin.column;
+  for (const slot of slots) {
+    slotCountByColumn[slot.column] = (slotCountByColumn[slot.column] ?? 0) + 1;
+    lastColumn = Math.max(lastColumn, slot.column);
+  }
+  for (;;) {
+    const lastRow = slots[slots.length - 1].row;
+    const span = {
+      colspan: lastColumn - origin.column + 1,
+      rowspan: lastRow - origin.row + 1,
+    };
+    if (slots.length === span.colspan * span.rowspan) return span;
+    const literalSlot = slots.pop()!;
+    origins[literalSlot.row][literalSlot.column] = literalSlot;
+    slotCountByColumn[literalSlot.column]--;
+    while (slotCountByColumn[lastColumn] === 0) lastColumn--;
+  }
 }
 
 /**
  * spec: テーブル - セルの結合
  * Converts a grid of raw cell strings into rows of origin cells with
  * colspan/rowspan. Slots covered by a merge are omitted from the rows.
- * When a region is not a rectangle, its last marker in reading order is
- * treated as plain text, repeating until every region is a rectangle.
  */
-function buildMergedRows(
-  grid: string[][],
-  ctx: ParseContext,
-  allowMergeUp: boolean
-): TableCellNode[][] {
-  const literalSlots = new Set<string>();
-  let origins = assignOrigins(grid, allowMergeUp, literalSlots);
-  let regions = collectMergedRegions(origins);
-  for (;;) {
-    const invalidOriginKeys = new Set(
-      [...regions].filter(([key, region]) => {
-        const [row, column] = key.split(",").map(Number);
-        return !isRectangular({ row, column }, region);
-      }).map(([key]) => key)
-    );
-    if (invalidOriginKeys.size === 0) break;
-    const lastMarkerByOrigin = new Map<string, CellPosition>();
-    origins.forEach((rowOrigins, row) => {
-      rowOrigins.forEach((origin, column) => {
-        const originKey = positionKey(origin);
-        const isMarker = origin.row !== row || origin.column !== column;
-        if (isMarker && invalidOriginKeys.has(originKey)) {
-          lastMarkerByOrigin.set(originKey, { row, column });
-        }
-      });
+function buildMergedRows(grid: string[][], ctx: ParseContext): TableCellNode[][] {
+  const origins = assignOrigins(grid);
+  const slotsByOrigin = new Map<CellPosition, CellPosition[]>();
+  origins.forEach((rowOrigins, row) => {
+    rowOrigins.forEach((origin, column) => {
+      const slots = slotsByOrigin.get(origin) ?? [];
+      slots.push({ row, column });
+      slotsByOrigin.set(origin, slots);
     });
-    for (const marker of lastMarkerByOrigin.values()) literalSlots.add(positionKey(marker));
-    origins = assignOrigins(grid, allowMergeUp, literalSlots);
-    regions = collectMergedRegions(origins);
+  });
+
+  const spanByOrigin = new Map<CellPosition, MergedSpan>();
+  for (const [origin, slots] of slotsByOrigin) {
+    spanByOrigin.set(origin, shrinkToRectangle(origin, slots, origins));
   }
 
   return grid.map((cells, row) =>
     cells.flatMap((cell, column): TableCellNode[] => {
       const origin = origins[row][column];
       if (origin.row !== row || origin.column !== column) return [];
-      const region = regions.get(positionKey(origin))!;
-      const colspan = region.lastColumn - column + 1;
-      const rowspan = region.lastRow - row + 1;
+      const { colspan, rowspan } = spanByOrigin.get(origin) ?? { colspan: 1, rowspan: 1 };
       return [{
         children: parseInline(cell, ctx),
         ...(colspan > 1 && { colspan }),
@@ -792,7 +772,7 @@ function tryParseTable(
   const rawHeader = isSilent ? line.replace(/^\s*~\s*/, "") : line;
   const headerCells = splitTableRow(rawHeader);
   const columnCount = headerCells.length;
-  const [headers] = buildMergedRows([headerCells], ctx, false);
+  const [headers] = buildMergedRows([headerCells], ctx);
 
   // Parse alignment row
   const rawAlign = isSilent
@@ -810,7 +790,7 @@ function tryParseTable(
     bodyGrid.push(cells);
     j++;
   }
-  const rows = buildMergedRows(bodyGrid, ctx, true);
+  const rows = buildMergedRows(bodyGrid, ctx);
 
   const node: TableNode = {
     type: "table",

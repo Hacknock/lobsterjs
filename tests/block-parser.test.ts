@@ -352,6 +352,58 @@ describe("parseBlocks — table", () => {
     expect(table.rows[1][1].children).toEqual([{ type: "text", text: "^^" }]);
   });
 
+  it("escaped markers are plain text", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| x | \\<< |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0][1].children).toEqual([{ type: "text", text: "<<" }]);
+  });
+
+  it("a full-width block leaves an empty row", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| 1 | << |",
+      "| ^^ | ^^ |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0][0]).toMatchObject({ colspan: 2, rowspan: 2 });
+    expect(table.rows[1]).toEqual([]);
+  });
+
+  it("merges work in silent tables", () => {
+    const blocks = parseBlocks([
+      "~ | A | << |",
+      "~ | --- | --- |",
+      "~ | x | y |",
+      "~ | ^^ | z |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.isSilent).toBe(true);
+    expect(table.headers[0]).toMatchObject({ colspan: 2 });
+    expect(table.rows[0][0]).toMatchObject({ rowspan: 2 });
+  });
+
+  it("resolves large non-rectangular regions in linear time", () => {
+    const columnCount = 20;
+    const rowCount = 2000;
+    const lines = [
+      "| " + Array.from({ length: columnCount }, (_, column) => `h${column}`).join(" | ") + " |",
+      "| " + Array(columnCount).fill("---").join(" | ") + " |",
+      "| A | " + Array(columnCount - 1).fill("<<").join(" | ") + " |",
+      ...Array.from({ length: rowCount - 1 }, () => "| ^^ | " + Array(columnCount - 1).fill("x").join(" | ") + " |"),
+    ];
+    const startedAt = performance.now();
+    const table = parseBlocks(lines, makeCtx())[0] as TableNode;
+    expect(performance.now() - startedAt).toBeLessThan(1000);
+    expect(table.rows[0][0]).toMatchObject({ colspan: columnCount });
+    expect(table.rows[0][0].rowspan).toBeUndefined();
+    expect(table.rows[1][0].children).toEqual([{ type: "text", text: "^^" }]);
+  });
+
   it("\\| is a literal pipe inside a cell", () => {
     const blocks = parseBlocks([
       "| A | B |",

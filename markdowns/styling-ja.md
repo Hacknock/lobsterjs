@@ -114,11 +114,14 @@ const x = 1;
   </thead>
   <tbody>
     <tr>
-      <td style="text-align:left">Alice</td>
-      <td rowspan="2">30</td>   <!-- ^^ 垂直結合 -->
+      <td rowspan="2" style="text-align:left">Alice</td>   <!-- ^^ 垂直結合 -->
+      <td>30</td>
     </tr>
     <tr>
-      <td colspan="2">結合セル</td>   <!-- << 水平結合 -->
+      <td>31</td>
+    </tr>
+    <tr>
+      <td colspan="2" style="text-align:left">結合セル</td>   <!-- << 水平結合 -->
     </tr>
   </tbody>
 </table>

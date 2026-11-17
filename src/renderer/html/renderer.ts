@@ -265,7 +265,7 @@ function bodyCellColumns(rows: TableCellNode[][]): number[][] {
 function renderTableCell(
   tag: "th" | "td",
   cell: TableCellNode,
-  alignment: TableNode["alignments"][number] | undefined,
+  alignment: TableAlignment | undefined,
   ctx: RenderContext
 ): string {
   const alignAttr = alignment && alignment !== "default" ? ` style="text-align:${alignment}"` : "";

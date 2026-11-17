@@ -273,12 +273,13 @@ A cell whose entire content is a merge marker joins a neighboring cell.
 - A marker is recognized only when it is the entire cell content. `a << b` is plain text.
 - `<<` in the first column and `^^` in the first body row have nothing to merge with and are plain text.
 - `<<` works in the header row. `^^` works in body rows only; in the header row it is plain text. Merges never cross the header/body boundary.
+- If `^^` covers every column of a row, that row has no cells of its own and is rendered as an empty `<tr></tr>`.
 - If a merge would not form a rectangle, the last marker of that region in reading order is treated as plain text, repeated until every merged region is a rectangle.
 - Write `\<<` or `\^^` to show the marker characters as text.
 
 #### Literal pipes
 
-`\|` inside a cell is a literal `|`, not a column separator. A `|` inside a code span is also kept in the cell.
+`\|` inside a cell is a literal `|`, not a column separator. A `|` inside a code span is also kept in the cell, so write `` `a|b` `` rather than `` `a\|b` ``. Unlike GFM, `\|` inside a code span is shown as-is.
 
 #### Missing cells
 
@@ -293,7 +294,7 @@ If a row has fewer cells than the header, the missing cells are left empty. Cell
 </table>
 ```
 
-Alignment is applied as inline `style="text-align:…"` on each cell.
+Alignment is applied as inline `style="text-align:…"` on each cell. A merged cell uses the alignment of the column it starts in.
 
 ---
 
