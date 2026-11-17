@@ -2,7 +2,7 @@
 
 ## 前提
 
-- Node.js は `.node-version` に合わせて `24.22.1` を使う。
+- Node.js は `.node-version` に合わせて `24.22.3` を使う。
 
 - パッケージマネージャは `npm`（`devEngines.packageManager.name=npm`、`engines.npm` で `>=12.2.1`）。
 - `.npmrc` で `min-release-age=7` を設定しているため、npm のバージョンが 12.2.1であること。
