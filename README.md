@@ -338,7 +338,7 @@ Once installed, Claude will use the skills automatically when you ask to create 
 
 | Tool    | Version   |
 | :------ | :-------- |
-| Node.js | 24.22.1   |
+| Node.js | 24.22.3   |
 | npm     | 12.2.1    |
 
 `.npmrc` sets `min-release-age=7` so newly published package versions (less than 7 days old) are not installed — a mitigation against npm supply-chain attacks. This requires npm 11.10.0 or later.
@@ -348,7 +348,7 @@ Vitest 4.1.12 was installed on 2026-10-22 with a one-time release-age exception 
 ### Setup
 
 ```sh
-# Use any Node version manager (nodenv, fnm, asdf, etc.) — .node-version pins 24.22.1
+# Use any Node version manager (nodenv, fnm, asdf, etc.) — .node-version pins 24.22.3
 nodenv install   # if using nodenv
 
 # Match the npm version used by CI and devEngines.
