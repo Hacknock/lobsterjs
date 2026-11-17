@@ -415,3 +415,40 @@ describe("parseInline — backslash escape in links, images, and footnotes", () 
     ]);
   });
 });
+
+describe("parseInline — escaped titles and supplementary characters", () => {
+  it("escaped quotes and parentheses stay inside link titles", () => {
+    expect(parseInline('[link](https://x "a\\"b")', makeCtx())[0]).toMatchObject({
+      href: "https://x",
+      title: 'a"b',
+    });
+    expect(parseInline("[link](https://x 'a\\'b')", makeCtx())[0]).toMatchObject({
+      href: "https://x",
+      title: "a'b",
+    });
+    expect(parseInline("[link](https://x (a\\)b))", makeCtx())[0]).toMatchObject({
+      href: "https://x",
+      title: "a)b",
+    });
+  });
+
+  it("escaped quotes stay inside image titles", () => {
+    expect(parseInline('![alt](x.png "a\\"b")', makeCtx())[0]).toMatchObject({
+      src: "x.png",
+      title: 'a"b',
+    });
+  });
+
+  it("_ next to a supplementary-plane letter is intraword", () => {
+    expect(parseInline("𠮷_name_", makeCtx())).toEqual([text("𠮷_name_")]);
+    expect(parseInline("_name_𠮷", makeCtx())).toEqual([text("_name_𠮷")]);
+  });
+
+  it("_ next to a supplementary-plane non-letter can still delimit", () => {
+    expect(parseInline("😀 _name_ 😀", makeCtx())).toEqual([
+      text("😀 "),
+      { type: "emphasis", children: [text("name")] },
+      text(" 😀"),
+    ]);
+  });
+});

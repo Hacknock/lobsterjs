@@ -37,6 +37,15 @@ function isWhitespaceOrBoundary(ch: string | undefined): boolean {
   return ch === undefined || WHITESPACE.test(ch);
 }
 
+function characterStartingAt(text: string, index: number): string | undefined {
+  const codePoint = text.codePointAt(index);
+  return codePoint === undefined ? undefined : String.fromCodePoint(codePoint);
+}
+
+function characterEndingBefore(text: string, index: number): string | undefined {
+  return Array.from(text.slice(Math.max(0, index - 2), index)).pop();
+}
+
 /**
  * spec: バックスラッシュエスケープ — a character preceded by an odd number of `\` is escaped.
  */
@@ -61,7 +70,7 @@ function canOpenDelimiter(
   if (ch === "_") {
     let beforeRun = delimiterStart - 1;
     while (beforeRun >= 0 && text[beforeRun] === ch) beforeRun--;
-    if (isWordCharacter(text[beforeRun])) return false;
+    if (isWordCharacter(characterEndingBefore(text, beforeRun + 1))) return false;
   }
   return true;
 }
@@ -79,7 +88,7 @@ function canCloseDelimiter(
   if (isWhitespaceOrBoundary(text[delimiterStart - 1])) return false;
   if (
     text[delimiterStart] === "_" &&
-    isWordCharacter(text[delimiterStart + delimiterLength])
+    isWordCharacter(characterStartingAt(text, delimiterStart + delimiterLength))
   ) {
     return false;
   }
@@ -90,7 +99,7 @@ function canCloseDelimiter(
  * spec: バックスラッシュエスケープ — removes the backslash from escaped ASCII
  * punctuation in raw strings such as link destinations, titles, and alt text.
  */
-function unescapeBackslashes(raw: string): string {
+export function unescapeBackslashes(raw: string): string {
   return raw.replace(/\\([!-/:-@[-`{-~])/g, "$1");
 }
 
@@ -164,9 +173,9 @@ function findClosingParen(text: string, start: number): number {
 function parseLinkContent(content: string): { href: string; title?: string } {
   content = content.trim();
   const m =
-    content.match(/^(\S+)\s+"([^"]*)"$/) ??
-    content.match(/^(\S+)\s+'([^']*)'$/) ??
-    content.match(/^(\S+)\s+\(([^)]*)\)$/);
+    content.match(/^(\S+)\s+"((?:[^"\\]|\\.)*)"$/) ??
+    content.match(/^(\S+)\s+'((?:[^'\\]|\\.)*)'$/) ??
+    content.match(/^(\S+)\s+\(((?:[^)\\]|\\.)*)\)$/);
   if (m) return { href: unescapeBackslashes(m[1]), title: unescapeBackslashes(m[2]) };
   return { href: unescapeBackslashes(content) };
 }
