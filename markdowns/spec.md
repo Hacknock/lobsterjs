@@ -296,7 +296,9 @@ A backslash before an ASCII punctuation character makes that character literal, 
 - Only ASCII punctuation (``!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~``) can be escaped. A backslash before any other character is emitted as-is (e.g. `C:\path`).
 - `\\` produces a single literal `\`.
 - Escapes are not interpreted inside code spans or code blocks.
-- The table cell syntaxes `\|` (colspan) and `\---` (rowspan) are processed at the block level first, so they keep working.
+- Escapes are interpreted in link destinations, link titles, and image alt text, and the backslash is removed.
+- Escapes are not interpreted in footnote IDs, warp IDs, or reference link IDs.
+- The table cell syntaxes `\|` (colspan) and `\---` (rowspan) are processed at the block level first, so they keep working. As a result, a table cell ending with `\\` is treated as a colspan marker.
 
 ---
 

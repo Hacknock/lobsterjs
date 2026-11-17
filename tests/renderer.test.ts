@@ -232,4 +232,9 @@ describe("toHTML — backslash escapes and delimiter boundaries", () => {
     const html = toHTML("| a \\| | c |\n|---|---|---|\n| 1 | 2 | 3 |");
     expect(html).toContain('<th colspan="2">a</th>');
   });
+
+  it("keeps table rowspan syntax working", () => {
+    const html = toHTML("| a | b |\n|---|---|\n| 1 | 2 |\n| \\--- | 3 |");
+    expect(html).toContain('<td rowspan="2">1</td>');
+  });
 });

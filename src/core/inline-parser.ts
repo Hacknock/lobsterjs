@@ -51,11 +51,15 @@ function isEscaped(text: string, index: number): boolean {
  * An opening delimiter must not be followed by whitespace, and `_` must not
  * be preceded by a word character (intraword `_` is literal).
  */
-function canOpenDelimiter(text: string, pos: number, length: number): boolean {
-  if (isWhitespaceOrBoundary(text[pos + length])) return false;
-  const ch = text[pos];
+function canOpenDelimiter(
+  text: string,
+  delimiterStart: number,
+  delimiterLength: number
+): boolean {
+  if (isWhitespaceOrBoundary(text[delimiterStart + delimiterLength])) return false;
+  const ch = text[delimiterStart];
   if (ch === "_") {
-    let beforeRun = pos - 1;
+    let beforeRun = delimiterStart - 1;
     while (beforeRun >= 0 && text[beforeRun] === ch) beforeRun--;
     if (isWordCharacter(text[beforeRun])) return false;
   }
@@ -67,10 +71,27 @@ function canOpenDelimiter(text: string, pos: number, length: number): boolean {
  * A closing delimiter must not be preceded by whitespace, and `_` must not
  * be followed by a word character.
  */
-function canCloseDelimiter(text: string, index: number, length: number): boolean {
-  if (isWhitespaceOrBoundary(text[index - 1])) return false;
-  if (text[index] === "_" && isWordCharacter(text[index + length])) return false;
+function canCloseDelimiter(
+  text: string,
+  delimiterStart: number,
+  delimiterLength: number
+): boolean {
+  if (isWhitespaceOrBoundary(text[delimiterStart - 1])) return false;
+  if (
+    text[delimiterStart] === "_" &&
+    isWordCharacter(text[delimiterStart + delimiterLength])
+  ) {
+    return false;
+  }
   return true;
+}
+
+/**
+ * spec: バックスラッシュエスケープ — removes the backslash from escaped ASCII
+ * punctuation in raw strings such as link destinations, titles, and alt text.
+ */
+function unescapeBackslashes(raw: string): string {
+  return raw.replace(/\\([!-/:-@[-`{-~])/g, "$1");
 }
 
 /**
@@ -103,12 +124,13 @@ function findClosingDelimiter(
 
 /**
  * Finds the next `]` that closes a `[` opened before `start`.
- * Returns -1 if not found within the same line.
+ * Escaped brackets are ignored. Returns -1 if not found within the same line.
  */
 function findClosingBracket(text: string, start: number): number {
   let depth = 1;
   for (let i = start; i < text.length; i++) {
-    if (text[i] === "[") depth++;
+    if (text[i] === "\\" && isAsciiPunctuation(text[i + 1])) i++;
+    else if (text[i] === "[") depth++;
     else if (text[i] === "]") {
       depth--;
       if (depth === 0) return i;
@@ -121,12 +143,13 @@ function findClosingBracket(text: string, start: number): number {
 
 /**
  * Finds the next `)` that closes a `(` opened before `start`.
- * Returns -1 if not found.
+ * Escaped parentheses are ignored. Returns -1 if not found.
  */
 function findClosingParen(text: string, start: number): number {
   let depth = 1;
   for (let i = start; i < text.length; i++) {
-    if (text[i] === "(") depth++;
+    if (text[i] === "\\" && isAsciiPunctuation(text[i + 1])) i++;
+    else if (text[i] === "(") depth++;
     else if (text[i] === ")") {
       depth--;
       if (depth === 0) return i;
@@ -144,8 +167,8 @@ function parseLinkContent(content: string): { href: string; title?: string } {
     content.match(/^(\S+)\s+"([^"]*)"$/) ??
     content.match(/^(\S+)\s+'([^']*)'$/) ??
     content.match(/^(\S+)\s+\(([^)]*)\)$/);
-  if (m) return { href: m[1], title: m[2] };
-  return { href: content };
+  if (m) return { href: unescapeBackslashes(m[1]), title: unescapeBackslashes(m[2]) };
+  return { href: unescapeBackslashes(content) };
 }
 
 /**
@@ -225,7 +248,7 @@ function tryMatchImage(
   const urlEnd = findClosingParen(text, altEnd + 2);
   if (urlEnd === -1) return null;
 
-  const alt = text.slice(pos + 2, altEnd);
+  const alt = unescapeBackslashes(text.slice(pos + 2, altEnd));
   const { href, title, width, height } = parseImageContent(
     text.slice(altEnd + 2, urlEnd)
   );

@@ -381,3 +381,37 @@ describe("parseInline — delimiter boundaries", () => {
     ]);
   });
 });
+
+describe("parseInline — backslash escape in links, images, and footnotes", () => {
+  it("escaped ] does not close link text", () => {
+    const nodes = parseInline("[a\\]b](http://x)", makeCtx());
+    expect(nodes).toEqual([
+      { type: "inline_link", text: [text("a]b")], href: "http://x", title: undefined },
+    ]);
+  });
+
+  it("escaped ) does not close link destination", () => {
+    const nodes = parseInline("[a](http://x/\\)y)", makeCtx());
+    expect(nodes).toEqual([
+      { type: "inline_link", text: [text("a")], href: "http://x/)y", title: undefined },
+    ]);
+  });
+
+  it("escapes are removed from link destination and title", () => {
+    const nodes = parseInline('[link](http://x/a\\_b "a\\*b")', makeCtx());
+    expect(nodes[0]).toMatchObject({ href: "http://x/a_b", title: "a*b" });
+  });
+
+  it("escapes are removed from image alt text", () => {
+    const nodes = parseInline("![a\\*b](x.png)", makeCtx());
+    expect(nodes[0]).toMatchObject({ type: "image", alt: "a*b", src: "x.png" });
+  });
+
+  it("escaped ] does not close inline footnote", () => {
+    const ctx = makeCtx();
+    const nodes = parseInline("^[note \\] x]", ctx);
+    expect(nodes).toEqual([
+      { type: "inline_footnote", children: [text("note ] x")] },
+    ]);
+  });
+});
