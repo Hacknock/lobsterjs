@@ -1,6 +1,6 @@
 <picture>
-  <source srcset="docs/lobsterjs-dark.png" media="(prefers-color-scheme: dark)">
-  <img src="docs/lobsterjs-light.png" alt="lobster.js" width="64" height="64">
+  <source srcset="https://hacknock.github.io/lobsterjs/lobsterjs-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="https://hacknock.github.io/lobsterjs/lobsterjs-light.png" alt="lobster.js" width="64" height="64">
 </picture>
 
 # lobster.js
@@ -56,14 +56,18 @@ lobster.js outputs semantic HTML with `lbs-*` class names. No stylesheet is bund
 
 ### CDN / local file
 
-The latest build is available via GitHub Pages:
+Load a version-pinned build from jsDelivr (recommended):
 
 ```html
 <script type="module">
-  import { loadMarkdown } from "https://hacknock.github.io/lobsterjs/lobster.js";
+  import { loadMarkdown } from "https://cdn.jsdelivr.net/npm/@hacknock/lobster@0.4/dist/lobster.js";
   loadMarkdown("./content.md", document.getElementById("content"));
 </script>
 ```
+
+`@0.4` receives patch releases (`0.4.x`) only. Breaking changes ship as a new minor version while lobster.js is `0.x`, so update the version in the URL deliberately after reading the [release notes](https://github.com/Hacknock/lobsterjs/releases).
+
+The latest build is also available via GitHub Pages at `https://hacknock.github.io/lobsterjs/lobster.js`. It always serves the newest release, so breaking changes take effect on your page without notice.
 
 Or download `lobster.js` from the [releases page](https://github.com/Hacknock/lobsterjs/releases) and host it yourself.
 
@@ -289,7 +293,7 @@ flowchart LR
 
 ```html
 <script type="module">
-  import { loadMarkdown } from "https://hacknock.github.io/lobsterjs/lobster.js";
+  import { loadMarkdown } from "https://cdn.jsdelivr.net/npm/@hacknock/lobster@0.4/dist/lobster.js";
   import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
 
   mermaid.initialize({ startOnLoad: false });
