@@ -61,7 +61,7 @@ docs/                     # GitHub Pages demo site (lobster.js loads its own con
 ```
 header / footer / details (extracted before block parse)
   blockquote → list → heading → horizontal_rule → code_block → silent_table → table
-    image → inline_footnote → footnote_ref → warp_ref → link → inline_link
+    backslash_escape → image → inline_footnote → footnote_ref → warp_ref → link → inline_link
       code_span → emphasis → strong → strikethrough
 ```
 

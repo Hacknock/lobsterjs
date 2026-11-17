@@ -281,3 +281,103 @@ describe("parseInline — nested", () => {
     expect(nodes[nodes.length - 1].type).toBe("strong");
   });
 });
+
+describe("parseInline — backslash escape", () => {
+  it("escaped ASCII punctuation becomes literal text", () => {
+    const nodes = parseInline("2 \\* 3 \\* 4", makeCtx());
+    expect(nodes).toEqual([text("2 * 3 * 4")]);
+  });
+
+  it("escaped # and . lose their backslash", () => {
+    expect(parseInline("\\# not a heading", makeCtx())).toEqual([text("# not a heading")]);
+    expect(parseInline("1\\. First", makeCtx())).toEqual([text("1. First")]);
+  });
+
+  it("escaped brackets do not form a link", () => {
+    const nodes = parseInline("\\[not link\\](x)", makeCtx());
+    expect(nodes).toEqual([text("[not link](x)")]);
+  });
+
+  it("escaped backslash is a single literal backslash", () => {
+    const nodes = parseInline("\\\\*em*", makeCtx());
+    expect(nodes).toEqual([
+      text("\\"),
+      { type: "emphasis", children: [text("em")] },
+    ]);
+  });
+
+  it("backslash before non-punctuation is kept", () => {
+    const nodes = parseInline("C:\\path", makeCtx());
+    expect(nodes).toEqual([text("C:\\path")]);
+  });
+
+  it("escaped delimiter inside emphasis is not a closer", () => {
+    expect(parseInline("*a \\* b*", makeCtx())).toEqual([
+      { type: "emphasis", children: [text("a * b")] },
+    ]);
+    expect(parseInline("*a\\**", makeCtx())).toEqual([
+      { type: "emphasis", children: [text("a*")] },
+    ]);
+  });
+
+  it("is not applied inside code spans", () => {
+    const nodes = parseInline("`\\*`", makeCtx());
+    expect(nodes).toEqual([{ type: "code_span", code: "\\*" }]);
+  });
+});
+
+describe("parseInline — delimiter boundaries", () => {
+  it("intraword _ does not open emphasis", () => {
+    const nodes = parseInline("call snake_case_name or my_var_x", makeCtx());
+    expect(nodes).toEqual([text("call snake_case_name or my_var_x")]);
+  });
+
+  it("intraword __ does not open strong", () => {
+    const nodes = parseInline("my__var__x", makeCtx());
+    expect(nodes).toEqual([text("my__var__x")]);
+  });
+
+  it("_ followed by a word character does not close emphasis", () => {
+    const nodes = parseInline("_foo_bar_", makeCtx());
+    expect(nodes).toEqual([
+      { type: "emphasis", children: [text("foo_bar")] },
+    ]);
+  });
+
+  it("_ between Japanese characters is literal", () => {
+    const nodes = parseInline("日本語_強調_です", makeCtx());
+    expect(nodes).toEqual([text("日本語_強調_です")]);
+  });
+
+  it("intraword * still forms emphasis", () => {
+    const nodes = parseInline("foo*bar*baz", makeCtx());
+    expect(nodes).toEqual([
+      text("foo"),
+      { type: "emphasis", children: [text("bar")] },
+      text("baz"),
+    ]);
+  });
+
+  it("* surrounded by spaces is literal", () => {
+    const nodes = parseInline("2 * 3 * 4", makeCtx());
+    expect(nodes).toEqual([text("2 * 3 * 4")]);
+  });
+
+  it("emphasis does not close after whitespace", () => {
+    const nodes = parseInline("*a *", makeCtx());
+    expect(nodes).toEqual([text("*a *")]);
+  });
+
+  it("** and ~~ surrounded by spaces are literal", () => {
+    expect(parseInline("a ** b ** c", makeCtx())).toEqual([text("a ** b ** c")]);
+    expect(parseInline("~~ a ~~", makeCtx())).toEqual([text("~~ a ~~")]);
+  });
+
+  it("strong may wrap Japanese brackets", () => {
+    const nodes = parseInline("**「強調」**です", makeCtx());
+    expect(nodes).toEqual([
+      { type: "strong", children: [text("「強調」")] },
+      text("です"),
+    ]);
+  });
+});
