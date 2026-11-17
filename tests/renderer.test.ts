@@ -217,3 +217,24 @@ describe("toHTML — footnotes", () => {
     expect(html).toContain("Note content");
   });
 });
+
+describe("toHTML — backslash escapes and delimiter boundaries", () => {
+  it("renders the examples from Issue #4 as plain text", () => {
+    expect(toHTML("2 \\* 3 \\* 4")).toContain('<p class="lbs-paragraph">2 * 3 * 4</p>');
+    expect(toHTML("\\# not a heading")).toContain('<p class="lbs-paragraph"># not a heading</p>');
+    expect(toHTML("1\\. First")).toContain('<p class="lbs-paragraph">1. First</p>');
+    expect(toHTML("call snake_case_name or my_var_x")).toContain(
+      '<p class="lbs-paragraph">call snake_case_name or my_var_x</p>'
+    );
+  });
+
+  it("keeps table colspan syntax working", () => {
+    const html = toHTML("| a \\| | c |\n|---|---|---|\n| 1 | 2 | 3 |");
+    expect(html).toContain('<th colspan="2">a</th>');
+  });
+
+  it("keeps table rowspan syntax working", () => {
+    const html = toHTML("| a | b |\n|---|---|\n| 1 | 2 |\n| \\--- | 3 |");
+    expect(html).toContain('<td rowspan="2">1</td>');
+  });
+});

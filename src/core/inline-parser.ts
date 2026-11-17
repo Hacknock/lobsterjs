@@ -17,18 +17,129 @@ import type {
 
 type MatchResult = { node: InlineNode; end: number };
 
+const ASCII_PUNCTUATION = /^[!-/:-@[-`{-~]$/;
+const WORD_CHARACTER = /^[\p{L}\p{N}]$/u;
+const WHITESPACE = /^\s$/;
+
 // ============================================================
 // Helpers
 // ============================================================
 
+function isAsciiPunctuation(ch: string | undefined): boolean {
+  return ch !== undefined && ASCII_PUNCTUATION.test(ch);
+}
+
+function isWordCharacter(ch: string | undefined): boolean {
+  return ch !== undefined && WORD_CHARACTER.test(ch);
+}
+
+function isWhitespaceOrBoundary(ch: string | undefined): boolean {
+  return ch === undefined || WHITESPACE.test(ch);
+}
+
+function characterStartingAt(text: string, index: number): string | undefined {
+  const codePoint = text.codePointAt(index);
+  return codePoint === undefined ? undefined : String.fromCodePoint(codePoint);
+}
+
+function characterEndingBefore(text: string, index: number): string | undefined {
+  return Array.from(text.slice(Math.max(0, index - 2), index)).pop();
+}
+
+/**
+ * spec: バックスラッシュエスケープ — a character preceded by an odd number of `\` is escaped.
+ */
+function isEscaped(text: string, index: number): boolean {
+  let backslashCount = 0;
+  for (let i = index - 1; i >= 0 && text[i] === "\\"; i--) backslashCount++;
+  return backslashCount % 2 === 1;
+}
+
+/**
+ * spec: 強調・強勢・打ち消し線の区切り文字
+ * An opening delimiter must not be followed by whitespace, and `_` must not
+ * be preceded by a word character (intraword `_` is literal).
+ */
+function canOpenDelimiter(
+  text: string,
+  delimiterStart: number,
+  delimiterLength: number
+): boolean {
+  if (isWhitespaceOrBoundary(text[delimiterStart + delimiterLength])) return false;
+  const ch = text[delimiterStart];
+  if (ch === "_") {
+    let beforeRun = delimiterStart - 1;
+    while (beforeRun >= 0 && text[beforeRun] === ch) beforeRun--;
+    if (isWordCharacter(characterEndingBefore(text, beforeRun + 1))) return false;
+  }
+  return true;
+}
+
+/**
+ * spec: 強調・強勢・打ち消し線の区切り文字
+ * A closing delimiter must not be preceded by whitespace, and `_` must not
+ * be followed by a word character.
+ */
+function canCloseDelimiter(
+  text: string,
+  delimiterStart: number,
+  delimiterLength: number
+): boolean {
+  if (isWhitespaceOrBoundary(text[delimiterStart - 1])) return false;
+  if (
+    text[delimiterStart] === "_" &&
+    isWordCharacter(characterStartingAt(text, delimiterStart + delimiterLength))
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * spec: バックスラッシュエスケープ — removes the backslash from escaped ASCII
+ * punctuation in raw strings such as link destinations, titles, and alt text.
+ */
+export function unescapeBackslashes(raw: string): string {
+  return raw.replace(/\\([!-/:-@[-`{-~])/g, "$1");
+}
+
+/**
+ * Finds the first valid closing `delimiter` at or after `searchStart`.
+ * Escaped delimiters are skipped. For single-character delimiters, doubled
+ * occurrences are skipped so that `*a **b** c*` closes at the last `*`.
+ */
+function findClosingDelimiter(
+  text: string,
+  searchStart: number,
+  delimiter: string
+): number {
+  let searchPos = searchStart;
+  while (searchPos < text.length) {
+    const closeIdx = text.indexOf(delimiter, searchPos);
+    if (closeIdx === -1) return -1;
+    if (isEscaped(text, closeIdx)) {
+      searchPos = closeIdx + 1;
+      continue;
+    }
+    if (delimiter.length === 1 && text[closeIdx + 1] === delimiter) {
+      searchPos = closeIdx + 2;
+      continue;
+    }
+    if (canCloseDelimiter(text, closeIdx, delimiter.length)) return closeIdx;
+    searchPos = closeIdx + 1;
+  }
+  return -1;
+}
+
 /**
  * Finds the next `]` that closes a `[` opened before `start`.
- * Returns -1 if not found within the same line.
+ * Escaped brackets are ignored. Returns -1 if not found within the same line.
  */
 function findClosingBracket(text: string, start: number): number {
   let depth = 1;
   for (let i = start; i < text.length; i++) {
-    if (text[i] === "[") depth++;
+    if (text[i] === "\\" && isAsciiPunctuation(text[i + 1])) i++;
+    else if (text[i] === "[") depth++;
     else if (text[i] === "]") {
       depth--;
       if (depth === 0) return i;
@@ -41,12 +152,13 @@ function findClosingBracket(text: string, start: number): number {
 
 /**
  * Finds the next `)` that closes a `(` opened before `start`.
- * Returns -1 if not found.
+ * Escaped parentheses are ignored. Returns -1 if not found.
  */
 function findClosingParen(text: string, start: number): number {
   let depth = 1;
   for (let i = start; i < text.length; i++) {
-    if (text[i] === "(") depth++;
+    if (text[i] === "\\" && isAsciiPunctuation(text[i + 1])) i++;
+    else if (text[i] === "(") depth++;
     else if (text[i] === ")") {
       depth--;
       if (depth === 0) return i;
@@ -61,11 +173,11 @@ function findClosingParen(text: string, start: number): number {
 function parseLinkContent(content: string): { href: string; title?: string } {
   content = content.trim();
   const m =
-    content.match(/^(\S+)\s+"([^"]*)"$/) ??
-    content.match(/^(\S+)\s+'([^']*)'$/) ??
-    content.match(/^(\S+)\s+\(([^)]*)\)$/);
-  if (m) return { href: m[1], title: m[2] };
-  return { href: content };
+    content.match(/^(\S+)\s+"((?:[^"\\]|\\.)*)"$/) ??
+    content.match(/^(\S+)\s+'((?:[^'\\]|\\.)*)'$/) ??
+    content.match(/^(\S+)\s+\(((?:[^)\\]|\\.)*)\)$/);
+  if (m) return { href: unescapeBackslashes(m[1]), title: unescapeBackslashes(m[2]) };
+  return { href: unescapeBackslashes(content) };
 }
 
 /**
@@ -145,7 +257,7 @@ function tryMatchImage(
   const urlEnd = findClosingParen(text, altEnd + 2);
   if (urlEnd === -1) return null;
 
-  const alt = text.slice(pos + 2, altEnd);
+  const alt = unescapeBackslashes(text.slice(pos + 2, altEnd));
   const { href, title, width, height } = parseImageContent(
     text.slice(altEnd + 2, urlEnd)
   );
@@ -325,10 +437,12 @@ function tryMatchStrong(
   // Don't consume *** (triple) — let the outer loop emit one literal char
   if (text[pos + 2] === ch) return null;
 
+  if (!canOpenDelimiter(text, pos, 2)) return null;
+
   const delim = ch + ch;
   const contentStart = pos + 2;
 
-  const closeIdx = text.indexOf(delim, contentStart);
+  const closeIdx = findClosingDelimiter(text, contentStart, delim);
   if (closeIdx === -1) return null;
 
   // Content cannot span newlines
@@ -355,30 +469,20 @@ function tryMatchEmphasis(
   if (ch !== "*" && ch !== "_") return null;
   // Must be single (not **)
   if (text[pos + 1] === ch) return null;
+  if (!canOpenDelimiter(text, pos, 1)) return null;
 
   const contentStart = pos + 1;
-  let searchPos = contentStart;
+  const closeIdx = findClosingDelimiter(text, contentStart, ch);
+  if (closeIdx === -1) return null;
 
-  while (searchPos < text.length) {
-    const closeIdx = text.indexOf(ch, searchPos);
-    if (closeIdx === -1) return null;
+  const content = text.slice(contentStart, closeIdx);
+  if (content.includes("\n")) return null;
 
-    // Skip double occurrences
-    if (text[closeIdx + 1] === ch) {
-      searchPos = closeIdx + 2;
-      continue;
-    }
-
-    const content = text.slice(contentStart, closeIdx);
-    if (content.includes("\n")) return null;
-
-    const node: EmphasisNode = {
-      type: "emphasis",
-      children: parseInline(content, ctx),
-    };
-    return { node, end: closeIdx + 1 };
-  }
-  return null;
+  const node: EmphasisNode = {
+    type: "emphasis",
+    children: parseInline(content, ctx),
+  };
+  return { node, end: closeIdx + 1 };
 }
 
 /**
@@ -393,9 +497,10 @@ function tryMatchStrikethrough(
   if (text[pos] !== "~" || text[pos + 1] !== "~") return null;
   // Reject ~~~
   if (text[pos + 2] === "~") return null;
+  if (!canOpenDelimiter(text, pos, 2)) return null;
 
   const contentStart = pos + 2;
-  const closeIdx = text.indexOf("~~", contentStart);
+  const closeIdx = findClosingDelimiter(text, contentStart, "~~");
   if (closeIdx === -1) return null;
 
   const content = text.slice(contentStart, closeIdx);
@@ -415,7 +520,7 @@ function tryMatchStrikethrough(
 /**
  * Parses inline Markdown syntax within a single block of text.
  * Evaluation order (left-to-right scan, priority by pattern):
- *   code span > image > inline-footnote > [bracket-exprs] > strong > emphasis > strikethrough > line-break
+ *   backslash escape > code span > image > inline-footnote > [bracket-exprs] > strong > emphasis > strikethrough > line-break
  */
 export function parseInline(text: string, ctx: ParseContext): InlineNode[] {
   const nodes: InlineNode[] = [];
@@ -424,7 +529,13 @@ export function parseInline(text: string, ctx: ParseContext): InlineNode[] {
 
   function flushText(): void {
     if (pos > textStart) {
-      nodes.push({ type: "text", text: text.slice(textStart, pos) } as TextNode);
+      const pendingText = text.slice(textStart, pos);
+      const previousNode = nodes[nodes.length - 1];
+      if (previousNode?.type === "text") {
+        previousNode.text += pendingText;
+      } else {
+        nodes.push({ type: "text", text: pendingText } as TextNode);
+      }
     }
     textStart = pos;
   }
@@ -432,6 +543,14 @@ export function parseInline(text: string, ctx: ParseContext): InlineNode[] {
   while (pos < text.length) {
     const ch = text[pos];
     let result: MatchResult | null = null;
+
+    // spec: バックスラッシュエスケープ
+    if (ch === "\\" && isAsciiPunctuation(text[pos + 1])) {
+      flushText();
+      textStart = pos + 1;
+      pos += 2;
+      continue;
+    }
 
     if (ch === "`") {
       result = tryMatchCodeSpan(text, pos);

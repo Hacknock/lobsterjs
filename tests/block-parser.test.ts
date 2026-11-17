@@ -312,6 +312,11 @@ describe("parseDocument", () => {
     expect(doc.linkDefs["example"]).toEqual({ href: "https://example.com", title: undefined });
   });
 
+  it("removes backslash escapes from link definition destinations and titles", () => {
+    const doc = parseDocument('[a\\_id]: https://x/a\\_b "a\\*b \\"c\\""\n\n[label][a\\_id]');
+    expect(doc.linkDefs["a\\_id"]).toEqual({ href: "https://x/a_b", title: 'a*b "c"' });
+  });
+
   it("extracts :::header", () => {
     const md = ":::header\nSite Name\n:::\n\nBody text";
     const doc = parseDocument(md);

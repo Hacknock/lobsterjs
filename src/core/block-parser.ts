@@ -20,7 +20,7 @@ import type {
   Document,
   ParseContext,
 } from "./types.js";
-import { parseInline } from "./inline-parser.js";
+import { parseInline, unescapeBackslashes } from "./inline-parser.js";
 
 // ============================================================
 // Helpers
@@ -209,7 +209,8 @@ function buildTableCells(
 // Pre-scan: collect definitions
 // ============================================================
 
-const LINK_DEF_RE = /^\[([^\]]+)\]:\s+(\S+)(?:\s+(?:"([^"]+)"|'([^']+)'|\(([^)]+)\)))?/;
+const LINK_DEF_RE =
+  /^\[([^\]]+)\]:\s+(\S+)(?:\s+(?:"((?:[^"\\]|\\.)+)"|'((?:[^'\\]|\\.)+)'|\(((?:[^)\\]|\\.)+)\)))?/;
 const FOOTNOTE_DEF_RE = /^\[\^([^\]\s]+)\]:\s*(.*)/;
 
 interface Definitions {
@@ -232,9 +233,10 @@ function collectDefinitions(lines: string[]): Definitions {
     const lm = line.match(LINK_DEF_RE);
     if (lm) {
       const id = lm[1].toLowerCase();
+      const title = lm[3] ?? lm[4] ?? lm[5];
       linkDefs[id] = {
-        href: lm[2],
-        title: lm[3] ?? lm[4] ?? lm[5],
+        href: unescapeBackslashes(lm[2]),
+        title: title === undefined ? undefined : unescapeBackslashes(title),
       };
       continue;
     }

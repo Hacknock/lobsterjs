@@ -23,7 +23,7 @@ The parser processes elements in the following priority:
 ```
 Header > Footer >>> Details =>
   Blockquote => List > Heading > Horizontal Rule > Code Block > Silent Table > Table >
-    Image > Inline Footnote > Footnote Ref > Warp Ref > Inline Link > Link >
+    Backslash Escape > Image > Inline Footnote > Footnote Ref > Warp Ref > Inline Link > Link >
       Code Span > Strong > Emphasis > Strikethrough
 ```
 
@@ -282,6 +282,37 @@ Alignment is applied as inline `style="text-align:…"` on each cell.
 ## Inline Elements
 
 Inline elements are parsed left-to-right within block content.
+
+### Backslash Escapes
+
+A backslash before an ASCII punctuation character makes that character literal, so it is not interpreted as Markdown syntax.
+
+```
+\*not emphasis\*
+\# not a heading
+1\. not a list
+```
+
+- Only ASCII punctuation (``!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~``) can be escaped. A backslash before any other character is emitted as-is (e.g. `C:\path`).
+- `\\` produces a single literal `\`.
+- Escapes are not interpreted inside code spans or code blocks.
+- Escapes are interpreted in link destinations, link titles, image alt text, image titles, and the destinations and titles of reference link definitions, and the backslash is removed.
+- Escapes are not interpreted in footnote IDs, warp IDs, or reference link IDs.
+- The table cell syntaxes `\|` (colspan) and `\---` (rowspan) are processed at the block level first, so they keep working. As a result, a table cell ending with `\\` is treated as a colspan marker.
+
+---
+
+### Delimiter Rules for Emphasis, Strong, and Strikethrough
+
+To avoid unintended formatting, the delimiters `*`, `_`, and `~~` follow these rules.
+
+- An opening delimiter followed by whitespace is not an opener (`2 * 3 * 4` stays as-is).
+- A closing delimiter preceded by whitespace is not a closer.
+- `_` and `__` are not delimiters inside a word: an opener preceded by a letter or digit, or a closer followed by one, is ignored (`snake_case_name` stays as-is).
+- `*` and `**` work inside words (`foo*bar*baz` → `foo` + emphasis `bar` + `baz`).
+- The punctuation conditions of CommonMark's flanking rules are not applied, so strong text wrapping brackets such as `**「強調」**です` is still recognized.
+
+---
 
 ### Code Span
 
