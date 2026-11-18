@@ -114,11 +114,14 @@ const x = 1;
   </thead>
   <tbody>
     <tr>
-      <td style="text-align:left">Alice</td>
-      <td rowspan="2">30</td>   <!-- \--- vertical merge -->
+      <td rowspan="2" style="text-align:left">Alice</td>   <!-- ^^ vertical merge -->
+      <td>30</td>
     </tr>
     <tr>
-      <td colspan="2">merged</td>   <!-- \| horizontal merge -->
+      <td>31</td>
+    </tr>
+    <tr>
+      <td colspan="2" style="text-align:left">merged</td>   <!-- << horizontal merge -->
     </tr>
   </tbody>
 </table>

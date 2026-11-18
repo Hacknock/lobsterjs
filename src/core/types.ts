@@ -164,6 +164,7 @@ export interface TableNode {
   isSilent: boolean;
   headers: TableCellNode[];
   alignments: TableAlignment[];
+  /** spec: テーブル - セルの結合 — slots covered by colspan/rowspan are omitted. */
   rows: TableCellNode[][];
 }
 

@@ -241,38 +241,58 @@ function renderOrderedList(node: OrderedListNode, ctx: RenderContext): string {
   return `<ol class="lbs-ol lbs-ol-depth-${node.depth}"${startAttr}>\n${items}\n</ol>`;
 }
 
+/**
+ * Returns the starting column of each body cell, skipping columns occupied
+ * by rowspans from rows above.
+ */
+function bodyCellColumns(rows: TableCellNode[][]): number[][] {
+  const occupiedUntilRow: number[] = [];
+  return rows.map((row, rowIndex) => {
+    let column = 0;
+    return row.map((cell) => {
+      while ((occupiedUntilRow[column] ?? 0) > rowIndex) column++;
+      const startColumn = column;
+      const colspan = cell.colspan ?? 1;
+      for (let offset = 0; offset < colspan; offset++) {
+        occupiedUntilRow[startColumn + offset] = rowIndex + (cell.rowspan ?? 1);
+      }
+      column += colspan;
+      return startColumn;
+    });
+  });
+}
+
+function renderTableCell(
+  tag: "th" | "td",
+  cell: TableCellNode,
+  alignment: TableAlignment | undefined,
+  ctx: RenderContext
+): string {
+  const alignAttr = alignment && alignment !== "default" ? ` style="text-align:${alignment}"` : "";
+  const colspan = cell.colspan ? ` colspan="${cell.colspan}"` : "";
+  const rowspan = cell.rowspan ? ` rowspan="${cell.rowspan}"` : "";
+  return `<${tag}${colspan}${rowspan}${alignAttr}>${renderInlineNodes(cell.children, ctx)}</${tag}>`;
+}
+
 function renderTable(node: TableNode, ctx: RenderContext): string {
   const tableClass = node.isSilent
     ? "lbs-table lbs-table-silent"
     : "lbs-table";
 
-  // Header
+  let headerColumn = 0;
   const headerCells = node.headers
-    .map((cell, i) => {
-      const align = node.alignments[i];
-      const alignAttr = align && align !== "default" ? ` style="text-align:${align}"` : "";
-      const colspan = cell.colspan ? ` colspan="${cell.colspan}"` : "";
-      return `<th${colspan}${alignAttr}>${renderInlineNodes(cell.children, ctx)}</th>`;
+    .map((cell) => {
+      const html = renderTableCell("th", cell, node.alignments[headerColumn], ctx);
+      headerColumn += cell.colspan ?? 1;
+      return html;
     })
     .join("");
 
-  // Body rows
-  const bodyRows = node.rows.map((row) => {
-    const cells = row.map((cell, i): string => {
-      const align = node.alignments[i];
-      const alignAttr = align && align !== "default" ? ` style="text-align:${align}"` : "";
-      const colspan = cell.colspan ? ` colspan="${cell.colspan}"` : "";
-      const rowspan = cell.rowspan ? ` rowspan="${cell.rowspan}"` : "";
-
-      // Skip rowspan placeholder cells
-      const isRowspanPlaceholder =
-        cell.children.length === 1 &&
-        cell.children[0].type === "text" &&
-        (cell.children[0] as TextNode).text === "__ROWSPAN__";
-      if (isRowspanPlaceholder) return "";
-
-      return `<td${colspan}${rowspan}${alignAttr}>${renderInlineNodes(cell.children, ctx)}</td>`;
-    });
+  const columns = bodyCellColumns(node.rows);
+  const bodyRows = node.rows.map((row, rowIndex) => {
+    const cells = row.map((cell, cellIndex) =>
+      renderTableCell("td", cell, node.alignments[columns[rowIndex][cellIndex]], ctx)
+    );
     return `<tr>${cells.join("")}</tr>`;
   });
 

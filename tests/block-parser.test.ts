@@ -236,47 +236,21 @@ describe("parseBlocks — table", () => {
     expect(table.isSilent).toBe(true);
   });
 
-  it("\\| at end of header cell sets colspan (spec syntax)", () => {
-    // "Q1 \|" → Q1 spans 2 columns; trailing pipe handled correctly too
+  it("<< merges a header cell into the cell on its left", () => {
     const blocks = parseBlocks([
-      "| Feature | Q1 \\|",
+      "| Feature | Q1 | << |",
       "| :--- | :--- | :--- |",
       "| Foo | 100 | 200 |",
     ], makeCtx());
     const table = blocks[0] as TableNode;
     expect(table.headers).toHaveLength(2);
-    expect(table.headers[1].colspan).toBe(2);
+    expect(table.headers[1]).toMatchObject({ colspan: 2 });
+    expect(table.rows[0]).toHaveLength(3);
   });
 
-  it("\\| at end of header cell works with trailing pipe", () => {
-    // "Q1 \| |" — trailing | should not produce a spurious empty cell
+  it("repeated << extends colspan", () => {
     const blocks = parseBlocks([
-      "| Feature | Q1 \\| |",
-      "| :--- | :--- | :--- |",
-      "| Foo | 100 | 200 |",
-    ], makeCtx());
-    const table = blocks[0] as TableNode;
-    expect(table.headers).toHaveLength(2);
-    expect(table.headers[1].colspan).toBe(2);
-  });
-
-  it("\\| at end of body cell sets colspan (spec syntax)", () => {
-    const blocks = parseBlocks([
-      "| A | B | C |",
-      "| --- | --- | --- |",
-      "| item | merged \\| |",
-    ], makeCtx());
-    const table = blocks[0] as TableNode;
-    const row = table.rows[0];
-    // "item" + "merged \|" (colspan=2) = 2 cell nodes covering 3 columns
-    expect(row).toHaveLength(2);
-    expect(row[1].colspan).toBe(2);
-  });
-
-  it("chained \\| extends colspan by multiple columns", () => {
-    // "EMEA \| \|" → EMEA spans 3 columns
-    const blocks = parseBlocks([
-      "| Name | EMEA \\| \\| |",
+      "| Name | EMEA | << | << |",
       "| --- | --- | --- | --- |",
       "| Alpha | 1 | 2 | 3 |",
     ], makeCtx());
@@ -285,20 +259,240 @@ describe("parseBlocks — table", () => {
     expect(table.headers[1].colspan).toBe(3);
   });
 
-  it("\\--- sets rowspan on the cell above", () => {
+  it("^^ merges a body cell into the cell above", () => {
     const blocks = parseBlocks([
       "| A | B |",
       "| --- | --- |",
       "| X | 1 |",
-      "| \\--- | 2 |",
-      "| \\--- | 3 |",
+      "| ^^ | 2 |",
+      "| ^^ | 3 |",
     ], makeCtx());
     const table = blocks[0] as TableNode;
-    // First data row: col 0 should get rowspan=3 (spans itself + 2 \\--- rows)
-    expect(table.rows[0][0].rowspan).toBe(3);
-    // Second and third rows: col 0 are placeholders
-    expect(table.rows[1][0].children[0]).toMatchObject({ type: "text", text: "__ROWSPAN__" });
-    expect(table.rows[2][0].children[0]).toMatchObject({ type: "text", text: "__ROWSPAN__" });
+    expect(table.rows[0][0]).toMatchObject({ rowspan: 3 });
+    expect(table.rows[1]).toEqual([{ children: [{ type: "text", text: "2" }] }]);
+    expect(table.rows[2]).toEqual([{ children: [{ type: "text", text: "3" }] }]);
+  });
+
+  it("<< and ^^ together form a rectangular block", () => {
+    const blocks = parseBlocks([
+      "| A | B | C |",
+      "| --- | --- | --- |",
+      "| Block | << | x |",
+      "| ^^ | ^^ | y |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0][0]).toMatchObject({ colspan: 2, rowspan: 2 });
+    expect(table.rows[1]).toHaveLength(1);
+  });
+
+  it("^^ below a colspan cell extends the whole cell", () => {
+    const blocks = parseBlocks([
+      "| A | B | C |",
+      "| --- | --- | --- |",
+      "| 1 | span | << |",
+      "| 2 | ^^ | ^^ |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0][1]).toMatchObject({ colspan: 2, rowspan: 2 });
+    expect(table.rows[1]).toHaveLength(1);
+  });
+
+  it("markers that would form a non-rectangular region are plain text", () => {
+    const blocks = parseBlocks([
+      "| A | B | C |",
+      "| --- | --- | --- |",
+      "| 1 | 2 | 3 |",
+      "| span | << | << |",
+      "| 4 | 5 | ^^ |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[1][0]).toMatchObject({ colspan: 3 });
+    expect(table.rows[1][0].rowspan).toBeUndefined();
+    expect(table.rows[2][2]).toEqual({ children: [{ type: "text", text: "^^" }] });
+  });
+
+  it("only the last marker of a non-rectangular region becomes plain text", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| X | a |",
+      "| ^^ | << |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0][0]).toMatchObject({ rowspan: 2 });
+    expect(table.rows[1]).toEqual([{ children: [{ type: "text", text: "<<" }] }]);
+  });
+
+  it("markers without a neighbor are plain text", () => {
+    const blocks = parseBlocks([
+      "| << | ^^ |",
+      "| --- | --- |",
+      "| ^^ | << |",
+      "| << | x |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.headers.map((cell) => cell.children)).toEqual([
+      [{ type: "text", text: "<<" }],
+      [{ type: "text", text: "^^" }],
+    ]);
+    expect(table.rows[0][0]).toMatchObject({ colspan: 2 });
+    expect(table.rows[0][0].children).toEqual([{ type: "text", text: "^^" }]);
+    expect(table.rows[1][0].children).toEqual([{ type: "text", text: "<<" }]);
+  });
+
+  it("markers are recognized only as the entire cell content", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| x | a << b |",
+      "| y | \\^^ |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0][1].children).toEqual([{ type: "text", text: "a << b" }]);
+    expect(table.rows[1][1].children).toEqual([{ type: "text", text: "^^" }]);
+  });
+
+  it("escaped markers are plain text", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| x | \\<< |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0][1].children).toEqual([{ type: "text", text: "<<" }]);
+  });
+
+  it("a full-width block leaves an empty row", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| 1 | << |",
+      "| ^^ | ^^ |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0][0]).toMatchObject({ colspan: 2, rowspan: 2 });
+    expect(table.rows[1]).toEqual([]);
+  });
+
+  it("merges work in silent tables", () => {
+    const blocks = parseBlocks([
+      "~ | A | << |",
+      "~ | --- | --- |",
+      "~ | x | y |",
+      "~ | ^^ | z |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.isSilent).toBe(true);
+    expect(table.headers[0]).toMatchObject({ colspan: 2 });
+    expect(table.rows[0][0]).toMatchObject({ rowspan: 2 });
+  });
+
+  it("resolves large non-rectangular regions in linear time", () => {
+    const columnCount = 20;
+    const rowCount = 2000;
+    const lines = [
+      "| " + Array.from({ length: columnCount }, (_, column) => `h${column}`).join(" | ") + " |",
+      "| " + Array(columnCount).fill("---").join(" | ") + " |",
+      "| A | " + Array(columnCount - 1).fill("<<").join(" | ") + " |",
+      ...Array.from({ length: rowCount - 1 }, () => "| ^^ | " + Array(columnCount - 1).fill("x").join(" | ") + " |"),
+    ];
+    const startedAt = performance.now();
+    const table = parseBlocks(lines, makeCtx())[0] as TableNode;
+    expect(performance.now() - startedAt).toBeLessThan(1000);
+    expect(table.rows[0][0]).toMatchObject({ colspan: columnCount });
+    expect(table.rows[0][0].rowspan).toBeUndefined();
+    expect(table.rows[1][0].children).toEqual([{ type: "text", text: "^^" }]);
+  });
+
+  it("\\| is a literal pipe inside a cell", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| a \\| b | c \\|",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0]).toEqual([
+      { children: [{ type: "text", text: "a | b" }] },
+      { children: [{ type: "text", text: "c |" }] },
+    ]);
+  });
+
+  it("escaped backslash before a pipe does not escape the pipe", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| path\\\\ | c |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0]).toEqual([
+      { children: [{ type: "text", text: "path\\" }] },
+      { children: [{ type: "text", text: "c" }] },
+    ]);
+  });
+
+  it("an escaped backtick does not open a code span across cells", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| \\`foo` | next |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0]).toEqual([
+      { children: [{ type: "text", text: "`foo`" }] },
+      { children: [{ type: "text", text: "next" }] },
+    ]);
+  });
+
+  it("an unmatched backtick does not open a code span across cells", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| a`b | c |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0]).toEqual([
+      { children: [{ type: "text", text: "a`b" }] },
+      { children: [{ type: "text", text: "c" }] },
+    ]);
+  });
+
+  it("a pipe inside a multi-backtick code span does not split the cell", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| `` a ` | b `` | c |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0]).toEqual([
+      { children: [{ type: "code_span", code: "a ` | b" }] },
+      { children: [{ type: "text", text: "c" }] },
+    ]);
+  });
+
+  it("cells beyond the header width are dropped and short rows are padded", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| 1 | 2 | 3 |",
+      "| 4 |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0]).toHaveLength(2);
+    expect(table.rows[1]).toEqual([
+      { children: [{ type: "text", text: "4" }] },
+      { children: [] },
+    ]);
+  });
+
+  it("old \\--- syntax is plain text", () => {
+    const blocks = parseBlocks([
+      "| A |",
+      "| --- |",
+      "| X |",
+      "| \\--- |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[1][0].children).toEqual([{ type: "text", text: "---" }]);
   });
 });
 

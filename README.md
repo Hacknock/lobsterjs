@@ -41,7 +41,7 @@ lobster.js outputs semantic HTML with `lbs-*` class names. No stylesheet is bund
   - `:::details` — native collapsible `<details>` / `<summary>` blocks
   - `:::warp` + `[~id]` — define content once, place it anywhere (great for multi-column layouts)
   - Silent tables (`~ | … |`) — borderless layout grids
-  - Table cell merging — horizontal (`\|`) and vertical (`\---`) colspan/rowspan
+  - Table cell merging — `<<` merges with the cell on the left, `^^` with the cell above
   - Image sizing — `![alt](url =800x600)`
   - Heading anchors — `## My Section {#my-section}` adds an `id` attribute for deep linking
   - Footnotes — reference (`[^id]`) and inline (`^[text]`)
@@ -192,8 +192,8 @@ Lobster[^1] is great. So is inline^[No definition needed] footnotes.
 ### Table cell merging
 
 ```
-| A | B \|   |     ← B and the next cell merge horizontally
-| \--- | C |       ← first cell merges with the one above
+| A  | B  | << |   ← B spans two columns
+| ^^ | C  | D  |   ← A spans two rows
 ```
 
 For the full syntax reference see [markdowns/spec.md](./markdowns/spec.md) (English) or [markdowns/spec-ja.md](./markdowns/spec-ja.md) (日本語).

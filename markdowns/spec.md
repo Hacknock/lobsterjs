@@ -247,24 +247,43 @@ Spaces are allowed before/after cell content and alignment markers. No spaces wi
 
 #### Cell Merge (Lobster extension)
 
-**Horizontal merge** — the `\|` pattern is a merge marker: the `|` separator between two cells, when immediately preceded by `\`, causes the left cell to span two columns. Place the content in the left cell and leave the right cell empty:
+A cell whose entire content is a merge marker joins a neighboring cell.
+
+| Marker | Meaning |
+| :----- | :------ |
+| `<<`   | Merge with the cell on the left (colspan) |
+| `^^`   | Merge with the cell above (rowspan) |
 
 ```
-| A | B \|   |
+| Time | Mon  | Tue      | Wed     |
+| :--- | :--- | :---     | :---    |
+| 1st  | Math | English  | <<      |
+| 2nd  | ^^   | Japanese | Science |
+| 3rd  | Assembly | <<   | <<      |
 ```
 
-> **Constraint:** When both sides of `\|` contain content (e.g. `| A \| B |`), the right-side content (B) is silently dropped. Only the left-side content (A) is kept and given colspan=2. Write `| A \|   |` to clearly express a merge.
+- Repeating a marker extends the merge (`| Assembly | << | << |` spans three columns).
+- A marker merges into the cell that holds the content. If its neighbor is itself merged, the marker follows it, so `<<` and `^^` can form a rectangular block:
 
-**Vertical merge** — use `\---` (one or more dashes) in a cell to merge upward:
+  ```
+  | Block | << |
+  | ^^    | ^^ |
+  ```
 
-```
-| A | B |
-| \--- | C |
-```
+- A marker is recognized only when it is the entire cell content. `a << b` is plain text.
+- `<<` in the first column and `^^` in the first body row have nothing to merge with and are plain text.
+- `<<` works in the header row. `^^` works in body rows only; in the header row it is plain text. Merges never cross the header/body boundary.
+- If `^^` covers every column of a row, that row has no cells of its own and is rendered as an empty `<tr></tr>`.
+- If a merge would not form a rectangle, the last marker of that region in reading order is treated as plain text, repeated until every merged region is a rectangle.
+- Write `\<<` or `\^^` to show the marker characters as text.
+
+#### Literal pipes
+
+`\|` inside a cell is a literal `|`, not a column separator. A `|` inside a code span is also kept in the cell, so write `` `a|b` `` rather than `` `a\|b` ``. Unlike GFM, `\|` inside a code span is shown as-is.
 
 #### Missing cells
 
-If a row has fewer cells than the header, the missing cells are left empty.
+If a row has fewer cells than the header, the missing cells are left empty. Cells beyond the header width are dropped.
 
 **HTML output:**
 
@@ -275,7 +294,7 @@ If a row has fewer cells than the header, the missing cells are left empty.
 </table>
 ```
 
-Alignment is applied as inline `style="text-align:…"` on each cell.
+Alignment is applied as inline `style="text-align:…"` on each cell. A merged cell uses the alignment of the column it starts in.
 
 ---
 
@@ -298,7 +317,7 @@ A backslash before an ASCII punctuation character makes that character literal, 
 - Escapes are not interpreted inside code spans or code blocks.
 - Escapes are interpreted in link destinations, link titles, image alt text, image titles, and the destinations and titles of reference link definitions, and the backslash is removed.
 - Escapes are not interpreted in footnote IDs, warp IDs, or reference link IDs.
-- The table cell syntaxes `\|` (colspan) and `\---` (rowspan) are processed at the block level first, so they keep working. As a result, a table cell ending with `\\` is treated as a colspan marker.
+- In table cells, `\|` is a literal `|` and does not split the row.
 
 ---
 

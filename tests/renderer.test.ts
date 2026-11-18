@@ -169,6 +169,38 @@ describe("toHTML — table", () => {
     expect(html).toContain("lbs-table-silent");
   });
 
+  it("renders merged cells with colspan and rowspan", () => {
+    const md = [
+      "| Time | Mon | Tue | Wed |",
+      "| --- | --- | --- | --- |",
+      "| 1st | Math | English | << |",
+      "| 2nd | ^^ | Japanese | Science |",
+      "| 3rd | Assembly | << | << |",
+    ].join("\n");
+    const html = toHTML(md);
+    expect(html).toContain('<tr><td>1st</td><td rowspan="2">Math</td><td colspan="2">English</td></tr>');
+    expect(html).toContain("<tr><td>2nd</td><td>Japanese</td><td>Science</td></tr>");
+    expect(html).toContain('<tr><td>3rd</td><td colspan="3">Assembly</td></tr>');
+  });
+
+  it("aligns cells by their starting column across merges", () => {
+    const md = [
+      "| A | B | C |",
+      "| :--- | :---: | ---: |",
+      "| tall | wide | << |",
+      "| ^^ | x | y |",
+    ].join("\n");
+    const html = toHTML(md);
+    expect(html).toContain('<td rowspan="2" style="text-align:left">tall</td><td colspan="2" style="text-align:center">wide</td>');
+    expect(html).toContain('<tr><td style="text-align:center">x</td><td style="text-align:right">y</td></tr>');
+  });
+
+  it("header cells are aligned by their starting column", () => {
+    const md = "| A | B | << | C |\n| :--- | :---: | --- | ---: |\n| 1 | 2 | 3 | 4 |";
+    const html = toHTML(md);
+    expect(html).toContain('<th colspan="2" style="text-align:center">B</th><th style="text-align:right">C</th>');
+  });
+
   it("alignment sets text-align style", () => {
     const md = "| A | B |\n| :--- | ---: |\n| left | right |";
     const html = toHTML(md);
@@ -228,13 +260,8 @@ describe("toHTML — backslash escapes and delimiter boundaries", () => {
     );
   });
 
-  it("keeps table colspan syntax working", () => {
-    const html = toHTML("| a \\| | c |\n|---|---|---|\n| 1 | 2 | 3 |");
-    expect(html).toContain('<th colspan="2">a</th>');
-  });
-
-  it("keeps table rowspan syntax working", () => {
-    const html = toHTML("| a | b |\n|---|---|\n| 1 | 2 |\n| \\--- | 3 |");
-    expect(html).toContain('<td rowspan="2">1</td>');
+  it("renders \\| in a table cell as a literal pipe", () => {
+    const html = toHTML("| a \\| b | c |\n|---|---|\n| 1 | 2 |");
+    expect(html).toContain("<th>a | b</th><th>c</th>");
   });
 });
