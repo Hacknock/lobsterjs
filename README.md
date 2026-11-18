@@ -60,12 +60,12 @@ Load a version-pinned build from jsDelivr (recommended):
 
 ```html
 <script type="module">
-  import { loadMarkdown } from "https://cdn.jsdelivr.net/npm/@hacknock/lobster@0.4/dist/lobster.js";
+  import { loadMarkdown } from "https://cdn.jsdelivr.net/npm/@hacknock/lobster@0.5/dist/lobster.js";
   loadMarkdown("./content.md", document.getElementById("content"));
 </script>
 ```
 
-`@0.4` receives patch releases (`0.4.x`) only. Breaking changes ship as a new minor version while lobster.js is `0.x`, so update the version in the URL deliberately after reading the [release notes](https://github.com/Hacknock/lobsterjs/releases).
+`@0.5` receives patch releases (`0.5.x`) only. Breaking changes ship as a new minor version while lobster.js is `0.x`, so update the version in the URL deliberately after reading the [release notes](https://github.com/Hacknock/lobsterjs/releases).
 
 The latest build is also available via GitHub Pages at `https://hacknock.github.io/lobsterjs/lobster.js`. It always serves the newest release, so breaking changes take effect on your page without notice.
 
@@ -293,7 +293,7 @@ flowchart LR
 
 ```html
 <script type="module">
-  import { loadMarkdown } from "https://cdn.jsdelivr.net/npm/@hacknock/lobster@0.4/dist/lobster.js";
+  import { loadMarkdown } from "https://cdn.jsdelivr.net/npm/@hacknock/lobster@0.5/dist/lobster.js";
   import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
 
   mermaid.initialize({ startOnLoad: false });
