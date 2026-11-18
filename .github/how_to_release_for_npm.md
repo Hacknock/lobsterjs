@@ -37,12 +37,17 @@ git tag 0.x.x
 git push origin 0.x.x
 ```
 
-`release.yml` が次の処理を行う。
+`release.yml` の `publish` ジョブが次の処理を行う。
 
-1. タグと `package.json` の `version` が一致するか確認する（一致しなければ失敗する）。
+1. タグが `x.y.z` 形式の正式版で、`package.json` の `version` と一致するか確認する。
+   `0.6.0-beta.1` のようなプレリリース版のタグや、一致しないタグでは失敗する。
 2. テストとビルドを実行する。
-3. `npm stage publish` でパッケージをステージする。
-4. GitHub Release を作成し、`lobster.js` と `lobster-skills.zip` を添付する。
+3. `lobster.js` と `lobster-skills.zip` をアーティファクトとして保存する。
+4. `npm stage publish` でパッケージをステージする。
+
+`publish` ジョブが成功すると、`release` ジョブが GitHub Release を作成し、保存した `lobster.js` と `lobster-skills.zip` を添付する。
+`release` ジョブだけが失敗した場合は、失敗したジョブだけを再実行する。
+ワークフロー全体を再実行すると、同じバージョンをもう一度ステージしようとして失敗する。
 
 ### 3. ステージされたパッケージを承認する
 
