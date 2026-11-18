@@ -430,6 +430,45 @@ describe("parseBlocks — table", () => {
     ]);
   });
 
+  it("an escaped backtick does not open a code span across cells", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| \\`foo` | next |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0]).toEqual([
+      { children: [{ type: "text", text: "`foo`" }] },
+      { children: [{ type: "text", text: "next" }] },
+    ]);
+  });
+
+  it("an unmatched backtick does not open a code span across cells", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| a`b | c |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0]).toEqual([
+      { children: [{ type: "text", text: "a`b" }] },
+      { children: [{ type: "text", text: "c" }] },
+    ]);
+  });
+
+  it("a pipe inside a multi-backtick code span does not split the cell", () => {
+    const blocks = parseBlocks([
+      "| A | B |",
+      "| --- | --- |",
+      "| `` a ` | b `` | c |",
+    ], makeCtx());
+    const table = blocks[0] as TableNode;
+    expect(table.rows[0]).toEqual([
+      { children: [{ type: "code_span", code: "a ` | b" }] },
+      { children: [{ type: "text", text: "c" }] },
+    ]);
+  });
+
   it("cells beyond the header width are dropped and short rows are padded", () => {
     const blocks = parseBlocks([
       "| A | B |",

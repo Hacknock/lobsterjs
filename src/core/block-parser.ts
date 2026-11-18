@@ -115,20 +115,39 @@ function matchListItem(line: string): {
   return null;
 }
 
+function codeSpanEnd(text: string, start: number): number {
+  let runLength = 0;
+  while (text[start + runLength] === "`") runLength++;
+  const fence = "`".repeat(runLength);
+  let searchFrom = start + runLength;
+  while (searchFrom < text.length) {
+    const closeIndex = text.indexOf(fence, searchFrom);
+    if (closeIndex === -1) break;
+    let closeLength = 0;
+    while (text[closeIndex + closeLength] === "`") closeLength++;
+    if (closeLength === runLength) return closeIndex + runLength;
+    searchFrom = closeIndex + closeLength;
+  }
+  return start + runLength;
+}
+
 /** Parse `| a | b | c |` into cell strings (strips leading/trailing `|`).
  *  Does not split on `|` inside backtick code spans or on escaped `\|`. */
 function splitTableRow(line: string): string[] {
   const stripped = line.replace(/^\s*~?\s*\|?/, "").trim();
   const cells: string[] = [];
   let cur = "";
-  let inCode = false;
   let endsWithSeparator = false;
   for (let i = 0; i < stripped.length; i++) {
     const ch = stripped[i];
     endsWithSeparator = false;
-    if (ch === "`") { inCode = !inCode; cur += ch; }
-    else if (ch === "\\" && !inCode && i + 1 < stripped.length) { cur += ch + stripped[i + 1]; i++; }
-    else if (ch === "|" && !inCode) { cells.push(cur.trim()); cur = ""; endsWithSeparator = true; }
+    if (ch === "`") {
+      const end = codeSpanEnd(stripped, i);
+      cur += stripped.slice(i, end);
+      i = end - 1;
+    }
+    else if (ch === "\\" && i + 1 < stripped.length) { cur += ch + stripped[i + 1]; i++; }
+    else if (ch === "|") { cells.push(cur.trim()); cur = ""; endsWithSeparator = true; }
     else { cur += ch; }
   }
   if (!endsWithSeparator) cells.push(cur.trim());
