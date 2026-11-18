@@ -10,17 +10,31 @@ const allowedAdvisories = new Map([
 const audit = spawnSync("npm", ["audit", "--json"], { encoding: "utf8" });
 if (audit.error) throw audit.error;
 
-const report = JSON.parse(audit.stdout);
-if (report.error) {
-  console.error(report.error.summary ?? report.error);
+function failWithAuditOutput(message) {
+  console.error(message);
+  console.error(audit.stdout);
+  console.error(audit.stderr);
   process.exit(1);
 }
 
+let report;
+try {
+  report = JSON.parse(audit.stdout);
+} catch {
+  failWithAuditOutput("npm audit did not return JSON");
+}
+if (typeof report.vulnerabilities !== "object" || report.vulnerabilities === null) {
+  failWithAuditOutput("npm audit did not return a vulnerability report");
+}
+
 const advisories = new Map();
-for (const vulnerability of Object.values(report.vulnerabilities ?? {})) {
+for (const vulnerability of Object.values(report.vulnerabilities)) {
   for (const source of vulnerability.via) {
     if (typeof source === "object") advisories.set(source.url, source);
   }
+}
+if (audit.status !== 0 && advisories.size === 0) {
+  failWithAuditOutput(`npm audit exited with status ${audit.status} without reporting an advisory`);
 }
 
 const reportedAdvisories = [...advisories.values()].filter((advisory) => !allowedAdvisories.has(advisory.url));
