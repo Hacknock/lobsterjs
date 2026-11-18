@@ -102,6 +102,15 @@ Content here
 :::
 ```
 
+**Table cell merging** (`<<` merges into the cell on the left, `^^` merges into the cell above; the merged area must be a rectangle):
+```
+| Time | Mon      | Tue      |
+| :--- | :---     | :---     |
+| 1st  | Math     | English  |
+| 2nd  | ^^       | Science  |
+| 3rd  | Assembly | <<       |
+```
+
 **Image sizing:**
 ```
 ![Alt text](image.png =800x)
