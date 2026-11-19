@@ -66,7 +66,7 @@ describe("Backslash Escapes", () => {
   });
 
   it("does not let an escaped delimiter close emphasis", () => {
-    expect(inline("*a \\* b* *c\\**")).toBe(paragraph(`${emphasis("a * b")} ${emphasis("c*")}`));
+    expect(toHTML("*a \\* b* *c\\**")).toBe(paragraph(`${emphasis("a * b")} ${emphasis("c*")}`));
   });
 
   it("does not let an escaped ] close link text", () => {
@@ -116,7 +116,7 @@ describe("Delimiter Rules for Emphasis, Strong, and Strikethrough", () => {
   });
 
   it("_ next to a supplementary-plane non-letter can still delimit", () => {
-    expect(inline("😀 _name_ 😀")).toBe(paragraph(`😀 ${emphasis("name")} 😀`));
+    expect(toHTML("😀 _name_ 😀")).toBe(paragraph(`😀 ${emphasis("name")} 😀`));
   });
 
   it("* works inside a word", () => {
