@@ -272,6 +272,20 @@ describe("toHTML — custom blocks", () => {
     );
   });
 
+  it("keeps a ::: line with a pipe as a table row inside a blockquote", () => {
+    expect(toHTML("> | h | h |\n> | - | - |\n> :::details T | cell")).toBe(
+      '<blockquote class="lbs-blockquote"><table class="lbs-table">\n<thead><tr><th>h</th><th>h</th></tr></thead>\n<tbody>\n<tr><td>:::details T</td><td>cell</td></tr>\n</tbody>\n</table></blockquote>'
+    );
+  });
+
+  it("finds the end of a ::: block with many unclosed fences in linear time", () => {
+    const markdown = ":::details T\n" + "```js\n".repeat(20000) + ":::\n\nafter";
+    const start = performance.now();
+    const html = toHTML(markdown);
+    expect(performance.now() - start).toBeLessThan(1000);
+    expect(html.endsWith('</details>\n<p class="lbs-paragraph">after</p>')).toBe(true);
+  });
+
   it("ends the paragraph before a ::: block without a blank line", () => {
     expect(toHTML("para1\n:::details T\nx\n:::\npara2")).toBe(
       '<p class="lbs-paragraph">para1</p>\n<details class="lbs-details">\n<summary class="lbs-summary">T</summary>\n<p class="lbs-paragraph">x</p>\n</details>\n<p class="lbs-paragraph">para2</p>'

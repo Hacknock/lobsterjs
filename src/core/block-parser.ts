@@ -347,36 +347,54 @@ function isContainerCloser(line: string): boolean {
 }
 
 /**
+ * For each line after `openerIndex`, whether a code fence opening on that line
+ * has a closing fence somewhere below it. Computed in one backward pass by
+ * tracking the longest run of backticks and of tildes seen so far.
+ */
+function findClosableFenceLines(lines: string[], openerIndex: number): Set<number> {
+  const closableFenceLines = new Set<number>();
+  const longestClosingRun: Record<string, number> = { "`": 0, "~": 0 };
+  for (let i = lines.length - 1; i > openerIndex; i--) {
+    const fence = matchCodeFence(lines[i]);
+    if (fence && longestClosingRun[fence.marker[0]] >= fence.marker.length) {
+      closableFenceLines.add(i);
+    }
+    const closingRun = lines[i].match(/^(`+|~+)$/);
+    if (closingRun) {
+      const character = closingRun[1][0];
+      longestClosingRun[character] = Math.max(longestClosingRun[character], closingRun[1].length);
+    }
+  }
+  return closableFenceLines;
+}
+
+/**
  * spec: Lobster Extensions — a `:::` block ends at the `:::` line that matches
  * its opener. Nested openers and fenced code are skipped, but a fence that is
- * never closed inside the block does not hide the closing `:::` (the code block
- * then ends with the `:::` block). Returns `lines.length` when the block is
- * never closed.
+ * never closed does not hide the closing `:::` (the code block then ends with
+ * the `:::` block). Returns `lines.length` when the block is never closed.
  */
 function findContainerEnd(lines: string[], openerIndex: number): number {
-  const unclosedFenceLines = new Set<number>();
-  for (;;) {
-    let depth = 0;
-    let openFence: { marker: string; line: number } | null = null;
-    for (let i = openerIndex + 1; i < lines.length; i++) {
-      const line = lines[i];
-      if (openFence !== null) {
-        if (isClosingFence(line, openFence.marker)) openFence = null;
-        continue;
-      }
-      const fence = unclosedFenceLines.has(i) ? null : matchCodeFence(line);
-      if (fence) {
-        openFence = { marker: fence.marker, line: i };
-      } else if (matchContainerOpener(line)) {
-        depth++;
-      } else if (isContainerCloser(line)) {
-        if (depth === 0) return i;
-        depth--;
-      }
+  const closableFenceLines = findClosableFenceLines(lines, openerIndex);
+  let depth = 0;
+  let openFence: string | null = null;
+  for (let i = openerIndex + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (openFence !== null) {
+      if (isClosingFence(line, openFence)) openFence = null;
+      continue;
     }
-    if (openFence === null) return lines.length;
-    unclosedFenceLines.add(openFence.line);
+    const fence = closableFenceLines.has(i) ? matchCodeFence(line) : null;
+    if (fence) {
+      openFence = fence.marker;
+    } else if (matchContainerOpener(line)) {
+      depth++;
+    } else if (isContainerCloser(line)) {
+      if (depth === 0) return i;
+      depth--;
+    }
   }
+  return lines.length;
 }
 
 function tryParseContainer(
@@ -649,7 +667,8 @@ function parseOrderedList(
 function tryParseTable(
   lines: string[],
   i: number,
-  ctx: ParseContext
+  ctx: ParseContext,
+  scope: BlockScope
 ): ParseBlockResult | null {
   const line = lines[i];
   const isSilent = /^\s*~\s+\|/.test(line) || /^\s*~\s+/.test(line);
@@ -682,7 +701,7 @@ function tryParseTable(
   // Parse data rows: pad short rows and drop cells beyond the header width
   const bodyGrid: string[][] = [];
   let j = i + 2;
-  while (j < lines.length && isTableLine(lines[j]) && !matchContainerOpener(lines[j])) {
+  while (j < lines.length && isTableLine(lines[j]) && !(scope !== "quote" && matchContainerOpener(lines[j]))) {
     const rawRow = isSilent ? lines[j].replace(/^\s*~\s*/, "") : lines[j];
     const cells = splitTableRow(rawRow).slice(0, columnCount);
     while (cells.length < columnCount) cells.push("");
@@ -782,7 +801,7 @@ export function parseBlocks(
       tryParseCodeBlock(trimmed, i) ??
       tryParseBlockquote(trimmed, i, ctx) ??
       tryParseList(trimmed, i, ctx) ??
-      tryParseTable(trimmed, i, ctx) ??
+      tryParseTable(trimmed, i, ctx, scope) ??
       parseParagraph(trimmed, i, ctx);
 
     nodes.push(result.node);
