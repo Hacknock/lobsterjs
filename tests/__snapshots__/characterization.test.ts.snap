@@ -34,8 +34,8 @@ exports[`characterization of toHTML output > renders docs/content.md 1`] = `
 <table class="lbs-table lbs-table-silent">
 <thead><tr><th style="text-align:left"><h3 class="lbs-heading-3">Lightweight</h3>
 <p class="lbs-paragraph">Zero dependencies. ESM bundle is <span class="lbs-strong">26 KB</span> (gzip: 7 KB).</p>
-<p class="lbs-paragraph">One <code class="lbs-code-span">&lt;script type=&quot;module&quot;&gt;</code> line and you&#39;re running.</p></th><th style="text-align:left"><h3 class="lbs-heading-3">AST-first</h3>
-<p class="lbs-paragraph"><code class="lbs-code-span">parseDocument()</code> gives you the full intermediate AST. Build custom renderers or integrate with your own tooling.</p></th></tr></thead>
+<p class="lbs-paragraph">One <code class="lbs-code-span">&lt;script type=&quot;module&quot;&gt;</code> line and you&#39;re running.</p></th><th style="text-align:left"><h3 class="lbs-heading-3">Works in Node too</h3>
+<p class="lbs-paragraph"><code class="lbs-code-span">toHTML()</code> turns a Markdown string into HTML in the browser or in Node, so you can also render pages at build time.</p></th></tr></thead>
 <tbody>
 
 </tbody>
@@ -161,8 +161,8 @@ exports[`characterization of toHTML output > renders docs/content-ja.md 1`] = `
 <table class="lbs-table lbs-table-silent">
 <thead><tr><th style="text-align:left"><h3 class="lbs-heading-3">軽量</h3>
 <p class="lbs-paragraph">依存ゼロ。ESM バンドルは <span class="lbs-strong">26 KB</span>（gzip: 7 KB）。</p>
-<p class="lbs-paragraph"><code class="lbs-code-span">&lt;script type=&quot;module&quot;&gt;</code> 1 行で動き始めます。</p></th><th style="text-align:left"><h3 class="lbs-heading-3">AST ファースト</h3>
-<p class="lbs-paragraph"><code class="lbs-code-span">parseDocument()</code> で完全な中間 AST を取得できます。カスタムレンダラーの構築や独自ツールへの統合が可能です。</p></th></tr></thead>
+<p class="lbs-paragraph"><code class="lbs-code-span">&lt;script type=&quot;module&quot;&gt;</code> 1 行で動き始めます。</p></th><th style="text-align:left"><h3 class="lbs-heading-3">Node でも動く</h3>
+<p class="lbs-paragraph"><code class="lbs-code-span">toHTML()</code> は Markdown 文字列をブラウザでも Node でも HTML に変換できます。ビルド時にページを生成することも可能です。</p></th></tr></thead>
 <tbody>
 
 </tbody>
@@ -420,10 +420,7 @@ exports[`characterization of toHTML output > renders every fenced example in the
 </tbody>
 </table>",
   "<p class="lbs-paragraph">&lt;table class=&quot;lbs-table lbs-table-silent&quot;&gt;…&lt;/table&gt;</p>",
-  "<p class="lbs-paragraph">import { toHTML, parseDocument, renderDocument } from &#39;lobsterjs&#39;;</p>
-<p class="lbs-paragraph">// Convenience: Markdown → HTML string<br>const html = toHTML(markdownString);</p>
-<p class="lbs-paragraph">// Step-by-step (useful for tooling or custom renderers)<br>const doc = parseDocument(markdownString);  // → Document AST<br>const html = renderDocument(doc);           // → HTML string</p>
-<p class="lbs-paragraph">// Browser: fetch and render a Markdown file into a DOM element<br>import { loadMarkdown } from &#39;lobsterjs&#39;;<br>await loadMarkdown(&#39;./content.md&#39;, document.getElementById(&#39;content&#39;));</p>",
-  "<p class="lbs-paragraph">interface Document {<br>  header?: HeaderContainerNode;<br>  footer?: FooterContainerNode;<br>  body: BlockNode[];<br>  linkDefs: Record&lt;string, LinkDef&gt;;<br>  footnoteDefs: Record&lt;string, InlineNode[]&gt;;<br>  footnoteRefs: string[];<br>  warpDefs: Record&lt;string, WarpDefinitionNode&gt;;<br>}</p>",
+  "<p class="lbs-paragraph">// Browser: fetch one or more Markdown files and render them into a DOM element<br>import { loadMarkdown } from &#39;@hacknock/lobster&#39;;<br>await loadMarkdown(&#39;./content.md&#39;, document.getElementById(&#39;content&#39;));</p>
+<p class="lbs-paragraph">// Browser or Node: Markdown → HTML string<br>import { toHTML } from &#39;@hacknock/lobster&#39;;<br>const html = toHTML(markdownString);</p>",
 ]
 `;

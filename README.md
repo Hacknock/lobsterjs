@@ -359,13 +359,13 @@ src/
 ├── core/                # Platform-agnostic parser (no DOM dependency)
 │   ├── types.ts         # All AST type definitions
 │   ├── block-parser.ts  # Block-level parser
-│   ├── inline-parser.ts # Inline-level parser
-│   └── index.ts
+│   └── inline-parser.ts # Inline-level parser
 ├── renderer/html/
 │   ├── renderer.ts      # AST → HTML string
-│   └── dom.ts           # DOM helpers (browser only)
-├── index.ts             # Browser entry point (full API)
-└── index.node.ts        # Node.js entry point (pure functions only)
+│   └── dom.ts           # loadMarkdown (browser only)
+├── to-html.ts           # toHTML
+├── index.ts             # Browser entry point: loadMarkdown, toHTML
+└── index.node.ts        # Node.js entry point: toHTML
 
 tests/                   # Vitest test suites
 markdowns/               # Specification documents

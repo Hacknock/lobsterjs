@@ -647,37 +647,16 @@ Prefix every row of a table with `~ ` to suppress borders:
 ## API
 
 ```typescript
-import { toHTML, parseDocument, renderDocument } from 'lobsterjs';
-
-// Convenience: Markdown → HTML string
-const html = toHTML(markdownString);
-
-// Step-by-step (useful for tooling or custom renderers)
-const doc = parseDocument(markdownString);  // → Document AST
-const html = renderDocument(doc);           // → HTML string
-
-// Browser: fetch and render a Markdown file into a DOM element
-import { loadMarkdown } from 'lobsterjs';
+// Browser: fetch one or more Markdown files and render them into a DOM element
+import { loadMarkdown } from '@hacknock/lobster';
 await loadMarkdown('./content.md', document.getElementById('content'));
+
+// Browser or Node: Markdown → HTML string
+import { toHTML } from '@hacknock/lobster';
+const html = toHTML(markdownString);
 ```
 
-### Document AST
-
-`parseDocument` returns a `Document` object:
-
-```typescript
-interface Document {
-  header?: HeaderContainerNode;
-  footer?: FooterContainerNode;
-  body: BlockNode[];
-  linkDefs: Record<string, LinkDef>;
-  footnoteDefs: Record<string, InlineNode[]>;
-  footnoteRefs: string[];
-  warpDefs: Record<string, WarpDefinitionNode>;
-}
-```
-
-The full type definitions are in [`src/core/types.ts`](../src/core/types.ts).
+The parsed AST is internal and not part of the API.
 
 ---
 

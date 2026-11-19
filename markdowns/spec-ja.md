@@ -646,37 +646,16 @@ ASCII記号の直前に `\` を置くと、その記号はMarkdownの記法と�
 ## API
 
 ```typescript
-import { toHTML, parseDocument, renderDocument } from 'lobsterjs';
-
-// 一番シンプル: Markdown → HTML文字列
-const html = toHTML(markdownString);
-
-// ステップ分割（ツール連携やカスタムレンダラー向け）
-const doc = parseDocument(markdownString);  // → Document AST
-const html = renderDocument(doc);           // → HTML文字列
-
-// ブラウザ: MarkdownファイルをフェッチしてDOM要素にレンダリング
-import { loadMarkdown } from 'lobsterjs';
+// ブラウザ: Markdownファイル（複数可）をフェッチしてDOM要素にレンダリング
+import { loadMarkdown } from '@hacknock/lobster';
 await loadMarkdown('./content.md', document.getElementById('content'));
+
+// ブラウザ・Node: Markdown → HTML文字列
+import { toHTML } from '@hacknock/lobster';
+const html = toHTML(markdownString);
 ```
 
-### Document AST
-
-`parseDocument` が返す `Document` オブジェクト:
-
-```typescript
-interface Document {
-  header?: HeaderContainerNode;
-  footer?: FooterContainerNode;
-  body: BlockNode[];
-  linkDefs: Record<string, LinkDef>;
-  footnoteDefs: Record<string, InlineNode[]>;
-  footnoteRefs: string[];
-  warpDefs: Record<string, WarpDefinitionNode>;
-}
-```
-
-全型定義は [`src/core/types.ts`](../src/core/types.ts) を参照。
+解析結果のASTは内部用で、APIには含まれない。
 
 ---
 

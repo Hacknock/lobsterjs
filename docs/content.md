@@ -51,7 +51,7 @@ Even the 2-column layout below is possible without any HTML.
 Define a named content block with `:::warp id`, then place it anywhere using `[~id]`.
 Put warp references into a silent table (`~ |`) and you get a full column layout — no HTML, no CSS required.
 
-~ | [~card-light] | [~card-ast] |
+~ | [~card-light] | [~card-to-html] |
 ~ | :--- | :--- |
 
 :::warp card-light
@@ -64,11 +64,11 @@ One `<script type="module">` line and you're running.
 
 :::
 
-:::warp card-ast
+:::warp card-to-html
 
-### AST-first
+### Works in Node too
 
-`parseDocument()` gives you the full intermediate AST. Build custom renderers or integrate with your own tooling.
+`toHTML()` turns a Markdown string into HTML in the browser or in Node, so you can also render pages at build time.
 
 :::
 

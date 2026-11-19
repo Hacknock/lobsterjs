@@ -51,7 +51,7 @@ lobster.js を使えば拡張Markdown記法で簡単にリッチな静的Webサ�
 `:::warp id` で名前付きコンテンツブロックを定義し、`[~id]` でどこにでも配置できます。
 ワープ参照をサイレントテーブル（`~ |`）に並べれば、HTML も CSS も書かずに段組が完成します。
 
-~ | [~card-light] | [~card-ast] |
+~ | [~card-light] | [~card-to-html] |
 ~ | :--- | :--- |
 
 :::warp card-light
@@ -64,11 +64,11 @@ lobster.js を使えば拡張Markdown記法で簡単にリッチな静的Webサ�
 
 :::
 
-:::warp card-ast
+:::warp card-to-html
 
-### AST ファースト
+### Node でも動く
 
-`parseDocument()` で完全な中間 AST を取得できます。カスタムレンダラーの構築や独自ツールへの統合が可能です。
+`toHTML()` は Markdown 文字列をブラウザでも Node でも HTML に変換できます。ビルド時にページを生成することも可能です。
 
 :::
 
