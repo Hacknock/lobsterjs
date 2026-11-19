@@ -28,7 +28,7 @@ npx vitest run tests/block-parser.test.ts
 
 **Pipeline:** `parseDocument(markdown)` → `Document` AST → `renderDocument(doc)` → HTML string
 
-The convenience function `toHTML(markdown)` combines both steps.
+The package exports only `loadMarkdown` (browser) and `toHTML` (browser and Node). The AST and every other function are internal, so their shape can change freely.
 
 ### Source layout
 
@@ -37,12 +37,13 @@ src/
 ├── core/
 │   ├── types.ts          # All AST node type definitions (union types)
 │   ├── block-parser.ts   # Block-level parser (entry: parseDocument, parseBlocks)
-│   ├── inline-parser.ts  # Inline-level parser (entry: parseInline)
-│   └── index.ts
+│   └── inline-parser.ts  # Inline-level parser (entry: parseInline)
 ├── renderer/html/
 │   ├── renderer.ts       # AST → HTML string (entry: renderDocument)
-│   └── dom.ts            # Browser API: renderToDOM, loadMarkdown, autoInit
-└── index.ts              # Public API surface
+│   └── dom.ts            # Browser API: loadMarkdown
+├── to-html.ts            # toHTML (parseDocument + renderDocument)
+├── index.ts              # Browser entry: loadMarkdown, toHTML
+└── index.node.ts         # Node entry: toHTML
 tests/                    # Vitest tests (mirrors src/core/ and src/renderer/)
 markdowns/                # Spec docs and test-case Markdown files
 docs/                     # GitHub Pages demo site (lobster.js loads its own content)
@@ -80,9 +81,7 @@ Headings are rendered as `<hN class="lbs-heading-N">` (e.g. `<h1 class="lbs-head
 
 ### Browser API (dom.ts)
 
-- `renderToDOM(doc, element)` — renders into a container element
-- `loadMarkdown(src, element?)` — fetches a `.md` file and renders it
-- `autoInit()` — auto-loads from `<script src="lobster.js" data-src="content.md">`
+- `loadMarkdown(src, element?)` — fetches one or more `.md` files, joins them, and renders them into the element
 
 ## Lobster-specific syntax
 

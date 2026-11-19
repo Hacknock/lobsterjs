@@ -97,25 +97,6 @@ import { toHTML } from "@hacknock/lobster";
 const html = toHTML("# Hello");
 ```
 
-### `parseDocument(markdown: string): Document`
-
-Parses Markdown into an AST. Useful for inspecting or transforming the document tree before rendering.
-
-```ts
-import { parseDocument } from "@hacknock/lobster";
-const doc = parseDocument(markdown);
-console.log(doc.body); // BlockNode[]
-```
-
-### `renderDocument(doc: Document): string`
-
-Converts a `Document` AST into an HTML string.
-
-```ts
-import { parseDocument, renderDocument } from "@hacknock/lobster";
-const html = renderDocument(parseDocument(markdown));
-```
-
 ### `loadMarkdown(src: string | string[], container?: HTMLElement): Promise<void>`
 
 Fetches one or more Markdown files and renders them into the given DOM element (defaults to `document.body`). Browser only.
