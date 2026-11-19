@@ -64,9 +64,8 @@ function isClosingFence(line: string, openingMarker: string): boolean {
   return line.length >= openingMarker.length && line === openingMarker[0].repeat(line.length);
 }
 
-/** Returns the `>` stripped prefix lines for a blockquote block */
-function stripBlockquotePrefix(lines: string[]): string[] {
-  return lines.map((line) => line.replace(/^>\s?/, ""));
+function stripQuotePrefix(line: string): string {
+  return line.replace(/^>\s?/, "");
 }
 
 type ListMarker = "bullet" | "ordered";
@@ -461,28 +460,72 @@ function tryParseCodeBlock(
   return { node, nextIndex: j };
 }
 
-function stripAllQuotePrefixes(line: string): string {
-  return line.replace(/^(>\s?)+/, "");
+/**
+ * spec: Blockquote — what the quoted text ends in, tracked line by line so
+ * that a following line without `>` can be checked in constant time.
+ */
+interface QuoteState {
+  paragraphOpen: boolean;
+  openFence: string | null;
+  inList: boolean;
+  inTable: boolean;
+  previousLineHasPipe: boolean;
+  nestedQuote: QuoteState | null;
 }
 
-/**
- * spec: Blockquote — whether a line without `>` continues the quote: the
- * quoted text must end in an open paragraph (not in a code block or another
- * block) and the line must not start a block of its own.
- */
-function continuesQuotedParagraph(quoteLines: string[], line: string): boolean {
-  if (isBlankLine(line) || startsBlockElement(line)) return false;
-  let openFence: string | null = null;
-  for (const quoteLine of quoteLines) {
-    const text = stripAllQuotePrefixes(quoteLine);
-    if (openFence !== null) {
-      if (isClosingFence(text, openFence)) openFence = null;
-      continue;
-    }
-    openFence = matchCodeFence(text)?.marker ?? null;
+function createQuoteState(): QuoteState {
+  return {
+    paragraphOpen: false,
+    openFence: null,
+    inList: false,
+    inTable: false,
+    previousLineHasPipe: false,
+    nestedQuote: null,
+  };
+}
+
+/** spec: Blockquote — a line without `>` continues the quote only after an open paragraph */
+function continuesQuotedParagraph(state: QuoteState, line: string): boolean {
+  return state.paragraphOpen && !isBlankLine(line) && !startsBlockElement(line);
+}
+
+/** Feeds one line of the quote's content (one level of `>` already removed). */
+function advanceQuoteState(state: QuoteState, text: string): void {
+  if (state.openFence !== null) {
+    if (isClosingFence(text, state.openFence)) state.openFence = null;
+    return;
   }
-  const lastText = stripAllQuotePrefixes(quoteLines[quoteLines.length - 1]);
-  return openFence === null && !isBlankLine(lastText) && !startsBlockElement(lastText);
+  if (text.startsWith(">")) {
+    state.nestedQuote ??= createQuoteState();
+    advanceQuoteState(state.nestedQuote, stripQuotePrefix(text));
+    Object.assign(state, { inList: false, inTable: false, previousLineHasPipe: false });
+    state.paragraphOpen = state.nestedQuote.paragraphOpen;
+    return;
+  }
+  if (state.nestedQuote !== null && continuesQuotedParagraph(state.nestedQuote, text)) {
+    advanceQuoteState(state.nestedQuote, text);
+    return;
+  }
+  state.nestedQuote = null;
+
+  const fence = isBlankLine(text) ? null : matchCodeFence(text);
+  if (isBlankLine(text) || fence) {
+    Object.assign(state, createQuoteState(), { openFence: fence?.marker ?? null });
+    return;
+  }
+  if (state.inTable && text.includes("|")) return;
+  state.inTable = false;
+  if (state.previousLineHasPipe && isAlignmentRow(text)) {
+    Object.assign(state, { inTable: true, paragraphOpen: false, previousLineHasPipe: false });
+    return;
+  }
+  state.previousLineHasPipe = text.includes("|");
+  if (matchListItem(text) || (state.inList && /^\s/.test(text))) {
+    Object.assign(state, { inList: true, paragraphOpen: false });
+    return;
+  }
+  state.inList = false;
+  state.paragraphOpen = !matchHeading(text) && !isHorizontalRule(text);
 }
 
 function tryParseBlockquote(
@@ -493,15 +536,24 @@ function tryParseBlockquote(
   if (!lines[i].startsWith(">")) return null;
 
   const quoteLines: string[] = [];
+  const state = createQuoteState();
   let j = i;
-  while (j < lines.length && (lines[j].startsWith(">") || continuesQuotedParagraph(quoteLines, lines[j]))) {
-    quoteLines.push(lines[j]);
+  while (j < lines.length) {
+    const line = lines[j];
+    if (line.startsWith(">")) {
+      advanceQuoteState(state, stripQuotePrefix(line));
+    } else if (continuesQuotedParagraph(state, line)) {
+      advanceQuoteState(state, line);
+    } else {
+      break;
+    }
+    quoteLines.push(line);
     j++;
   }
 
   const node: BlockquoteNode = {
     type: "blockquote",
-    children: parseBlocks(stripBlockquotePrefix(quoteLines), context, "quote"),
+    children: parseBlocks(quoteLines.map(stripQuotePrefix), context, "quote"),
   };
   return { node, nextIndex: j };
 }

@@ -131,6 +131,14 @@ describe("Code Block", () => {
     );
   });
 
+  it("needs at least three fence characters", () => {
+    expect(toHTML("``js\ncode")).toBe(paragraph("``js<br>code"));
+  });
+
+  it("does not interpret backslash escapes", () => {
+    expect(toHTML("```\n\\*a\\*\n```")).toBe('<div class="lbs-code-block"><pre><code>\\*a\\*</code></pre></div>');
+  });
+
   it("runs to the end of the document when never closed", () => {
     expect(toHTML("```\na\n\nb")).toBe('<div class="lbs-code-block"><pre><code>a\n\nb</code></pre></div>');
   });
@@ -150,6 +158,42 @@ describe("Blockquote", () => {
 
   it("continues a quoted paragraph on a following line without >", () => {
     expect(toHTML("> one\ntwo")).toBe(`<blockquote class="lbs-blockquote">${paragraph("one<br>two")}</blockquote>`);
+  });
+
+  it("continues the innermost quoted paragraph of a nested quote", () => {
+    expect(toHTML("> a\n> > b\nc")).toBe(
+      `<blockquote class="lbs-blockquote">${paragraph("a")}\n` +
+        `<blockquote class="lbs-blockquote">${paragraph("b<br>c")}</blockquote></blockquote>`
+    );
+  });
+
+  it("does not continue a quoted list", () => {
+    expect(toHTML("> - a\n>   b\nc")).toBe(
+      '<blockquote class="lbs-blockquote"><ul class="lbs-ul lbs-ul-depth-0">\n<li class="lbs-list-item">a b</li>\n</ul></blockquote>\n' +
+        paragraph("c")
+    );
+  });
+
+  it("does not continue a quoted table", () => {
+    expect(toHTML("> a | b\n> --|--\n> 1 | 2\nlazy")).toBe(
+      '<blockquote class="lbs-blockquote"><table class="lbs-table">\n<thead><tr><th>a</th><th>b</th></tr></thead>\n' +
+        "<tbody>\n<tr><td>1</td><td>2</td></tr>\n</tbody>\n</table></blockquote>\n" +
+        paragraph("lazy")
+    );
+  });
+
+  it("continues a paragraph after a closed code block in a nested quote", () => {
+    expect(toHTML("> > ```\n> > x\n> > ```\n> > code\nlazy")).toBe(
+      '<blockquote class="lbs-blockquote"><blockquote class="lbs-blockquote"><div class="lbs-code-block"><pre><code>x</code></pre></div>\n' +
+        `${paragraph("code<br>lazy")}</blockquote></blockquote>`
+    );
+  });
+
+  it("checks many continuation lines in linear time", () => {
+    const start = performance.now();
+    const html = toHTML("> a\n" + "b\n".repeat(20000));
+    expect(performance.now() - start).toBeLessThan(1000);
+    expect(html.startsWith('<blockquote class="lbs-blockquote"><p class="lbs-paragraph">a<br>b<br>')).toBe(true);
   });
 
   it("ends at a blank line", () => {
@@ -204,6 +248,13 @@ describe("Lists", () => {
     expect(toHTML("- a\n  1. b")).toBe(
       '<ul class="lbs-ul lbs-ul-depth-0">\n<li class="lbs-list-item">a\n' +
         '<ol class="lbs-ol lbs-ol-depth-1">\n<li class="lbs-list-item">b</li>\n</ol></li>\n</ul>'
+    );
+  });
+
+  it("nests an ordered list in an ordered list", () => {
+    expect(toHTML("1. First\n2. Second\n   1. Nested")).toBe(
+      `<ol class="lbs-ol lbs-ol-depth-0">\n${item("First")}\n<li class="lbs-list-item">Second\n` +
+        `<ol class="lbs-ol lbs-ol-depth-1">\n${item("Nested")}\n</ol></li>\n</ol>`
     );
   });
 
@@ -262,6 +313,10 @@ describe("Table", () => {
     expect(toHTML("| a | b |\n| 1 | 2 |")).toBe(`${paragraph("| a | b |")}\n${paragraph("| 1 | 2 |")}`);
   });
 
+  it("does not allow spaces inside an alignment marker", () => {
+    expect(toHTML("| a |\n| - - |")).toBe(`${paragraph("| a |")}\n${paragraph("| - - |")}`);
+  });
+
   it("allows omitting the outer pipes", () => {
     expect(toHTML("a | b\n--|--\n1 | 2")).toBe(table("<th>a</th><th>b</th>", "<tr><td>1</td><td>2</td></tr>"));
   });
@@ -301,6 +356,21 @@ describe("Table", () => {
             '<tr><td style="text-align:left">2nd</td><td style="text-align:left">Japanese</td><td style="text-align:left">Science</td></tr>\n' +
             '<tr><td style="text-align:left">3rd</td><td colspan="3" style="text-align:left">Assembly</td></tr>'
         )
+      );
+    });
+
+    it("merges header cells with <<", () => {
+      expect(toHTML("| A | << | B |\n| :- | -: | - |\n| 1 | 2 | 3 |")).toBe(
+        table(
+          '<th colspan="2" style="text-align:left">A</th><th>B</th>',
+          '<tr><td style="text-align:left">1</td><td style="text-align:right">2</td><td>3</td></tr>'
+        )
+      );
+    });
+
+    it("extends a whole colspan cell down with ^^", () => {
+      expect(toHTML("| a | b |\n| - | - |\n| x | << |\n| ^^ | ^^ |")).toBe(
+        table("<th>a</th><th>b</th>", '<tr><td colspan="2" rowspan="2">x</td></tr>\n<tr></tr>')
       );
     });
 

@@ -129,6 +129,7 @@ console.log("Hello");
 - Filename: follows `:` after the language; the rest of the line is the filename.
 - Language may be omitted while filename is still specified: ` ````:filename `.
 - Content is treated as plain text (no Markdown parsing).
+- A code block that is never closed runs to the end of the document (or of the `:::` block it is in).
 
 **HTML output:**
 
@@ -174,7 +175,7 @@ Markers: `-`, `*`, `+`
   - Nested item
 ```
 
-Items with more indentation than the parent become sub-items. `lbs-ul-depth-N` / `lbs-ol-depth-N` give the nesting level: 0 at the top, 1 for a sub-list, and so on.
+An indented line that is not a list item continues the item; it is joined to the item text with a space. Items with more indentation than the parent become sub-items. `lbs-ul-depth-N` / `lbs-ol-depth-N` give the nesting level: 0 at the top, 1 for a sub-list, and so on.
 
 **HTML output:**
 
