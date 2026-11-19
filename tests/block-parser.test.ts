@@ -6,8 +6,8 @@ function makeCtx(): ParseContext {
   return {
     linkDefs: {},
     footnoteDefs: {},
+    definedFootnoteIds: new Set(),
     warpDefs: {},
-    footnoteRefs: [],
     inlineFootnoteCount: 0,
   };
 }
@@ -711,7 +711,7 @@ describe("parseDocument", () => {
   it("footnote definition collected", () => {
     const md = "Hello[^note]\n\n[^note]: This is a footnote";
     const doc = parseDocument(md);
-    expect(doc.footnoteRefs).toContain("note");
+    expect(doc.footnoteDefs["note"]).toEqual([{ type: "text", text: "This is a footnote" }]);
   });
 
   it("complete document with multiple elements", () => {

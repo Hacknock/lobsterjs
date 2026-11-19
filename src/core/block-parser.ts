@@ -1,6 +1,5 @@
 import type {
   BlockNode,
-  InlineNode,
   HeadingNode,
   ParagraphNode,
   HorizontalRuleNode,
@@ -12,22 +11,18 @@ import type {
   TableNode,
   TableCellNode,
   TableAlignment,
-  HeaderContainerNode,
-  FooterContainerNode,
-  DetailsNode,
-  WarpDefinitionNode,
   LinkDef,
   Document,
   ParseContext,
 } from "./types.js";
-import { parseInline, unescapeBackslashes } from "./inline-parser.js";
+import { codeSpanEndOrRunEnd, parseInline, unescapeBackslashes } from "./inline-parser.js";
 
 // ============================================================
 // Helpers
 // ============================================================
 
 function trimTrailingSpaces(lines: string[]): string[] {
-  return lines.map((l) => l.trimEnd());
+  return lines.map((line) => line.trimEnd());
 }
 
 function isBlankLine(line: string): boolean {
@@ -41,94 +36,72 @@ function isHorizontalRule(line: string): boolean {
 
 /** Returns heading level, content, and optional anchor id, or null */
 function matchHeading(line: string): { level: number; text: string; id?: string } | null {
-  const m = line.match(/^(#{1,6})\s+(.+?)(\s+#+\s*)?$/);
-  if (!m) return null;
-  const raw = m[2].trimEnd();
+  const headingMatch = line.match(/^(#{1,6})\s+(.+?)(\s+#+\s*)?$/);
+  if (!headingMatch) return null;
+  const raw = headingMatch[2].trimEnd();
   const idMatch = raw.match(/^(.*?)\s*\{#([^}]+)\}\s*$/);
   if (idMatch) {
-    return { level: m[1].length, text: idMatch[1].trimEnd(), id: idMatch[2] };
+    return { level: headingMatch[1].length, text: idMatch[1].trimEnd(), id: idMatch[2] };
   }
-  return { level: m[1].length, text: raw };
+  return { level: headingMatch[1].length, text: raw };
 }
 
 /** Returns code fence info (marker + language + filename) or null */
 function matchCodeFence(
   line: string
 ): { marker: string; language?: string; filename?: string } | null {
-  const m = line.match(/^(`{3,}|~{3,})([\w+-]*)(?::(.+))?/);
-  if (!m) return null;
+  const fenceMatch = line.match(/^(`{3,}|~{3,})([\w+-]*)(?::(.+))?/);
+  if (!fenceMatch) return null;
   return {
-    marker: m[1],
-    language: m[2] || undefined,
-    filename: m[3] || undefined,
+    marker: fenceMatch[1],
+    language: fenceMatch[2] || undefined,
+    filename: fenceMatch[3] || undefined,
   };
+}
+
+/** spec: Code Block — a closing fence repeats the opening character at least as many times */
+function isClosingFence(line: string, openingMarker: string): boolean {
+  return line.length >= openingMarker.length && line === openingMarker[0].repeat(line.length);
 }
 
 /** Returns the `>` stripped prefix lines for a blockquote block */
 function stripBlockquotePrefix(lines: string[]): string[] {
-  return lines.map((l) => l.replace(/^>\s?/, ""));
+  return lines.map((line) => line.replace(/^>\s?/, ""));
 }
 
-/** Returns list item info if line starts a list item */
-function matchListItem(line: string): {
+type ListMarker = "bullet" | "ordered";
+
+interface ListItemMatch {
   indent: number;
-  marker: "bullet" | "ordered";
+  marker: ListMarker;
   start?: number;
   checked?: boolean;
-  textStart: number;
   text: string;
-} | null {
-  // Bullet list
-  const bulletM = line.match(/^(\s*)([-*+])\s+(.*)/);
-  if (bulletM) {
-    const indent = bulletM[1].length;
-    const textStart = indent + 2; // marker + space
-    let text = bulletM[3];
-    let checked: boolean | undefined;
-
-    // Checklist
-    const checkM = text.match(/^\[([ xX])\]\s+(.*)/);
-    if (checkM) {
-      checked = checkM[1] !== " ";
-      text = checkM[2];
-    }
-    return { indent, marker: "bullet", checked, textStart, text };
-  }
-
-  // Ordered list (but not `N\.`)
-  const orderedM = line.match(/^(\s*)(\d+)\.\s+(.*)/);
-  if (orderedM) {
-    // Escaped: `N\.` → not a list (handled before calling this)
-    const indent = orderedM[1].length;
-    const start = parseInt(orderedM[2], 10);
-    const textStart = indent + orderedM[2].length + 2;
-    let text = orderedM[3];
-    let checked: boolean | undefined;
-    const checkM = text.match(/^\[([ xX])\]\s+(.*)/);
-    if (checkM) {
-      checked = checkM[1] !== " ";
-      text = checkM[2];
-    }
-    return { indent, marker: "ordered", start, checked, textStart, text };
-  }
-
-  return null;
 }
 
-function codeSpanEnd(text: string, start: number): number {
-  let runLength = 0;
-  while (text[start + runLength] === "`") runLength++;
-  const fence = "`".repeat(runLength);
-  let searchFrom = start + runLength;
-  while (searchFrom < text.length) {
-    const closeIndex = text.indexOf(fence, searchFrom);
-    if (closeIndex === -1) break;
-    let closeLength = 0;
-    while (text[closeIndex + closeLength] === "`") closeLength++;
-    if (closeLength === runLength) return closeIndex + runLength;
-    searchFrom = closeIndex + closeLength;
+/** spec: Checklist — `[ ]` or `[x]` after the list marker */
+function splitChecklistBox(text: string): { checked?: boolean; text: string } {
+  const checkboxMatch = text.match(/^\[([ xX])\]\s+(.*)/);
+  if (!checkboxMatch) return { text };
+  return { checked: checkboxMatch[1] !== " ", text: checkboxMatch[2] };
+}
+
+/** spec: Lists — `-`, `*`, `+` or `N.` followed by a space */
+function matchListItem(line: string): ListItemMatch | null {
+  const bulletMatch = line.match(/^(\s*)[-*+]\s+(.*)/);
+  if (bulletMatch) {
+    return { indent: bulletMatch[1].length, marker: "bullet", ...splitChecklistBox(bulletMatch[2]) };
   }
-  return start + runLength;
+  const orderedMatch = line.match(/^(\s*)(\d+)\.\s+(.*)/);
+  if (orderedMatch) {
+    return {
+      indent: orderedMatch[1].length,
+      marker: "ordered",
+      start: parseInt(orderedMatch[2], 10),
+      ...splitChecklistBox(orderedMatch[3]),
+    };
+  }
+  return null;
 }
 
 /** Parse `| a | b | c |` into cell strings (strips leading/trailing `|`).
@@ -136,29 +109,29 @@ function codeSpanEnd(text: string, start: number): number {
 function splitTableRow(line: string): string[] {
   const stripped = line.replace(/^\s*~?\s*\|?/, "").trim();
   const cells: string[] = [];
-  let cur = "";
+  let currentCell = "";
   let endsWithSeparator = false;
   for (let i = 0; i < stripped.length; i++) {
-    const ch = stripped[i];
+    const character = stripped[i];
     endsWithSeparator = false;
-    if (ch === "`") {
-      const end = codeSpanEnd(stripped, i);
-      cur += stripped.slice(i, end);
+    if (character === "`") {
+      const end = codeSpanEndOrRunEnd(stripped, i);
+      currentCell += stripped.slice(i, end);
       i = end - 1;
     }
-    else if (ch === "\\" && i + 1 < stripped.length) { cur += ch + stripped[i + 1]; i++; }
-    else if (ch === "|") { cells.push(cur.trim()); cur = ""; endsWithSeparator = true; }
-    else { cur += ch; }
+    else if (character === "\\" && i + 1 < stripped.length) { currentCell += character + stripped[i + 1]; i++; }
+    else if (character === "|") { cells.push(currentCell.trim()); currentCell = ""; endsWithSeparator = true; }
+    else { currentCell += character; }
   }
-  if (!endsWithSeparator) cells.push(cur.trim());
+  if (!endsWithSeparator) cells.push(currentCell.trim());
   return cells;
 }
 
 /** Parse alignment row cell like `---`, `:---`, `:---:`, `---:` */
 function parseAlignment(cell: string): TableAlignment {
-  const c = cell.trim();
-  const left = c.startsWith(":");
-  const right = c.endsWith(":");
+  const trimmedCell = cell.trim();
+  const left = trimmedCell.startsWith(":");
+  const right = trimmedCell.endsWith(":");
   if (left && right) return "center";
   if (left) return "left";
   if (right) return "right";
@@ -167,7 +140,7 @@ function parseAlignment(cell: string): TableAlignment {
 
 function isAlignmentRow(line: string): boolean {
   const cells = splitTableRow(line);
-  return cells.length > 0 && cells.every((c) => /^:?-+:?$/.test(c));
+  return cells.length > 0 && cells.every((trimmedCell) => /^:?-+:?$/.test(trimmedCell));
 }
 
 const MERGE_LEFT_MARKER = "<<";
@@ -178,7 +151,7 @@ type CellPosition = { row: number; column: number };
 type MergedSpan = { colspan: number; rowspan: number };
 
 /**
- * spec: テーブル - セルの結合
+ * spec: Table / Cell Merge
  * Assigns every slot of the grid to the origin cell it belongs to.
  * `<<` follows the origin of the slot on its left and `^^` follows the
  * origin of the slot above. Markers without a neighbor are origins
@@ -203,7 +176,7 @@ function assignOrigins(grid: string[][]): CellPosition[][] {
 }
 
 /**
- * spec: テーブル - セルの結合
+ * spec: Table / Cell Merge
  * Shrinks a merged region until it is a rectangle by turning its last
  * marker in reading order back into plain text. No other slot depends on
  * that marker, because any slot that follows it would come later in
@@ -235,11 +208,11 @@ function shrinkToRectangle(
 }
 
 /**
- * spec: テーブル - セルの結合
+ * spec: Table / Cell Merge
  * Converts a grid of raw cell strings into rows of origin cells with
  * colspan/rowspan. Slots covered by a merge are omitted from the rows.
  */
-function buildMergedRows(grid: string[][], ctx: ParseContext): TableCellNode[][] {
+function buildMergedRows(grid: string[][], context: ParseContext): TableCellNode[][] {
   const origins = assignOrigins(grid);
   const slotsByOrigin = new Map<CellPosition, CellPosition[]>();
   origins.forEach((rowOrigins, row) => {
@@ -261,7 +234,7 @@ function buildMergedRows(grid: string[][], ctx: ParseContext): TableCellNode[][]
       if (origin.row !== row || origin.column !== column) return [];
       const { colspan, rowspan } = spanByOrigin.get(origin) ?? { colspan: 1, rowspan: 1 };
       return [{
-        children: parseInline(cell, ctx),
+        children: parseInline(cell, context),
         ...(colspan > 1 && { colspan }),
         ...(rowspan > 1 && { rowspan }),
       }];
@@ -289,17 +262,17 @@ function collectDefinitions(lines: string[]): Definitions {
   for (const line of lines) {
     // Footnote defs must be checked before link defs:
     // [^id]: text also matches LINK_DEF_RE (id='^id', href='text')
-    const fm = line.match(FOOTNOTE_DEF_RE);
-    if (fm) {
-      rawFootnoteDefs[fm[1]] = fm[2];
+    const footnoteMatch = line.match(FOOTNOTE_DEF_RE);
+    if (footnoteMatch) {
+      rawFootnoteDefs[footnoteMatch[1]] = footnoteMatch[2];
       continue;
     }
-    const lm = line.match(LINK_DEF_RE);
-    if (lm) {
-      const id = lm[1].toLowerCase();
-      const title = lm[3] ?? lm[4] ?? lm[5];
+    const linkMatch = line.match(LINK_DEF_RE);
+    if (linkMatch) {
+      const id = linkMatch[1].toLowerCase();
+      const title = linkMatch[3] ?? linkMatch[4] ?? linkMatch[5];
       linkDefs[id] = {
-        href: unescapeBackslashes(lm[2]),
+        href: unescapeBackslashes(linkMatch[2]),
         title: title === undefined ? undefined : unescapeBackslashes(title),
       };
       continue;
@@ -309,219 +282,121 @@ function collectDefinitions(lines: string[]): Definitions {
   return { linkDefs, rawFootnoteDefs };
 }
 
-/**
- * Remove link/footnote definition lines from the content.
- * Also marks warp-block lines for removal (handled by extractCustomBlocks).
- */
+/** Remove link/footnote definition lines from the content. */
 function removeDefinitionLines(lines: string[]): string[] {
-  return lines.filter((l) => !LINK_DEF_RE.test(l) && !FOOTNOTE_DEF_RE.test(l));
+  return lines.filter((line) => !LINK_DEF_RE.test(line) && !FOOTNOTE_DEF_RE.test(line));
 }
 
 // ============================================================
-// Custom block extraction (:::header, :::footer, :::warp, :::details)
+// Custom blocks (:::header, :::footer, :::details, :::warp)
 // ============================================================
 
-interface ExtractedCustomBlocks {
-  header?: HeaderContainerNode;
-  footer?: FooterContainerNode;
-  warpDefs: Record<string, WarpDefinitionNode>;
-  remainingLines: string[];
-  detailsBlocks: { startIdx: number; node: DetailsNode }[];
+/**
+ * spec: Lobster Extensions — where `:::` blocks are recognized.
+ * "document": the top level; header/footer are recorded for the page.
+ * "container": inside another `:::` block; nested header/footer are dropped.
+ * "quote": inside a blockquote; `:::` lines are plain text.
+ */
+type BlockScope = "document" | "container" | "quote";
+
+type ContainerOpener =
+  | { kind: "header" }
+  | { kind: "footer" }
+  | { kind: "details"; title: string }
+  | { kind: "warp"; id: string };
+
+function matchContainerOpener(line: string): ContainerOpener | null {
+  if (/^:::header\s*$/.test(line)) return { kind: "header" };
+  if (/^:::footer\s*$/.test(line)) return { kind: "footer" };
+  const detailsMatch = line.match(/^:::details\s+(.*?)\s*$/);
+  if (detailsMatch) return { kind: "details", title: detailsMatch[1] };
+  const warpMatch = line.match(/^:::warp\s+(\S+)\s*$/);
+  if (warpMatch) return { kind: "warp", id: warpMatch[1] };
+  return null;
 }
 
-function extractCustomBlocks(
-  lines: string[],
-  ctx: ParseContext
-): ExtractedCustomBlocks {
-  let header: HeaderContainerNode | undefined;
-  let footer: FooterContainerNode | undefined;
-  const warpDefs: Record<string, WarpDefinitionNode> = {};
-  const remainingLines: string[] = [];
-  const detailsBlocks: { startIdx: number; node: DetailsNode }[] = [];
+function isContainerCloser(line: string): boolean {
+  return /^\s*:::\s*$/.test(line);
+}
 
-  let i = 0;
-  let inCodeFence: string | null = null; // tracks the fence marker (``` or ~~~)
-  while (i < lines.length) {
-    const line = lines[i];
-
-    // Track code fences so we don't extract ::: blocks inside them
-    const fenceMatch = line.match(/^(`{3,}|~{3,})/);
-    if (fenceMatch) {
-      if (inCodeFence === null) {
-        inCodeFence = fenceMatch[1];
-      } else if (line.startsWith(inCodeFence[0]) && line.trimEnd().length >= inCodeFence.length && line.trimEnd() === inCodeFence[0].repeat(line.trimEnd().length)) {
-        inCodeFence = null;
-      }
-      remainingLines.push(line);
-      i++;
-      continue;
+/**
+ * For each line after `openerIndex`, whether a code fence opening on that line
+ * has a closing fence somewhere below it. Computed in one backward pass by
+ * tracking the longest run of backticks and of tildes seen so far.
+ */
+function findClosableFenceLines(lines: string[], openerIndex: number): Set<number> {
+  const closableFenceLines = new Set<number>();
+  const longestClosingRun: Record<string, number> = { "`": 0, "~": 0 };
+  for (let i = lines.length - 1; i > openerIndex; i--) {
+    const fence = matchCodeFence(lines[i]);
+    if (fence && longestClosingRun[fence.marker[0]] >= fence.marker.length) {
+      closableFenceLines.add(i);
     }
-
-    if (inCodeFence !== null) {
-      remainingLines.push(line);
-      i++;
-      continue;
+    const closingRun = lines[i].match(/^(`+|~+)$/);
+    if (closingRun) {
+      const character = closingRun[1][0];
+      longestClosingRun[character] = Math.max(longestClosingRun[character], closingRun[1].length);
     }
-
-    if (/^:::header\s*$/.test(line)) {
-      const innerLines: string[] = [];
-      i++;
-      { let depth = 0;
-        while (i < lines.length) {
-          const l = lines[i];
-          if (/^:::(header|footer)\s*$/.test(l) || /^:::warp\s+\S/.test(l) || /^:::details\s+/.test(l)) { depth++; }
-          else if (/^\s*:::\s*$/.test(l)) { if (depth === 0) break; depth--; }
-          innerLines.push(l); i++;
-        } i++; } // skip :::
-      // Recursively extract nested :::warp / :::details from this block's content
-      // so they become nodes instead of plain text
-      const nestedHeader = extractCustomBlocks(innerLines, ctx);
-      Object.assign(warpDefs, nestedHeader.warpDefs);
-      let headerChildren = parseBlocks(nestedHeader.remainingLines, ctx);
-      if (nestedHeader.detailsBlocks.length > 0) {
-        headerChildren = headerChildren.map((node) => {
-          if (node.type === "paragraph" && node.children.length === 1 && node.children[0].type === "text") {
-            const txt = (node.children[0] as { type: string; text: string }).text;
-            const pm = txt.match(/^__DETAILS_PLACEHOLDER_(\d+)__$/);
-            if (pm) {
-              const idx = parseInt(pm[1], 10);
-              if (nestedHeader.detailsBlocks[idx]) return nestedHeader.detailsBlocks[idx].node;
-            }
-          }
-          return node;
-        });
-      }
-      header = { type: "header_container", children: headerChildren };
-      continue;
-    }
-
-    if (/^:::footer\s*$/.test(line)) {
-      const innerLines: string[] = [];
-      i++;
-      { let depth = 0;
-        while (i < lines.length) {
-          const l = lines[i];
-          if (/^:::(header|footer)\s*$/.test(l) || /^:::warp\s+\S/.test(l) || /^:::details\s+/.test(l)) { depth++; }
-          else if (/^\s*:::\s*$/.test(l)) { if (depth === 0) break; depth--; }
-          innerLines.push(l); i++;
-        } i++; }
-      // Recursively extract nested :::warp / :::details from this block's content
-      // so they become nodes instead of plain text
-      const nestedFooter = extractCustomBlocks(innerLines, ctx);
-      Object.assign(warpDefs, nestedFooter.warpDefs);
-      let footerChildren = parseBlocks(nestedFooter.remainingLines, ctx);
-      if (nestedFooter.detailsBlocks.length > 0) {
-        footerChildren = footerChildren.map((node) => {
-          if (node.type === "paragraph" && node.children.length === 1 && node.children[0].type === "text") {
-            const txt = (node.children[0] as { type: string; text: string }).text;
-            const pm = txt.match(/^__DETAILS_PLACEHOLDER_(\d+)__$/);
-            if (pm) {
-              const idx = parseInt(pm[1], 10);
-              if (nestedFooter.detailsBlocks[idx]) return nestedFooter.detailsBlocks[idx].node;
-            }
-          }
-          return node;
-        });
-      }
-      footer = { type: "footer_container", children: footerChildren };
-      continue;
-    }
-
-    const warpM = line.match(/^:::warp\s+(\S+)\s*$/);
-    if (warpM) {
-      const id = warpM[1];
-      const innerLines: string[] = [];
-      i++;
-      { let depth = 0;
-        while (i < lines.length) {
-          const l = lines[i];
-          if (/^:::(header|footer)\s*$/.test(l) || /^:::warp\s+\S/.test(l) || /^:::details\s+/.test(l)) { depth++; }
-          else if (/^\s*:::\s*$/.test(l)) { if (depth === 0) break; depth--; }
-          innerLines.push(l); i++;
-        } i++; }
-      const warpNode: WarpDefinitionNode = {
-        type: "warp_definition",
-        id,
-        children: [], // filled below
-      };
-      // Recursively extract nested :::warp / :::details from this block's content
-      // so they become nodes instead of plain text
-      const nestedWarp = extractCustomBlocks(innerLines, ctx);
-      Object.assign(warpDefs, nestedWarp.warpDefs);
-      let warpChildren = parseBlocks(nestedWarp.remainingLines, ctx);
-      if (nestedWarp.detailsBlocks.length > 0) {
-        warpChildren = warpChildren.map((node) => {
-          if (node.type === "paragraph" && node.children.length === 1 && node.children[0].type === "text") {
-            const txt = (node.children[0] as { type: string; text: string }).text;
-            const pm = txt.match(/^__DETAILS_PLACEHOLDER_(\d+)__$/);
-            if (pm) {
-              const idx = parseInt(pm[1], 10);
-              if (nestedWarp.detailsBlocks[idx]) return nestedWarp.detailsBlocks[idx].node;
-            }
-          }
-          return node;
-        });
-      }
-      warpNode.children = warpChildren;
-      // If id is duplicated, treat as plain text (spec) — simple: just overwrite
-      if (warpDefs[id]) {
-        // Duplicate: mark as invalid (renderer will treat as plain text)
-        warpNode.id = `__duplicate_${id}`;
-      }
-      warpDefs[warpM[1]] = warpNode;
-      continue;
-    }
-
-    const detailsM = line.match(/^:::details\s+(.*?)\s*$/);
-    if (detailsM) {
-      const title = detailsM[1];
-      const innerLines: string[] = [];
-      const startIdx = remainingLines.length;
-      i++;
-      { let depth = 0;
-        while (i < lines.length) {
-          const l = lines[i];
-          if (/^:::(header|footer)\s*$/.test(l) || /^:::warp\s+\S/.test(l) || /^:::details\s+/.test(l)) { depth++; }
-          else if (/^\s*:::\s*$/.test(l)) { if (depth === 0) break; depth--; }
-          innerLines.push(l); i++;
-        } i++; }
-      // Recursively extract nested :::warp / :::details from this block's content
-      // so they become nodes instead of plain text
-      const nestedExtracted = extractCustomBlocks(innerLines, ctx);
-      // Bubble nested warp defs up to parent scope
-      Object.assign(warpDefs, nestedExtracted.warpDefs);
-      // Parse the cleaned content (:::warp etc. already removed)
-      let detailsChildren = parseBlocks(nestedExtracted.remainingLines, ctx);
-      // Replace any nested :::details placeholders
-      if (nestedExtracted.detailsBlocks.length > 0) {
-        detailsChildren = detailsChildren.map((node) => {
-          if (node.type === "paragraph" && node.children.length === 1 && node.children[0].type === "text") {
-            const txt = (node.children[0] as { type: string; text: string }).text;
-            const pm = txt.match(/^__DETAILS_PLACEHOLDER_(\d+)__$/);
-            if (pm) {
-              const idx = parseInt(pm[1], 10);
-              if (nestedExtracted.detailsBlocks[idx]) return nestedExtracted.detailsBlocks[idx].node;
-            }
-          }
-          return node;
-        });
-      }
-      const detailsNode: DetailsNode = {
-        type: "details",
-        title,
-        children: detailsChildren,
-      };
-      // Insert a placeholder line so position is preserved
-      remainingLines.push(`__DETAILS_PLACEHOLDER_${detailsBlocks.length}__`);
-      detailsBlocks.push({ startIdx, node: detailsNode });
-      continue;
-    }
-
-    remainingLines.push(line);
-    i++;
   }
+  return closableFenceLines;
+}
 
-  return { header, footer, warpDefs, remainingLines, detailsBlocks };
+/**
+ * spec: Lobster Extensions — a `:::` block ends at the `:::` line that matches
+ * its opener. Nested openers and fenced code are skipped, but a fence that is
+ * never closed does not hide the closing `:::` (the code block then ends with
+ * the `:::` block). Returns `lines.length` when the block is never closed.
+ */
+function findContainerEnd(lines: string[], openerIndex: number): number {
+  const closableFenceLines = findClosableFenceLines(lines, openerIndex);
+  let depth = 0;
+  let openFence: string | null = null;
+  for (let i = openerIndex + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (openFence !== null) {
+      if (isClosingFence(line, openFence)) openFence = null;
+      continue;
+    }
+    const fence = closableFenceLines.has(i) ? matchCodeFence(line) : null;
+    if (fence) {
+      openFence = fence.marker;
+    } else if (matchContainerOpener(line)) {
+      depth++;
+    } else if (isContainerCloser(line)) {
+      if (depth === 0) return i;
+      depth--;
+    }
+  }
+  return lines.length;
+}
+
+function tryParseContainer(
+  lines: string[],
+  i: number,
+  context: ParseContext,
+  scope: BlockScope
+): ContainerParseResult | null {
+  if (scope === "quote") return null;
+  const opener = matchContainerOpener(lines[i]);
+  if (!opener) return null;
+
+  const end = findContainerEnd(lines, i);
+  const children = parseBlocks(lines.slice(i + 1, end), context, "container");
+  const nextIndex = end + 1;
+
+  switch (opener.kind) {
+    case "header":
+      if (scope === "document") context.header = { type: "header_container", children };
+      return { node: null, nextIndex };
+    case "footer":
+      if (scope === "document") context.footer = { type: "footer_container", children };
+      return { node: null, nextIndex };
+    case "warp":
+      context.warpDefs[opener.id] = { type: "warp_definition", id: opener.id, children };
+      return { node: null, nextIndex };
+    case "details":
+      return { node: { type: "details", title: opener.title, children }, nextIndex };
+  }
 }
 
 // ============================================================
@@ -530,18 +405,21 @@ function extractCustomBlocks(
 
 type ParseBlockResult = { node: BlockNode; nextIndex: number };
 
+/** A `:::` block that is recorded elsewhere (header, footer, warp) has no node in place. */
+type ContainerParseResult = { node: BlockNode | null; nextIndex: number };
+
 function tryParseHeading(
   lines: string[],
   i: number,
-  ctx: ParseContext
+  context: ParseContext
 ): ParseBlockResult | null {
-  const m = matchHeading(lines[i]);
-  if (!m) return null;
+  const heading = matchHeading(lines[i]);
+  if (!heading) return null;
   const node: HeadingNode = {
     type: "heading",
-    level: m.level as HeadingNode["level"],
-    ...(m.id !== undefined && { id: m.id }),
-    children: parseInline(m.text, ctx),
+    level: heading.level as HeadingNode["level"],
+    ...(heading.id !== undefined && { id: heading.id }),
+    children: parseInline(heading.text, context),
   };
   return { node, nextIndex: i + 1 };
 }
@@ -563,17 +441,10 @@ function tryParseCodeBlock(
   if (!fence) return null;
 
   const codeLines: string[] = [];
-  const markerChar = fence.marker[0];
-  const markerLen = fence.marker.length;
   let j = i + 1;
 
   while (j < lines.length) {
-    // Closing fence: same char, at least same length
-    if (
-      lines[j].match(/^(`{3,}|~{3,})$/) &&
-      lines[j][0] === markerChar &&
-      lines[j].length >= markerLen
-    ) {
+    if (isClosingFence(lines[j], fence.marker)) {
       j++;
       break;
     }
@@ -593,231 +464,134 @@ function tryParseCodeBlock(
 function tryParseBlockquote(
   lines: string[],
   i: number,
-  ctx: ParseContext
+  context: ParseContext
 ): ParseBlockResult | null {
   if (!lines[i].startsWith(">")) return null;
 
-  const bqLines: string[] = [];
+  const quoteLines: string[] = [];
   let j = i;
   while (j < lines.length && lines[j].startsWith(">")) {
-    bqLines.push(lines[j]);
+    quoteLines.push(lines[j]);
     j++;
   }
 
-  const stripped = stripBlockquotePrefix(bqLines);
+  const stripped = stripBlockquotePrefix(quoteLines);
   const node: BlockquoteNode = {
     type: "blockquote",
-    children: parseBlocks(stripped, ctx),
+    children: parseBlocks(stripped, context, "quote"),
   };
   return { node, nextIndex: j };
 }
 
-/**
- * Parse a run of list items (bullet or ordered) starting at line i.
- * Returns a BulletListNode or OrderedListNode at depth 0.
- */
 function tryParseList(
   lines: string[],
   i: number,
-  ctx: ParseContext
+  context: ParseContext
 ): ParseBlockResult | null {
   const firstItem = matchListItem(lines[i]);
   if (!firstItem) return null;
-
-  return firstItem.marker === "bullet"
-    ? parseBulletList(lines, i, 0, ctx)
-    : parseOrderedList(lines, i, 0, ctx);
-}
-
-function parseBulletList(
-  lines: string[],
-  startI: number,
-  depth: number,
-  ctx: ParseContext
-): ParseBlockResult {
-  const items: ListItemNode[] = [];
-  let i = startI;
-
-  while (i < lines.length) {
-    if (isBlankLine(lines[i])) {
-      i++;
-      continue;
-    }
-
-    const itemInfo = matchListItem(lines[i]);
-    if (!itemInfo || itemInfo.marker !== "bullet") break;
-    if (itemInfo.indent < depth) break;
-
-    // Collect continuation lines and sub-items
-    const textLines: string[] = [itemInfo.text];
-    i++;
-
-    while (i < lines.length) {
-      if (isBlankLine(lines[i])) break;
-      const next = matchListItem(lines[i]);
-      if (next) {
-        if (next.indent > itemInfo.indent) {
-          // Sub-list: will be parsed below
-          break;
-        } else {
-          break;
-        }
-      }
-      // Continuation line: must be indented past the item's text start
-      if (lines[i].match(/^\s/)) {
-        textLines.push(lines[i].trimStart());
-        i++;
-      } else {
-        break;
-      }
-    }
-
-    // Check for sub-list
-    let sublist: BulletListNode | OrderedListNode | undefined;
-    if (i < lines.length) {
-      const next = matchListItem(lines[i]);
-      if (next && next.indent > itemInfo.indent) {
-        const subResult =
-          next.marker === "bullet"
-            ? parseBulletList(lines, i, next.indent, ctx)
-            : parseOrderedList(lines, i, next.indent, ctx);
-        sublist = subResult.node as BulletListNode | OrderedListNode;
-        i = subResult.nextIndex;
-      }
-    }
-
-    items.push({
-      checked: itemInfo.checked,
-      children: parseInline(textLines.join(" "), ctx),
-      sublist,
-    });
-  }
-
-  const node: BulletListNode = { type: "bullet_list", depth, items };
-  return { node, nextIndex: i };
-}
-
-function parseOrderedList(
-  lines: string[],
-  startI: number,
-  depth: number,
-  ctx: ParseContext
-): ParseBlockResult {
-  const items: ListItemNode[] = [];
-  let i = startI;
-  let start = 1;
-  let firstItem = true;
-
-  while (i < lines.length) {
-    if (isBlankLine(lines[i])) {
-      i++;
-      continue;
-    }
-
-    const itemInfo = matchListItem(lines[i]);
-    if (!itemInfo || itemInfo.marker !== "ordered") break;
-    if (itemInfo.indent < depth) break;
-
-    if (firstItem) {
-      start = itemInfo.start ?? 1;
-      firstItem = false;
-    }
-
-    const textLines: string[] = [itemInfo.text];
-    i++;
-
-    while (i < lines.length) {
-      if (isBlankLine(lines[i])) break;
-      const next = matchListItem(lines[i]);
-      if (next) break;
-      if (lines[i].match(/^\s/)) {
-        textLines.push(lines[i].trimStart());
-        i++;
-      } else {
-        break;
-      }
-    }
-
-    let sublist: BulletListNode | OrderedListNode | undefined;
-    if (i < lines.length) {
-      const next = matchListItem(lines[i]);
-      if (next && next.indent > itemInfo.indent) {
-        const subResult =
-          next.marker === "bullet"
-            ? parseBulletList(lines, i, next.indent, ctx)
-            : parseOrderedList(lines, i, next.indent, ctx);
-        sublist = subResult.node as BulletListNode | OrderedListNode;
-        i = subResult.nextIndex;
-      }
-    }
-
-    items.push({
-      checked: itemInfo.checked,
-      children: parseInline(textLines.join(" "), ctx),
-      sublist,
-    });
-  }
-
-  const node: OrderedListNode = { type: "ordered_list", depth, start, items };
-  return { node, nextIndex: i };
+  return parseList(lines, i, 0, firstItem.marker, context);
 }
 
 /**
- * Parse table (standard `| ... |` or silent `~ | ... |`).
- * spec: テーブル, サイレントテーブル
+ * spec: Lists — consecutive items with the same marker type form one list.
+ * Indented lines continue the item; a more indented item starts a sublist.
+ */
+function parseList(
+  lines: string[],
+  startIndex: number,
+  depth: number,
+  marker: ListMarker,
+  context: ParseContext
+): { node: BulletListNode | OrderedListNode; nextIndex: number } {
+  const items: ListItemNode[] = [];
+  let start = 1;
+  let i = startIndex;
+
+  while (i < lines.length) {
+    if (isBlankLine(lines[i])) {
+      i++;
+      continue;
+    }
+
+    const item = matchListItem(lines[i]);
+    if (!item || item.marker !== marker || item.indent < depth) break;
+    if (items.length === 0) start = item.start ?? 1;
+
+    const textLines: string[] = [item.text];
+    i++;
+    while (i < lines.length && !isBlankLine(lines[i]) && !matchListItem(lines[i]) && /^\s/.test(lines[i])) {
+      textLines.push(lines[i].trimStart());
+      i++;
+    }
+
+    let sublist: BulletListNode | OrderedListNode | undefined;
+    const nextItem = i < lines.length ? matchListItem(lines[i]) : null;
+    if (nextItem && nextItem.indent > item.indent) {
+      const subResult = parseList(lines, i, nextItem.indent, nextItem.marker, context);
+      sublist = subResult.node;
+      i = subResult.nextIndex;
+    }
+
+    items.push({
+      checked: item.checked,
+      children: parseInline(textLines.join(" "), context),
+      sublist,
+    });
+  }
+
+  const node: BulletListNode | OrderedListNode =
+    marker === "bullet"
+      ? { type: "bullet_list", depth, items }
+      : { type: "ordered_list", depth, start, items };
+  return { node, nextIndex: i };
+}
+
+/** spec: Silent Table — every row starts with `~` */
+function isSilentTableLine(line: string): boolean {
+  return /^\s*~\s*\|/.test(line) || /^\s*~\s+/.test(line);
+}
+
+/** spec: Table — a row is any line containing `|` */
+function isTableLine(line: string, isSilent: boolean): boolean {
+  return isSilent ? isSilentTableLine(line) : line.includes("|");
+}
+
+/** spec: Table — a line that can start a table ends the preceding paragraph */
+function startsWithTablePipe(line: string): boolean {
+  return /^\s*(~\s*)?\|/.test(line);
+}
+
+/**
+ * spec: Table, Silent Table — a header row and an alignment row, then body
+ * rows. `splitTableRow` removes the `~` prefix of silent tables.
  */
 function tryParseTable(
   lines: string[],
   i: number,
-  ctx: ParseContext
+  context: ParseContext,
+  scope: BlockScope
 ): ParseBlockResult | null {
-  const line = lines[i];
-  const isSilent = /^\s*~\s+\|/.test(line) || /^\s*~\s+/.test(line);
+  const isSilent = /^\s*~\s+/.test(lines[i]);
+  if (!isTableLine(lines[i], isSilent)) return null;
+  if (i + 1 >= lines.length || !isAlignmentRow(lines[i + 1])) return null;
 
-  const isTableLine = (l: string): boolean => {
-    if (isSilent) return /^\s*~\s*\|/.test(l) || /^\s*~\s+/.test(l);
-    return /^\s*\|/.test(l) || l.includes("|");
-  };
-
-  if (!isTableLine(line)) return null;
-
-  // We need at least header + alignment rows
-  if (i + 1 >= lines.length) return null;
-  if (!isAlignmentRow(lines[i + 1]) && !(isSilent && isAlignmentRow(lines[i + 1].replace(/^\s*~\s*/, "")))) {
-    return null;
-  }
-
-  // Parse header row
-  const rawHeader = isSilent ? line.replace(/^\s*~\s*/, "") : line;
-  const headerCells = splitTableRow(rawHeader);
+  const headerCells = splitTableRow(lines[i]);
   const columnCount = headerCells.length;
-  const [headers] = buildMergedRows([headerCells], ctx);
+  const [headers] = buildMergedRows([headerCells], context);
+  const alignments = splitTableRow(lines[i + 1]).map(parseAlignment);
 
-  // Parse alignment row
-  const rawAlign = isSilent
-    ? lines[i + 1].replace(/^\s*~\s*/, "")
-    : lines[i + 1];
-  const alignments: TableAlignment[] = splitTableRow(rawAlign).map(parseAlignment);
-
-  // Parse data rows: pad short rows and drop cells beyond the header width
   const bodyGrid: string[][] = [];
   let j = i + 2;
-  while (j < lines.length && isTableLine(lines[j])) {
-    const rawRow = isSilent ? lines[j].replace(/^\s*~\s*/, "") : lines[j];
-    const cells = splitTableRow(rawRow).slice(0, columnCount);
+  while (j < lines.length && isTableLine(lines[j], isSilent) && !(scope !== "quote" && matchContainerOpener(lines[j]))) {
+    const cells = splitTableRow(lines[j]).slice(0, columnCount);
     while (cells.length < columnCount) cells.push("");
     bodyGrid.push(cells);
     j++;
   }
-  const rows = buildMergedRows(bodyGrid, ctx);
+  const rows = buildMergedRows(bodyGrid, context);
 
-  const node: TableNode = {
-    type: "table",
-    isSilent,
-    headers,
-    alignments,
-    rows,
-  };
+  const node: TableNode = { type: "table", isSilent, headers, alignments, rows };
   return { node, nextIndex: j };
 }
 
@@ -828,10 +602,8 @@ function startsBlockElement(line: string): boolean {
     matchCodeFence(line) !== null ||
     line.startsWith(">") ||
     matchListItem(line) !== null ||
-    /^\s*\|/.test(line) ||
-    /^\s*~\s*\|/.test(line) ||
-    /^:::/.test(line) ||
-    /^__DETAILS_PLACEHOLDER_/.test(line)
+    startsWithTablePipe(line) ||
+    /^:::/.test(line)
   );
 }
 
@@ -841,7 +613,7 @@ function startsBlockElement(line: string): boolean {
 function parseParagraph(
   lines: string[],
   i: number,
-  ctx: ParseContext
+  context: ParseContext
 ): ParseBlockResult {
   const textLines: string[] = [];
   let j = i;
@@ -860,7 +632,7 @@ function parseParagraph(
 
   // Join lines with \n so inline parser can emit line_break nodes
   const text = textLines.join("\n");
-  const children = parseInline(text, ctx);
+  const children = parseInline(text, context);
 
   // Strip trailing line_break from paragraph
   while (children.length > 0 && children[children.length - 1].type === "line_break") {
@@ -875,39 +647,35 @@ function parseParagraph(
 // Main block parser
 // ============================================================
 
-export function parseBlocks(lines: string[], ctx: ParseContext): BlockNode[] {
+export function parseBlocks(
+  lines: string[],
+  context: ParseContext,
+  scope: BlockScope = "container"
+): BlockNode[] {
   const nodes: BlockNode[] = [];
-  const trimmed = trimTrailingSpaces(lines);
   let i = 0;
 
-  while (i < trimmed.length) {
-    const line = trimmed[i];
-
-    if (isBlankLine(line)) {
+  while (i < lines.length) {
+    if (isBlankLine(lines[i])) {
       i++;
       continue;
     }
 
-    // Details placeholder
-    if (/^__DETAILS_PLACEHOLDER_\d+__$/.test(line)) {
-      // Will be replaced during post-processing
-      nodes.push({ type: "paragraph", children: [{ type: "text", text: line }] });
-      i++;
+    const container = tryParseContainer(lines, i, context, scope);
+    if (container) {
+      if (container.node) nodes.push(container.node);
+      i = container.nextIndex;
       continue;
     }
 
-    let result: ParseBlockResult | null = null;
-
-    result ??= tryParseHeading(trimmed, i, ctx);
-    result ??= tryParseHorizontalRule(trimmed, i);
-    result ??= tryParseCodeBlock(trimmed, i);
-    result ??= tryParseBlockquote(trimmed, i, ctx);
-    result ??= tryParseList(trimmed, i, ctx);
-    result ??= tryParseTable(trimmed, i, ctx);
-
-    if (!result) {
-      result = parseParagraph(trimmed, i, ctx);
-    }
+    const result =
+      tryParseHeading(lines, i, context) ??
+      tryParseHorizontalRule(lines, i) ??
+      tryParseCodeBlock(lines, i) ??
+      tryParseBlockquote(lines, i, context) ??
+      tryParseList(lines, i, context) ??
+      tryParseTable(lines, i, context, scope) ??
+      parseParagraph(lines, i, context);
 
     nodes.push(result.node);
     i = result.nextIndex;
@@ -929,54 +697,27 @@ export function parseDocument(markdown: string): Document {
   const cleanLines = removeDefinitionLines(lines);
 
   // Build initial parse context (footnote defs parsed inline later)
-  const ctx: ParseContext = {
+  const context: ParseContext = {
     linkDefs,
     footnoteDefs: {},
+    definedFootnoteIds: new Set(Object.keys(rawFootnoteDefs)),
     warpDefs: {},
-    footnoteRefs: [],
     inlineFootnoteCount: 0,
   };
 
   // Parse raw footnote def texts into inline nodes
   for (const [id, text] of Object.entries(rawFootnoteDefs)) {
-    ctx.footnoteDefs[id] = parseInline(text, ctx);
+    context.footnoteDefs[id] = parseInline(text, context);
   }
 
-  // Extract :::header, :::footer, :::warp, :::details blocks
-  const extracted = extractCustomBlocks(cleanLines, ctx);
-
-  // Attach warp defs to context so inline parser can resolve [~id]
-  ctx.warpDefs = extracted.warpDefs;
-
-  // Parse remaining body blocks
-  let body = parseBlocks(extracted.remainingLines, ctx);
-
-  // Replace details placeholders with actual nodes
-  if (extracted.detailsBlocks.length > 0) {
-    body = body.map((node) => {
-      if (
-        node.type === "paragraph" &&
-        node.children.length === 1 &&
-        node.children[0].type === "text"
-      ) {
-        const text = (node.children[0] as { type: string; text: string }).text;
-        const m = text.match(/^__DETAILS_PLACEHOLDER_(\d+)__$/);
-        if (m) {
-          const idx = parseInt(m[1], 10);
-          return extracted.detailsBlocks[idx].node;
-        }
-      }
-      return node;
-    });
-  }
+  const body = parseBlocks(cleanLines, context, "document");
 
   return {
-    header: extracted.header,
-    footer: extracted.footer,
+    header: context.header,
+    footer: context.footer,
     body,
     linkDefs,
-    footnoteDefs: ctx.footnoteDefs,
-    footnoteRefs: ctx.footnoteRefs,
-    warpDefs: extracted.warpDefs,
+    footnoteDefs: context.footnoteDefs,
+    warpDefs: context.warpDefs,
   };
 }

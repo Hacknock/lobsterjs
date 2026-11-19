@@ -6,8 +6,8 @@ function makeCtx(overrides: Partial<ParseContext> = {}): ParseContext {
   return {
     linkDefs: {},
     footnoteDefs: {},
+    definedFootnoteIds: new Set(),
     warpDefs: {},
-    footnoteRefs: [],
     inlineFootnoteCount: 0,
     ...overrides,
   };
@@ -132,7 +132,7 @@ describe("parseInline — inline link", () => {
     const nodes = parseInline("[Click](https://example.com)", makeCtx());
     expect(nodes).toEqual([
       {
-        type: "inline_link",
+        type: "link",
         text: [text("Click")],
         href: "https://example.com",
         title: undefined,
@@ -144,7 +144,7 @@ describe("parseInline — inline link", () => {
     const nodes = parseInline('[Go](https://example.com "My Site")', makeCtx());
     expect(nodes).toEqual([
       {
-        type: "inline_link",
+        type: "link",
         text: [text("Go")],
         href: "https://example.com",
         title: "My Site",
@@ -154,7 +154,7 @@ describe("parseInline — inline link", () => {
 
   it("empty text: [](url)", () => {
     const nodes = parseInline("[](https://example.com)", makeCtx());
-    expect(nodes[0].type).toBe("inline_link");
+    expect(nodes[0].type).toBe("link");
   });
 });
 
@@ -228,14 +228,14 @@ describe("parseInline — image", () => {
 });
 
 describe("parseInline — footnote ref", () => {
-  it("[^id] records the ref", () => {
-    const ctx = makeCtx({
-      footnoteDefs: { note: [text("Footnote text")] },
-    });
+  it("[^id] with a definition becomes a footnote ref", () => {
+    const ctx = makeCtx({ definedFootnoteIds: new Set(["note"]) });
     const nodes = parseInline("Hello[^note] world", ctx);
-    const ref = nodes.find((n) => n.type === "footnote_ref");
-    expect(ref).toBeDefined();
-    expect(ctx.footnoteRefs).toContain("note");
+    expect(nodes[1]).toEqual({ type: "footnote_ref", id: "note" });
+  });
+
+  it("[^id] without a definition is plain text", () => {
+    expect(parseInline("Hello[^note]", makeCtx())).toEqual([text("Hello[^note]")]);
   });
 });
 
@@ -386,14 +386,14 @@ describe("parseInline — backslash escape in links, images, and footnotes", () 
   it("escaped ] does not close link text", () => {
     const nodes = parseInline("[a\\]b](http://x)", makeCtx());
     expect(nodes).toEqual([
-      { type: "inline_link", text: [text("a]b")], href: "http://x", title: undefined },
+      { type: "link", text: [text("a]b")], href: "http://x", title: undefined },
     ]);
   });
 
   it("escaped ) does not close link destination", () => {
     const nodes = parseInline("[a](http://x/\\)y)", makeCtx());
     expect(nodes).toEqual([
-      { type: "inline_link", text: [text("a")], href: "http://x/)y", title: undefined },
+      { type: "link", text: [text("a")], href: "http://x/)y", title: undefined },
     ]);
   });
 
@@ -410,9 +410,8 @@ describe("parseInline — backslash escape in links, images, and footnotes", () 
   it("escaped ] does not close inline footnote", () => {
     const ctx = makeCtx();
     const nodes = parseInline("^[note \\] x]", ctx);
-    expect(nodes).toEqual([
-      { type: "inline_footnote", children: [text("note ] x")] },
-    ]);
+    expect(nodes).toEqual([{ type: "inline_footnote", id: "__inline_1" }]);
+    expect(ctx.footnoteDefs["__inline_1"]).toEqual([text("note ] x")]);
   });
 });
 

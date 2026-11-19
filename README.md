@@ -97,25 +97,6 @@ import { toHTML } from "@hacknock/lobster";
 const html = toHTML("# Hello");
 ```
 
-### `parseDocument(markdown: string): Document`
-
-Parses Markdown into an AST. Useful for inspecting or transforming the document tree before rendering.
-
-```ts
-import { parseDocument } from "@hacknock/lobster";
-const doc = parseDocument(markdown);
-console.log(doc.body); // BlockNode[]
-```
-
-### `renderDocument(doc: Document): string`
-
-Converts a `Document` AST into an HTML string.
-
-```ts
-import { parseDocument, renderDocument } from "@hacknock/lobster";
-const html = renderDocument(parseDocument(markdown));
-```
-
 ### `loadMarkdown(src: string | string[], container?: HTMLElement): Promise<void>`
 
 Fetches one or more Markdown files and renders them into the given DOM element (defaults to `document.body`). Browser only.
@@ -378,13 +359,13 @@ src/
 ├── core/                # Platform-agnostic parser (no DOM dependency)
 │   ├── types.ts         # All AST type definitions
 │   ├── block-parser.ts  # Block-level parser
-│   ├── inline-parser.ts # Inline-level parser
-│   └── index.ts
+│   └── inline-parser.ts # Inline-level parser
 ├── renderer/html/
 │   ├── renderer.ts      # AST → HTML string
-│   └── dom.ts           # DOM helpers (browser only)
-├── index.ts             # Browser entry point (full API)
-└── index.node.ts        # Node.js entry point (pure functions only)
+│   └── dom.ts           # loadMarkdown (browser only)
+├── to-html.ts           # toHTML
+├── index.ts             # Browser entry point: loadMarkdown, toHTML
+└── index.node.ts        # Node.js entry point: toHTML
 
 tests/                   # Vitest test suites
 markdowns/               # Specification documents

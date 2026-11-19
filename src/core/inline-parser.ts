@@ -5,7 +5,6 @@ import type {
   StrongNode,
   StrikethroughNode,
   CodeSpanNode,
-  InlineLinkNode,
   LinkNode,
   ImageNode,
   FootnoteRefNode,
@@ -25,16 +24,16 @@ const WHITESPACE = /^\s$/;
 // Helpers
 // ============================================================
 
-function isAsciiPunctuation(ch: string | undefined): boolean {
-  return ch !== undefined && ASCII_PUNCTUATION.test(ch);
+function isAsciiPunctuation(character: string | undefined): boolean {
+  return character !== undefined && ASCII_PUNCTUATION.test(character);
 }
 
-function isWordCharacter(ch: string | undefined): boolean {
-  return ch !== undefined && WORD_CHARACTER.test(ch);
+function isWordCharacter(character: string | undefined): boolean {
+  return character !== undefined && WORD_CHARACTER.test(character);
 }
 
-function isWhitespaceOrBoundary(ch: string | undefined): boolean {
-  return ch === undefined || WHITESPACE.test(ch);
+function isWhitespaceOrBoundary(character: string | undefined): boolean {
+  return character === undefined || WHITESPACE.test(character);
 }
 
 function characterStartingAt(text: string, index: number): string | undefined {
@@ -47,7 +46,7 @@ function characterEndingBefore(text: string, index: number): string | undefined 
 }
 
 /**
- * spec: バックスラッシュエスケープ — a character preceded by an odd number of `\` is escaped.
+ * spec: Backslash Escapes — a character preceded by an odd number of `\` is escaped.
  */
 function isEscaped(text: string, index: number): boolean {
   let backslashCount = 0;
@@ -56,7 +55,7 @@ function isEscaped(text: string, index: number): boolean {
 }
 
 /**
- * spec: 強調・強勢・打ち消し線の区切り文字
+ * spec: Delimiter Rules for Emphasis, Strong, and Strikethrough
  * An opening delimiter must not be followed by whitespace, and `_` must not
  * be preceded by a word character (intraword `_` is literal).
  */
@@ -66,17 +65,17 @@ function canOpenDelimiter(
   delimiterLength: number
 ): boolean {
   if (isWhitespaceOrBoundary(text[delimiterStart + delimiterLength])) return false;
-  const ch = text[delimiterStart];
-  if (ch === "_") {
+  const character = text[delimiterStart];
+  if (character === "_") {
     let beforeRun = delimiterStart - 1;
-    while (beforeRun >= 0 && text[beforeRun] === ch) beforeRun--;
+    while (beforeRun >= 0 && text[beforeRun] === character) beforeRun--;
     if (isWordCharacter(characterEndingBefore(text, beforeRun + 1))) return false;
   }
   return true;
 }
 
 /**
- * spec: 強調・強勢・打ち消し線の区切り文字
+ * spec: Delimiter Rules for Emphasis, Strong, and Strikethrough
  * A closing delimiter must not be preceded by whitespace, and `_` must not
  * be followed by a word character.
  */
@@ -96,7 +95,7 @@ function canCloseDelimiter(
 }
 
 /**
- * spec: バックスラッシュエスケープ — removes the backslash from escaped ASCII
+ * spec: Backslash Escapes — removes the backslash from escaped ASCII
  * punctuation in raw strings such as link destinations, titles, and alt text.
  */
 export function unescapeBackslashes(raw: string): string {
@@ -113,20 +112,20 @@ function findClosingDelimiter(
   searchStart: number,
   delimiter: string
 ): number {
-  let searchPos = searchStart;
-  while (searchPos < text.length) {
-    const closeIdx = text.indexOf(delimiter, searchPos);
-    if (closeIdx === -1) return -1;
-    if (isEscaped(text, closeIdx)) {
-      searchPos = closeIdx + 1;
+  let searchPosition = searchStart;
+  while (searchPosition < text.length) {
+    const closeIndex = text.indexOf(delimiter, searchPosition);
+    if (closeIndex === -1) return -1;
+    if (isEscaped(text, closeIndex)) {
+      searchPosition = closeIndex + 1;
       continue;
     }
-    if (delimiter.length === 1 && text[closeIdx + 1] === delimiter) {
-      searchPos = closeIdx + 2;
+    if (delimiter.length === 1 && text[closeIndex + 1] === delimiter) {
+      searchPosition = closeIndex + 2;
       continue;
     }
-    if (canCloseDelimiter(text, closeIdx, delimiter.length)) return closeIdx;
-    searchPos = closeIdx + 1;
+    if (canCloseDelimiter(text, closeIndex, delimiter.length)) return closeIndex;
+    searchPosition = closeIndex + 1;
   }
   return -1;
 }
@@ -172,11 +171,11 @@ function findClosingParen(text: string, start: number): number {
  */
 function parseLinkContent(content: string): { href: string; title?: string } {
   content = content.trim();
-  const m =
+  const titleMatch =
     content.match(/^(\S+)\s+"((?:[^"\\]|\\.)*)"$/) ??
     content.match(/^(\S+)\s+'((?:[^'\\]|\\.)*)'$/) ??
     content.match(/^(\S+)\s+\(((?:[^)\\]|\\.)*)\)$/);
-  if (m) return { href: unescapeBackslashes(m[1]), title: unescapeBackslashes(m[2]) };
+  if (titleMatch) return { href: unescapeBackslashes(titleMatch[1]), title: unescapeBackslashes(titleMatch[2]) };
   return { href: unescapeBackslashes(content) };
 }
 
@@ -205,51 +204,63 @@ function parseImageContent(content: string): {
 // Individual inline matchers
 // ============================================================
 
+function backtickRunLength(text: string, start: number): number {
+  let length = 0;
+  while (text[start + length] === "`") length++;
+  return length;
+}
+
+/**
+ * spec: Code Span — a code span closes at the next backtick run of exactly
+ * the same length. Returns the index of that closing run, or -1.
+ */
+function findCodeSpanClose(text: string, openStart: number, runLength: number): number {
+  const fence = "`".repeat(runLength);
+  let searchFrom = openStart + runLength;
+  while (searchFrom < text.length) {
+    const closeStart = text.indexOf(fence, searchFrom);
+    if (closeStart === -1) return -1;
+    const closeLength = backtickRunLength(text, closeStart);
+    if (closeLength === runLength) return closeStart;
+    searchFrom = closeStart + closeLength;
+  }
+  return -1;
+}
+
+/**
+ * Returns the end of the code span opening at `start`, or the end of the
+ * backtick run when it is never closed (the run is then literal text).
+ */
+export function codeSpanEndOrRunEnd(text: string, start: number): number {
+  const runLength = backtickRunLength(text, start);
+  const closeStart = findCodeSpanClose(text, start, runLength);
+  return closeStart === -1 ? start + runLength : closeStart + runLength;
+}
+
 /**
  * Code span: `code`, `` `code` `` (n backticks)
- * spec: コードスパン
+ * spec: Code Span
  */
-function tryMatchCodeSpan(text: string, pos: number): MatchResult | null {
-  if (text[pos] !== "`") return null;
-
-  // Count opening backticks
-  let count = 0;
-  while (pos + count < text.length && text[pos + count] === "`") count++;
-
-  const openStr = "`".repeat(count);
-  const contentStart = pos + count;
-  let searchPos = contentStart;
-
-  while (searchPos < text.length) {
-    const closeIdx = text.indexOf(openStr, searchPos);
-    if (closeIdx === -1) return null;
-    // Make sure it's not n+1 backticks
-    if (text[closeIdx + count] !== "`") {
-      let code = text.slice(contentStart, closeIdx);
-      // Strip one leading/trailing space if count > 1 and both present
-      if (count > 1 && code.startsWith(" ") && code.endsWith(" ")) {
-        code = code.slice(1, -1);
-      }
-      const node: CodeSpanNode = { type: "code_span", code };
-      return { node, end: closeIdx + count };
-    }
-    searchPos = closeIdx + 1;
+function tryMatchCodeSpan(text: string, position: number): MatchResult | null {
+  const runLength = backtickRunLength(text, position);
+  const closeStart = findCodeSpanClose(text, position, runLength);
+  if (closeStart === -1) return null;
+  let code = text.slice(position + runLength, closeStart);
+  if (runLength > 1 && code.startsWith(" ") && code.endsWith(" ")) {
+    code = code.slice(1, -1);
   }
-  return null;
+  const node: CodeSpanNode = { type: "code_span", code };
+  return { node, end: closeStart + runLength };
 }
 
 /**
  * Image: ![alt](url "title" =WxH)
- * spec: 画像
+ * spec: Image
  */
-function tryMatchImage(
-  text: string,
-  pos: number,
-  ctx: ParseContext
-): MatchResult | null {
-  if (text[pos] !== "!" || text[pos + 1] !== "[") return null;
+function tryMatchImage(text: string, position: number): MatchResult | null {
+  if (text[position] !== "!" || text[position + 1] !== "[") return null;
 
-  const altEnd = findClosingBracket(text, pos + 2);
+  const altEnd = findClosingBracket(text, position + 2);
   if (altEnd === -1) return null;
 
   if (text[altEnd + 1] !== "(") return null;
@@ -257,13 +268,10 @@ function tryMatchImage(
   const urlEnd = findClosingParen(text, altEnd + 2);
   if (urlEnd === -1) return null;
 
-  const alt = unescapeBackslashes(text.slice(pos + 2, altEnd));
+  const alt = unescapeBackslashes(text.slice(position + 2, altEnd));
   const { href, title, width, height } = parseImageContent(
     text.slice(altEnd + 2, urlEnd)
   );
-
-  // suppress unused ctx warning — ctx available for future use (e.g. base URL)
-  void ctx;
 
   const node: ImageNode = { type: "image", alt, src: href, title, width, height };
   return { node, end: urlEnd + 1 };
@@ -271,49 +279,44 @@ function tryMatchImage(
 
 /**
  * Inline footnote: ^[text]
- * spec: インライン脚注
+ * spec: Inline Footnote
  */
 function tryMatchInlineFootnote(
   text: string,
-  pos: number,
-  ctx: ParseContext
+  position: number,
+  context: ParseContext
 ): MatchResult | null {
-  if (text[pos] !== "^" || text[pos + 1] !== "[") return null;
+  if (text[position] !== "^" || text[position + 1] !== "[") return null;
 
-  const end = findClosingBracket(text, pos + 2);
+  const end = findClosingBracket(text, position + 2);
   if (end === -1) return null;
 
-  const content = text.slice(pos + 2, end);
-  ctx.inlineFootnoteCount++;
-  const id = `__inline_${ctx.inlineFootnoteCount}`;
-  ctx.footnoteRefs.push(id);
-  const children = parseInline(content, ctx);
-  // Store the parsed content so the renderer can output it
-  ctx.footnoteDefs[id] = children;
+  let id: string;
+  do {
+    context.inlineFootnoteCount++;
+    id = `__inline_${context.inlineFootnoteCount}`;
+  } while (context.definedFootnoteIds.has(id));
+  context.footnoteDefs[id] = parseInline(text.slice(position + 2, end), context);
 
-  const node: InlineFootnoteNode = { type: "inline_footnote", children };
+  const node: InlineFootnoteNode = { type: "inline_footnote", id };
   return { node, end: end + 1 };
 }
 
 /**
  * Footnote reference: [^id]
- * spec: 脚注
+ * spec: Footnote Reference
  */
 function tryMatchFootnoteRef(
   text: string,
-  pos: number,
-  ctx: ParseContext
+  position: number,
+  context: ParseContext
 ): MatchResult | null {
-  if (text[pos] !== "[" || text[pos + 1] !== "^") return null;
+  if (text[position] !== "[" || text[position + 1] !== "^") return null;
 
-  const end = text.indexOf("]", pos + 2);
+  const end = text.indexOf("]", position + 2);
   if (end === -1) return null;
-  const id = text.slice(pos + 2, end);
-  if (id.includes(" ")) return null;
-
-  if (!ctx.footnoteRefs.includes(id)) {
-    ctx.footnoteRefs.push(id);
-  }
+  const id = text.slice(position + 2, end);
+  if (id.includes(" ") || !context.definedFootnoteIds.has(id)) return null;
 
   const node: FootnoteRefNode = { type: "footnote_ref", id };
   return { node, end: end + 1 };
@@ -321,14 +324,14 @@ function tryMatchFootnoteRef(
 
 /**
  * Warp reference: [~id]
- * spec: ワープ
+ * spec: Warp
  */
-function tryMatchWarpRef(text: string, pos: number): MatchResult | null {
-  if (text[pos] !== "[" || text[pos + 1] !== "~") return null;
+function tryMatchWarpRef(text: string, position: number): MatchResult | null {
+  if (text[position] !== "[" || text[position + 1] !== "~") return null;
 
-  const end = text.indexOf("]", pos + 2);
+  const end = text.indexOf("]", position + 2);
   if (end === -1) return null;
-  const id = text.slice(pos + 2, end);
+  const id = text.slice(position + 2, end);
   if (!id || id.includes(" ")) return null;
 
   const node: WarpRefNode = { type: "warp_ref", id };
@@ -336,181 +339,146 @@ function tryMatchWarpRef(text: string, pos: number): MatchResult | null {
 }
 
 /**
- * Link or inline link starting with [
- * Priority: inline link [text](url) > reference link [text][id] > implicit [text][]
- * spec: リンク, インラインリンク
+ * Link starting with [
+ * Priority: inline link [text](url) > reference link [text][id] or [text][] > implicit link [text]
+ * spec: Inline Link, Reference Link
  */
 function tryMatchBracketExpression(
   text: string,
-  pos: number,
-  ctx: ParseContext
+  position: number,
+  context: ParseContext
 ): MatchResult | null {
-  if (text[pos] !== "[") return null;
+  if (text[position] !== "[") return null;
 
-  // Inline link must not start with [^ or [~
-  if (text[pos + 1] === "^") return tryMatchFootnoteRef(text, pos, ctx);
-  if (text[pos + 1] === "~") return tryMatchWarpRef(text, pos);
+  // [^ and [~ are footnote and warp references, not links
+  if (text[position + 1] === "^") return tryMatchFootnoteRef(text, position, context);
+  if (text[position + 1] === "~") return tryMatchWarpRef(text, position);
 
-  const textEnd = findClosingBracket(text, pos + 1);
+  const textEnd = findClosingBracket(text, position + 1);
   if (textEnd === -1) return null;
 
-  const linkText = text.slice(pos + 1, textEnd);
+  const linkText = text.slice(position + 1, textEnd);
   const afterBracket = textEnd + 1;
+
+  const linkNode = (href: string, title: string | undefined, end: number): MatchResult => {
+    const node: LinkNode = { type: "link", text: parseInline(linkText, context), href, title };
+    return { node, end };
+  };
 
   // Inline link: [text](url)
   if (text[afterBracket] === "(") {
     const urlEnd = findClosingParen(text, afterBracket + 1);
     if (urlEnd !== -1) {
-      const { href, title } = parseLinkContent(
-        text.slice(afterBracket + 1, urlEnd)
-      );
-      const node: InlineLinkNode = {
-        type: "inline_link",
-        text: parseInline(linkText, ctx),
-        href,
-        title,
-      };
-      return { node, end: urlEnd + 1 };
+      const { href, title } = parseLinkContent(text.slice(afterBracket + 1, urlEnd));
+      return linkNode(href, title, urlEnd + 1);
     }
   }
 
-  // Reference link: [text][id]
+  // Reference link: [text][id], or [text][] using the text as id
   if (text[afterBracket] === "[") {
     const idEnd = text.indexOf("]", afterBracket + 1);
     if (idEnd !== -1) {
       const id = (text.slice(afterBracket + 1, idEnd).trim() || linkText.trim()).toLowerCase();
-      const def = ctx.linkDefs[id];
-      if (def) {
-        const node: LinkNode = {
-          type: "link",
-          text: parseInline(linkText, ctx),
-          href: def.href,
-          title: def.title,
-        };
-        return { node, end: idEnd + 1 };
-      }
+      const definition = context.linkDefs[id];
+      if (definition) return linkNode(definition.href, definition.title, idEnd + 1);
     }
   }
 
-  // Implicit shortcut: [text][]
-  if (text[afterBracket] === "[" && text[afterBracket + 1] === "]") {
-    const id = linkText.trim().toLowerCase();
-    const def = ctx.linkDefs[id];
-    if (def) {
-      const node: LinkNode = {
-        type: "link",
-        text: parseInline(linkText, ctx),
-        href: def.href,
-        title: def.title,
-      };
-      return { node, end: afterBracket + 2 };
-    }
-  }
-
-  // Implicit link (no bracket after): [text] if id matches
-  const implicitId = linkText.trim().toLowerCase();
-  const implicitDef = ctx.linkDefs[implicitId];
-  if (implicitDef) {
-    const node: LinkNode = {
-      type: "link",
-      text: parseInline(linkText, ctx),
-      href: implicitDef.href,
-      title: implicitDef.title,
-    };
-    return { node, end: afterBracket };
-  }
+  // Implicit link: [text] whose text matches a link definition
+  const implicitDefinition = context.linkDefs[linkText.trim().toLowerCase()];
+  if (implicitDefinition) return linkNode(implicitDefinition.href, implicitDefinition.title, afterBracket);
 
   return null;
 }
 
 /**
  * Strong: **text** or __text__
- * spec: 強勢 - 太字
+ * spec: Strong (Bold)
  */
 function tryMatchStrong(
   text: string,
-  pos: number,
-  ctx: ParseContext
+  position: number,
+  context: ParseContext
 ): MatchResult | null {
-  const ch = text[pos];
-  if ((ch !== "*" && ch !== "_") || text[pos + 1] !== ch) return null;
+  const character = text[position];
+  if ((character !== "*" && character !== "_") || text[position + 1] !== character) return null;
   // Don't consume *** (triple) — let the outer loop emit one literal char
-  if (text[pos + 2] === ch) return null;
+  if (text[position + 2] === character) return null;
 
-  if (!canOpenDelimiter(text, pos, 2)) return null;
+  if (!canOpenDelimiter(text, position, 2)) return null;
 
-  const delim = ch + ch;
-  const contentStart = pos + 2;
+  const delimiter = character + character;
+  const contentStart = position + 2;
 
-  const closeIdx = findClosingDelimiter(text, contentStart, delim);
-  if (closeIdx === -1) return null;
+  const closeIndex = findClosingDelimiter(text, contentStart, delimiter);
+  if (closeIndex === -1) return null;
 
   // Content cannot span newlines
-  const content = text.slice(contentStart, closeIdx);
+  const content = text.slice(contentStart, closeIndex);
   if (content.includes("\n")) return null;
 
   const node: StrongNode = {
     type: "strong",
-    children: parseInline(content, ctx),
+    children: parseInline(content, context),
   };
-  return { node, end: closeIdx + 2 };
+  return { node, end: closeIndex + 2 };
 }
 
 /**
  * Emphasis: *text* or _text_
- * spec: 強調 - 斜体
+ * spec: Emphasis (Italic)
  */
 function tryMatchEmphasis(
   text: string,
-  pos: number,
-  ctx: ParseContext
+  position: number,
+  context: ParseContext
 ): MatchResult | null {
-  const ch = text[pos];
-  if (ch !== "*" && ch !== "_") return null;
+  const character = text[position];
+  if (character !== "*" && character !== "_") return null;
   // Must be single (not **)
-  if (text[pos + 1] === ch) return null;
-  if (!canOpenDelimiter(text, pos, 1)) return null;
+  if (text[position + 1] === character) return null;
+  if (!canOpenDelimiter(text, position, 1)) return null;
 
-  const contentStart = pos + 1;
-  const closeIdx = findClosingDelimiter(text, contentStart, ch);
-  if (closeIdx === -1) return null;
+  const contentStart = position + 1;
+  const closeIndex = findClosingDelimiter(text, contentStart, character);
+  if (closeIndex === -1) return null;
 
-  const content = text.slice(contentStart, closeIdx);
+  const content = text.slice(contentStart, closeIndex);
   if (content.includes("\n")) return null;
 
   const node: EmphasisNode = {
     type: "emphasis",
-    children: parseInline(content, ctx),
+    children: parseInline(content, context),
   };
-  return { node, end: closeIdx + 1 };
+  return { node, end: closeIndex + 1 };
 }
 
 /**
  * Strikethrough: ~~text~~
- * spec: 打ち消し線
+ * spec: Strikethrough
  */
 function tryMatchStrikethrough(
   text: string,
-  pos: number,
-  ctx: ParseContext
+  position: number,
+  context: ParseContext
 ): MatchResult | null {
-  if (text[pos] !== "~" || text[pos + 1] !== "~") return null;
+  if (text[position] !== "~" || text[position + 1] !== "~") return null;
   // Reject ~~~
-  if (text[pos + 2] === "~") return null;
-  if (!canOpenDelimiter(text, pos, 2)) return null;
+  if (text[position + 2] === "~") return null;
+  if (!canOpenDelimiter(text, position, 2)) return null;
 
-  const contentStart = pos + 2;
-  const closeIdx = findClosingDelimiter(text, contentStart, "~~");
-  if (closeIdx === -1) return null;
+  const contentStart = position + 2;
+  const closeIndex = findClosingDelimiter(text, contentStart, "~~");
+  if (closeIndex === -1) return null;
 
-  const content = text.slice(contentStart, closeIdx);
+  const content = text.slice(contentStart, closeIndex);
   if (content.includes("\n")) return null;
 
   const node: StrikethroughNode = {
     type: "strikethrough",
-    children: parseInline(content, ctx),
+    children: parseInline(content, context),
   };
-  return { node, end: closeIdx + 2 };
+  return { node, end: closeIndex + 2 };
 }
 
 // ============================================================
@@ -522,14 +490,14 @@ function tryMatchStrikethrough(
  * Evaluation order (left-to-right scan, priority by pattern):
  *   backslash escape > code span > image > inline-footnote > [bracket-exprs] > strong > emphasis > strikethrough > line-break
  */
-export function parseInline(text: string, ctx: ParseContext): InlineNode[] {
+export function parseInline(text: string, context: ParseContext): InlineNode[] {
   const nodes: InlineNode[] = [];
-  let pos = 0;
+  let position = 0;
   let textStart = 0;
 
   function flushText(): void {
-    if (pos > textStart) {
-      const pendingText = text.slice(textStart, pos);
+    if (position > textStart) {
+      const pendingText = text.slice(textStart, position);
       const previousNode = nodes[nodes.length - 1];
       if (previousNode?.type === "text") {
         previousNode.text += pendingText;
@@ -537,68 +505,72 @@ export function parseInline(text: string, ctx: ParseContext): InlineNode[] {
         nodes.push({ type: "text", text: pendingText } as TextNode);
       }
     }
-    textStart = pos;
+    textStart = position;
   }
 
-  while (pos < text.length) {
-    const ch = text[pos];
+  while (position < text.length) {
+    const character = text[position];
     let result: MatchResult | null = null;
 
-    // spec: バックスラッシュエスケープ
-    if (ch === "\\" && isAsciiPunctuation(text[pos + 1])) {
+    // spec: Backslash Escapes
+    if (character === "\\" && isAsciiPunctuation(text[position + 1])) {
       flushText();
-      textStart = pos + 1;
-      pos += 2;
+      textStart = position + 1;
+      position += 2;
       continue;
     }
 
-    if (ch === "`") {
-      result = tryMatchCodeSpan(text, pos);
-    } else if (ch === "!" && text[pos + 1] === "[") {
-      result = tryMatchImage(text, pos, ctx);
-    } else if (ch === "^" && text[pos + 1] === "[") {
-      result = tryMatchInlineFootnote(text, pos, ctx);
-    } else if (ch === "[") {
-      result = tryMatchBracketExpression(text, pos, ctx);
+    if (character === "`") {
+      result = tryMatchCodeSpan(text, position);
+      if (!result) {
+        position += backtickRunLength(text, position);
+        continue;
+      }
+    } else if (character === "!" && text[position + 1] === "[") {
+      result = tryMatchImage(text, position);
+    } else if (character === "^" && text[position + 1] === "[") {
+      result = tryMatchInlineFootnote(text, position, context);
+    } else if (character === "[") {
+      result = tryMatchBracketExpression(text, position, context);
     } else if (
-      (ch === "*" || ch === "_") &&
-      text[pos + 1] === ch &&
-      text[pos + 2] !== ch
+      (character === "*" || character === "_") &&
+      text[position + 1] === character &&
+      text[position + 2] !== character
     ) {
-      // Potential strong (**/**)
-      result = tryMatchStrong(text, pos, ctx);
+      // Potential strong (** or __)
+      result = tryMatchStrong(text, position, context);
     } else if (
-      (ch === "*" || ch === "_") &&
-      text[pos + 1] !== ch
+      (character === "*" || character === "_") &&
+      text[position + 1] !== character
     ) {
       // Potential emphasis
-      result = tryMatchEmphasis(text, pos, ctx);
-    } else if (ch === "~" && text[pos + 1] === "~" && text[pos + 2] !== "~") {
-      result = tryMatchStrikethrough(text, pos, ctx);
-    } else if (ch === "\n") {
+      result = tryMatchEmphasis(text, position, context);
+    } else if (character === "~" && text[position + 1] === "~" && text[position + 2] !== "~") {
+      result = tryMatchStrikethrough(text, position, context);
+    } else if (character === "\n") {
       flushText();
       nodes.push({ type: "line_break" } as LineBreakNode);
-      pos++;
-      textStart = pos;
+      position++;
+      textStart = position;
       continue;
     }
     // Triple star/underscore: emit one literal char and let the next iteration handle **
     else if (
-      (ch === "*" || ch === "_") &&
-      text[pos + 1] === ch &&
-      text[pos + 2] === ch
+      (character === "*" || character === "_") &&
+      text[position + 1] === character &&
+      text[position + 2] === character
     ) {
-      pos++;
+      position++;
       continue;
     }
 
     if (result) {
       flushText();
       nodes.push(result.node);
-      pos = result.end;
-      textStart = pos;
+      position = result.end;
+      textStart = position;
     } else {
-      pos++;
+      position++;
     }
   }
 

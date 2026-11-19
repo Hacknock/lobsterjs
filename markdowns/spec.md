@@ -12,22 +12,24 @@ It provides **document structure only** — visual presentation is delegated to 
 - Parsing is **left-to-right, first-match** within each line.
 - Trailing spaces on every line are trimmed before parsing.
 - HTML tags in Markdown source are treated as **plain text** (escaped).
-- When the same definition appears multiple times, the **last one wins** (except where noted).
+- When the same definition appears multiple times, the **last one wins**.
 
 ---
 
 ## Evaluation order
 
-The parser processes elements in the following priority:
+Link definitions and footnote definitions are collected from the whole document first.
+Then blocks are parsed line by line from the top; the first block that starts at the current line wins, in this order:
 
 ```
-Header > Footer >>> Details =>
-  Blockquote => List > Heading > Horizontal Rule > Code Block > Silent Table > Table >
-    Backslash Escape > Image > Inline Footnote > Footnote Ref > Warp Ref > Inline Link > Link >
-      Code Span > Strong > Emphasis > Strikethrough
+::: blocks (Header, Footer, Details, Warp) > Heading > Horizontal Rule > Code Block > Blockquote > List > Table / Silent Table > Paragraph
 ```
 
-Block-level elements (`:::header`, `:::footer`, `:::warp`) are extracted from the document in a first pass before the body is parsed.
+Inline elements are scanned left to right; the first element that starts at the current position wins, in this order:
+
+```
+Backslash Escape > Code Span > Image > Inline Footnote > Footnote Ref > Warp Ref > Inline Link > Reference Link > Strong > Emphasis > Strikethrough
+```
 
 ---
 
@@ -434,14 +436,16 @@ When the opening delimiter is two or more backticks, one leading and one trailin
 ```
 
 - No spaces inside `[^id]` or `[^id]:`.
+- Footnotes are numbered in the order their first reference appears on the page: the header, the body (a warp counts where it is referenced), then the footer. References inside footnote definitions are numbered after those.
 - Multiple references to the same footnote are numbered `[1]`, `[1:1]`, `[1:2]`, …
+- A reference without a matching definition is plain text.
 - Definition lines are **not** rendered as content.
-- Definitions are rendered as a footnote section at the bottom of the document.
+- Only referenced footnotes are rendered, as a footnote section after the body and before the footer.
 
 **HTML output (reference):**
 
 ```html
-<sup class="lbs-footnote-ref"><a href="#lbs-fn-id">[1]</a></sup>
+<sup class="lbs-footnote-ref"><a href="#lbs-fn-id" id="lbs-fnref-id-0">[1]</a></sup>
 ```
 
 **HTML output (footnote section):**
@@ -473,6 +477,11 @@ When the opening delimiter is two or more backticks, one leading and one trailin
 All custom blocks (`:::header`, `:::footer`, `:::details`, `:::warp`) are closed by a `:::` line. Leading whitespace before `:::` is ignored, so formatter-indented closing markers work correctly.
 
 A `:::` line that does not open or close one of these blocks (for example, an unknown name such as `:::note`, a `:::warp` without an id, or a `:::` with no matching opener) is treated as plain text.
+
+- A fenced code block inside a `:::` block is skipped when looking for the closing `:::`. If the fence is never closed, the code block ends where the `:::` block ends.
+- The opening line of a `:::` block ends the paragraph, list, or table right before it, even without a blank line.
+- `:::` blocks are not recognized inside blockquotes; there the lines are plain text.
+- A `:::header` or `:::footer` nested inside another `:::` block is ignored, together with its content.
 
 > **Recommended style:** Place a blank line before the closing `:::`. This prevents Markdown formatters (e.g. Prettier) from treating `:::` as a continuation of the preceding block (such as a list item) and indenting it unexpectedly.
 
@@ -545,8 +554,8 @@ content
 ```
 
 - Defines a named content block that can be placed elsewhere with `[~my-id]`.
-- `id` must be unique within the document; duplicate ids cause all content to be rendered as plain text.
-- Valid id characters: alphanumeric, `-`, `_`.
+- When the same `id` is defined more than once, the last definition wins.
+- An `id` is any run of characters other than spaces and `]`.
 - Warp definitions are **not** rendered at their definition site; only at reference sites.
 
 **Warp reference:**
@@ -554,6 +563,7 @@ content
 `[~my-id]`
 
 - Typically used inside silent table cells to create multi-column layouts.
+- A reference to a warp that is already being expanded (for example, a warp that references itself) renders nothing.
 
 **Example:**
 
@@ -646,37 +656,16 @@ Prefix every row of a table with `~ ` to suppress borders:
 ## API
 
 ```typescript
-import { toHTML, parseDocument, renderDocument } from 'lobsterjs';
-
-// Convenience: Markdown → HTML string
-const html = toHTML(markdownString);
-
-// Step-by-step (useful for tooling or custom renderers)
-const doc = parseDocument(markdownString);  // → Document AST
-const html = renderDocument(doc);           // → HTML string
-
-// Browser: fetch and render a Markdown file into a DOM element
-import { loadMarkdown } from 'lobsterjs';
+// Browser: fetch one or more Markdown files and render them into a DOM element
+import { loadMarkdown } from '@hacknock/lobster';
 await loadMarkdown('./content.md', document.getElementById('content'));
+
+// Browser or Node: Markdown → HTML string
+import { toHTML } from '@hacknock/lobster';
+const html = toHTML(markdownString);
 ```
 
-### Document AST
-
-`parseDocument` returns a `Document` object:
-
-```typescript
-interface Document {
-  header?: HeaderContainerNode;
-  footer?: FooterContainerNode;
-  body: BlockNode[];
-  linkDefs: Record<string, LinkDef>;
-  footnoteDefs: Record<string, InlineNode[]>;
-  footnoteRefs: string[];
-  warpDefs: Record<string, WarpDefinitionNode>;
-}
-```
-
-The full type definitions are in [`src/core/types.ts`](../src/core/types.ts).
+The parsed AST is internal and not part of the API.
 
 ---
 

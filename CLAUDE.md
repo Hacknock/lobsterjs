@@ -28,7 +28,7 @@ npx vitest run tests/block-parser.test.ts
 
 **Pipeline:** `parseDocument(markdown)` → `Document` AST → `renderDocument(doc)` → HTML string
 
-The convenience function `toHTML(markdown)` combines both steps.
+The package exports only `loadMarkdown` (browser) and `toHTML` (browser and Node). The AST and every other function are internal, so their shape can change freely.
 
 ### Source layout
 
@@ -37,12 +37,13 @@ src/
 ├── core/
 │   ├── types.ts          # All AST node type definitions (union types)
 │   ├── block-parser.ts   # Block-level parser (entry: parseDocument, parseBlocks)
-│   ├── inline-parser.ts  # Inline-level parser (entry: parseInline)
-│   └── index.ts
+│   └── inline-parser.ts  # Inline-level parser (entry: parseInline)
 ├── renderer/html/
 │   ├── renderer.ts       # AST → HTML string (entry: renderDocument)
-│   └── dom.ts            # Browser API: renderToDOM, loadMarkdown, autoInit
-└── index.ts              # Public API surface
+│   └── dom.ts            # Browser API: loadMarkdown
+├── to-html.ts            # toHTML (parseDocument + renderDocument)
+├── index.ts              # Browser entry: loadMarkdown, toHTML
+└── index.node.ts         # Node entry: toHTML
 tests/                    # Vitest tests (mirrors src/core/ and src/renderer/)
 markdowns/                # Spec docs and test-case Markdown files
 docs/                     # GitHub Pages demo site (lobster.js loads its own content)
@@ -50,27 +51,25 @@ docs/                     # GitHub Pages demo site (lobster.js loads its own con
 
 ### Parsing pipeline (block-parser.ts)
 
-`parseDocument` runs in three passes:
+`parseDocument` runs in two passes:
 
 1. **Pre-scan** (`collectDefinitions`): Extracts link definitions `[id]: url` and footnote definitions `[^id]: text` from all lines.
-2. **Custom block extraction** (`extractCustomBlocks`): Pulls out `:::header`, `:::footer`, `:::warp id`, and `:::details Title` blocks before main parsing. Details blocks use a placeholder string mechanism to preserve position.
-3. **Block parsing** (`parseBlocks`): Processes remaining lines via `tryParse*` functions in priority order: heading → horizontal_rule → code_block → blockquote → list → table → paragraph (fallback).
+2. **Block parsing** (`parseBlocks`): Processes the remaining lines in order. `tryParseContainer` handles `:::header`, `:::footer`, `:::details Title`, and `:::warp id` first (it finds the matching `:::` with `findContainerEnd`, skipping fenced code and nested blocks). Header, footer, and warp definitions are recorded in `ParseContext`; details stay in place. Then the `tryParse*` functions run in priority order: heading → horizontal_rule → code_block → blockquote → list → table → paragraph (fallback). A `BlockScope` decides where `:::` blocks are recognized: the document, inside other `:::` blocks, but not inside blockquotes.
 
 ### Evaluation order (per spec)
 
 ```
-header / footer / details (extracted before block parse)
-  blockquote → list → heading → horizontal_rule → code_block → silent_table → table
-    backslash_escape → image → inline_footnote → footnote_ref → warp_ref → link → inline_link
-      code_span → emphasis → strong → strikethrough
+blocks:  ::: blocks (header / footer / details / warp) → heading → horizontal_rule → code_block → blockquote → list → table / silent_table → paragraph
+inlines: backslash_escape → code_span → image → inline_footnote → footnote_ref → warp_ref → inline link → reference link → strong → emphasis → strikethrough
 ```
 
 ### Key types (types.ts)
 
-- `Document`: `{ header?, footer?, body, linkDefs, footnoteDefs, footnoteRefs, warpDefs }`
-- `BlockNode`: union of all block node types, discriminated by `type` field
+- `Document`: `{ header?, footer?, body, linkDefs, footnoteDefs, warpDefs }`
+- `BlockNode`: union of the block node types that appear in `body`, discriminated by `type` field
 - `InlineNode`: union of all inline node types, discriminated by `type` field
-- `ParseContext`: shared mutable state during parsing (linkDefs, footnoteDefs, warpDefs, footnoteRefs, inlineFootnoteCount)
+- `ParseContext`: shared mutable state during parsing (linkDefs, footnoteDefs, definedFootnoteIds, warpDefs, inlineFootnoteCount, header, footer)
+- Footnote numbers are assigned in the renderer, in the order references are rendered (`RenderContext.footnoteOrder`).
 
 ### HTML output conventions
 
@@ -80,9 +79,7 @@ Headings are rendered as `<hN class="lbs-heading-N">` (e.g. `<h1 class="lbs-head
 
 ### Browser API (dom.ts)
 
-- `renderToDOM(doc, element)` — renders into a container element
-- `loadMarkdown(src, element?)` — fetches a `.md` file and renders it
-- `autoInit()` — auto-loads from `<script src="lobster.js" data-src="content.md">`
+- `loadMarkdown(src, element?)` — fetches one or more `.md` files, joins them, and renders them into the element
 
 ## Lobster-specific syntax
 

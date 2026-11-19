@@ -12,6 +12,12 @@ describe("toHTML — headings", () => {
     const html = toHTML("### Section");
     expect(html).toContain('class="lbs-heading-3"');
   });
+
+  it("escapes quotes in an explicit heading id", () => {
+    expect(toHTML('# T {#a" onclick="x}')).toBe(
+      '<h1 class="lbs-heading-1" id="a&quot; onclick=&quot;x">T</h1>'
+    );
+  });
 });
 
 describe("toHTML — paragraph", () => {
@@ -50,6 +56,16 @@ describe("toHTML — inline decorations", () => {
     const html = toHTML("`inline code`");
     expect(html).toContain("<code");
     expect(html).toContain("inline code");
+  });
+});
+
+describe("toHTML — code span backtick runs", () => {
+  it("closes only at a backtick run of the same length", () => {
+    expect(toHTML("``a```b``")).toBe('<p class="lbs-paragraph"><code class="lbs-code-span">a```b</code></p>');
+  });
+
+  it("keeps an unclosed backtick run as literal text", () => {
+    expect(toHTML("x ```a`")).toBe('<p class="lbs-paragraph">x ```a`</p>');
   });
 });
 
@@ -253,6 +269,56 @@ describe("toHTML — custom blocks", () => {
   ])("renders unrecognized ::: lines in %j as plain text", (md, expected) => {
     expect(toHTML(md)).toBe(expected);
   });
+
+  it("does not close :::details at a ::: line inside fenced code", () => {
+    expect(toHTML(":::details T\n```\n:::\n```\n:::")).toBe(
+      '<details class="lbs-details">\n<summary class="lbs-summary">T</summary>\n<div class="lbs-code-block"><pre><code>:::</code></pre></div>\n</details>'
+    );
+  });
+
+  it("ends an unclosed code fence with the surrounding :::details", () => {
+    expect(toHTML(":::details T\n```\ncode\n:::\n\nafter")).toBe(
+      '<details class="lbs-details">\n<summary class="lbs-summary">T</summary>\n<div class="lbs-code-block"><pre><code>code</code></pre></div>\n</details>\n<p class="lbs-paragraph">after</p>'
+    );
+  });
+
+  it("keeps a ::: line with a pipe as a table row inside a blockquote", () => {
+    expect(toHTML("> | h | h |\n> | - | - |\n> :::details T | cell")).toBe(
+      '<blockquote class="lbs-blockquote"><table class="lbs-table">\n<thead><tr><th>h</th><th>h</th></tr></thead>\n<tbody>\n<tr><td>:::details T</td><td>cell</td></tr>\n</tbody>\n</table></blockquote>'
+    );
+  });
+
+  it("finds the end of a ::: block with many unclosed fences in linear time", () => {
+    const markdown = ":::details T\n" + "```js\n".repeat(20000) + ":::\n\nafter";
+    const start = performance.now();
+    const html = toHTML(markdown);
+    expect(performance.now() - start).toBeLessThan(1000);
+    expect(html.endsWith('</details>\n<p class="lbs-paragraph">after</p>')).toBe(true);
+  });
+
+  it("ends the paragraph before a ::: block without a blank line", () => {
+    expect(toHTML("para1\n:::details T\nx\n:::\npara2")).toBe(
+      '<p class="lbs-paragraph">para1</p>\n<details class="lbs-details">\n<summary class="lbs-summary">T</summary>\n<p class="lbs-paragraph">x</p>\n</details>\n<p class="lbs-paragraph">para2</p>'
+    );
+  });
+
+  it("renders text that looks like an internal placeholder as plain text", () => {
+    expect(toHTML("__DETAILS_PLACEHOLDER_3__")).toBe(
+      '<p class="lbs-paragraph"><span class="lbs-strong">DETAILS_PLACEHOLDER_3</span></p>'
+    );
+  });
+
+  it("renders nothing for a warp reference inside its own expansion", () => {
+    expect(toHTML(":::warp a\nbefore [~a] after\n:::\n\n[~a]")).toBe(
+      '<p class="lbs-paragraph"><p class="lbs-paragraph">before  after</p></p>'
+    );
+  });
+
+  it("renders nothing for warps that reference each other", () => {
+    expect(toHTML(":::warp a\nA [~b]\n:::\n\n:::warp b\nB [~a]\n:::\n\n[~a]")).toBe(
+      '<p class="lbs-paragraph"><p class="lbs-paragraph">A <p class="lbs-paragraph">B </p></p></p>'
+    );
+  });
 });
 
 describe("toHTML — footnotes", () => {
@@ -268,6 +334,40 @@ describe("toHTML — footnotes", () => {
     const html = toHTML(md);
     expect(html).toContain("lbs-footnotes");
     expect(html).toContain("Note content");
+  });
+
+  it("numbers footnotes referenced only from definitions after the body's footnotes", () => {
+    expect(toHTML("a[^1]\n\n[^1]: one [^2]\n[^2]: two\n[^3]: unused")).toBe(
+      '<p class="lbs-paragraph">a<sup class="lbs-footnote-ref"><a href="#lbs-fn-1" id="lbs-fnref-1-0">[1]</a></sup></p>\n' +
+      '<section class="lbs-footnotes">\n<ol>\n' +
+      '<li id="lbs-fn-1" class="lbs-footnote-item">[1] one <sup class="lbs-footnote-ref"><a href="#lbs-fn-2" id="lbs-fnref-2-0">[2]</a></sup></li>\n' +
+      '<li id="lbs-fn-2" class="lbs-footnote-item">[2] two</li>\n' +
+      "</ol>\n</section>"
+    );
+  });
+
+  it("lists footer footnotes before the footer", () => {
+    expect(toHTML(":::footer\nf[^a]\n:::\n\nbody[^b]\n\n[^a]: A\n[^b]: B")).toBe(
+      '<p class="lbs-paragraph">body<sup class="lbs-footnote-ref"><a href="#lbs-fn-b" id="lbs-fnref-b-0">[1]</a></sup></p>\n' +
+      '<section class="lbs-footnotes">\n<ol>\n' +
+      '<li id="lbs-fn-b" class="lbs-footnote-item">[1] B</li>\n' +
+      '<li id="lbs-fn-a" class="lbs-footnote-item">[2] A</li>\n' +
+      "</ol>\n</section>\n" +
+      '<footer class="lbs-footer"><p class="lbs-paragraph">f<sup class="lbs-footnote-ref"><a href="#lbs-fn-a" id="lbs-fnref-a-0">[2]</a></sup></p></footer>'
+    );
+  });
+
+  it("does not let a named footnote replace an inline footnote with the same generated id", () => {
+    expect(toHTML("body^[inner]\n\n[^__inline_1]: named")).toBe(
+      '<p class="lbs-paragraph">body<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_2" id="lbs-fnref-__inline_2-0">[1]</a></sup></p>\n' +
+      '<section class="lbs-footnotes">\n<ol>\n' +
+      '<li id="lbs-fn-__inline_2" class="lbs-footnote-item">[1] inner</li>\n' +
+      "</ol>\n</section>"
+    );
+  });
+
+  it("renders a reference without a definition as plain text", () => {
+    expect(toHTML("a[^x]")).toBe('<p class="lbs-paragraph">a[^x]</p>');
   });
 });
 
