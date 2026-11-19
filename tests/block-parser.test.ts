@@ -194,6 +194,25 @@ describe("parseBlocks — paragraph", () => {
     expect(blocks[0].type).toBe("paragraph");
     expect(blocks[1].type).toBe("paragraph");
   });
+
+  it.each([
+    [":::"],
+    [":::note"],
+    ["| a |"],
+    ["~ | a |"],
+    ["__DETAILS_PLACEHOLDER_x"],
+  ])("treats a lone %j line that no block parser accepts as a paragraph", (line) => {
+    const blocks = parseBlocks([line], makeCtx());
+    expect(blocks).toEqual([{ type: "paragraph", children: [{ type: "text", text: line }] }]);
+  });
+
+  it("stops a paragraph before a following ::: line and keeps that line as text", () => {
+    const blocks = parseBlocks(["text", ":::"], makeCtx());
+    expect(blocks).toEqual([
+      { type: "paragraph", children: [{ type: "text", text: "text" }] },
+      { type: "paragraph", children: [{ type: "text", text: ":::" }] },
+    ]);
+  });
 });
 
 // ============================================================
@@ -542,6 +561,16 @@ describe("parseDocument", () => {
     const md = ":::details Title\n- item\n  :::";
     const doc = parseDocument(md);
     expect(doc.body[0].type).toBe("details");
+  });
+
+  it.each([
+    [":::note\nhello\n:::"],
+    [":::warp\nno id\n:::"],
+    ["text\n\n:::"],
+    [":::details Title\n:::note\ninner\n:::\nafter\n:::"],
+  ])("renders unrecognized ::: lines in %j as plain text instead of hanging", (md) => {
+    const doc = parseDocument(md);
+    expect(doc.body.length).toBeGreaterThan(0);
   });
 
   it("closes :::warp with indented :::", () => {

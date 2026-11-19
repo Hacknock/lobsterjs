@@ -836,8 +836,10 @@ function parseParagraph(
     const line = lines[j];
     if (isBlankLine(line)) break;
 
-    // Stop if the next line would start a block element
+    // Stop if the next line would start a block element.
+    // The first line is always consumed (spec: unrecognized `:::` lines are plain text).
     if (
+      j > i && (
       matchHeading(line) ||
       isHorizontalRule(line) ||
       matchCodeFence(line) ||
@@ -846,7 +848,7 @@ function parseParagraph(
       /^\s*\|/.test(line) ||
       /^\s*~\s*\|/.test(line) ||
       /^:::/.test(line) ||
-      /^__DETAILS_PLACEHOLDER_/.test(line)
+      /^__DETAILS_PLACEHOLDER_/.test(line))
     ) {
       break;
     }
