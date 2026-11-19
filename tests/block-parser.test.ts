@@ -126,13 +126,6 @@ describe("parseBlocks — blockquote", () => {
     expect(bq.children[0].type).toBe("blockquote");
   });
 
-  it("blockquote followed by paragraph does not swallow paragraph", () => {
-    const blocks = parseBlocks(["> quote", "regular text"], makeCtx());
-    expect(blocks).toHaveLength(2);
-    expect(blocks[0].type).toBe("blockquote");
-    expect(blocks[1].type).toBe("paragraph");
-  });
-
   it("blockquote contains heading and list", () => {
     const blocks = parseBlocks(["> # Title", "> - item1", "> - item2"], makeCtx());
     const bq = blocks[0] as BlockquoteNode;

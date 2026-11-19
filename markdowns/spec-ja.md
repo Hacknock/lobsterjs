@@ -125,8 +125,8 @@ console.log("Hello");
 ```
 ````
 
-- 言語: フェンスマーカー直後の英数字。
-- ファイル名: 言語の後ろに `:ファイル名` で指定。使用不可文字: `` ` `` と `:`。
+- 言語: フェンスマーカー直後の英数字、`_`、`+`、`-`。
+- ファイル名: 言語の後ろに `:ファイル名` で指定。行末までがファイル名になる。
 - 言語省略可（ファイル名だけも指定可能）。
 - コンテンツはプレーンテキスト（Markdownとして解釈しない）。
 
@@ -135,7 +135,7 @@ console.log("Hello");
 ```html
 <div class="lbs-code-block">
   <div class="lbs-code-filename">filename.js</div>  <!-- ファイル名なしの場合は省略 -->
-  <pre data-language="js" data-filename="filename.js"><code>…</code></pre>
+  <pre data-language="js" data-filename="filename.js"><code class="language-js">…</code></pre>
 </div>
 ```
 
@@ -143,7 +143,7 @@ console.log("Hello");
 
 ### 引用（Blockquote）
 
-行頭の `>` で始まる行。連続した `>` 行（または空行なしの続き行）は一つの引用ブロックになる。`>` を重ねることで多重引用ができる:
+行頭の `>` で始まる行。連続した `>` 行は一つの引用ブロックになる。`>` のない次の行も、引用内の段落（コードブロックは除く）の続きで、別のブロックを始める行でなければ、引用に含まれる。`>` を重ねることで多重引用ができる:
 
 ```
 > 外側の引用
@@ -174,7 +174,7 @@ console.log("Hello");
   - ネストされたアイテム
 ```
 
-インデントが親より深いとサブアイテムになる。ネスト深さはリストノードで管理される。
+インデントが親より深いとサブアイテムになる。`lbs-ul-depth-N` / `lbs-ol-depth-N` の N はネストの深さで、トップレベルが0、その下のリストが1となる。
 
 **HTML出力:**
 
@@ -194,12 +194,12 @@ console.log("Hello");
    1. ネスト
 ```
 
-`N\.`（バックスラッシュエスケープ）はリストとして扱わない。`start` 属性は最初のアイテムの番号を反映する。
+`N\.`（バックスラッシュエスケープ）はリストとして扱わない。`start` 属性は最初のアイテムの番号を反映し、1のときは出力しない。
 
 **HTML出力:**
 
 ```html
-<ol class="lbs-ol lbs-ol-depth-0" start="1">
+<ol class="lbs-ol lbs-ol-depth-0" start="3">
   <li class="lbs-list-item">…</li>
 </ol>
 ```

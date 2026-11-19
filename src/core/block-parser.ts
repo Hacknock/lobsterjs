@@ -461,6 +461,30 @@ function tryParseCodeBlock(
   return { node, nextIndex: j };
 }
 
+function stripAllQuotePrefixes(line: string): string {
+  return line.replace(/^(>\s?)+/, "");
+}
+
+/**
+ * spec: Blockquote — whether a line without `>` continues the quote: the
+ * quoted text must end in an open paragraph (not in a code block or another
+ * block) and the line must not start a block of its own.
+ */
+function continuesQuotedParagraph(quoteLines: string[], line: string): boolean {
+  if (isBlankLine(line) || startsBlockElement(line)) return false;
+  let openFence: string | null = null;
+  for (const quoteLine of quoteLines) {
+    const text = stripAllQuotePrefixes(quoteLine);
+    if (openFence !== null) {
+      if (isClosingFence(text, openFence)) openFence = null;
+      continue;
+    }
+    openFence = matchCodeFence(text)?.marker ?? null;
+  }
+  const lastText = stripAllQuotePrefixes(quoteLines[quoteLines.length - 1]);
+  return openFence === null && !isBlankLine(lastText) && !startsBlockElement(lastText);
+}
+
 function tryParseBlockquote(
   lines: string[],
   i: number,
@@ -470,15 +494,14 @@ function tryParseBlockquote(
 
   const quoteLines: string[] = [];
   let j = i;
-  while (j < lines.length && lines[j].startsWith(">")) {
+  while (j < lines.length && (lines[j].startsWith(">") || continuesQuotedParagraph(quoteLines, lines[j]))) {
     quoteLines.push(lines[j]);
     j++;
   }
 
-  const stripped = stripBlockquotePrefix(quoteLines);
   const node: BlockquoteNode = {
     type: "blockquote",
-    children: parseBlocks(stripped, context, "quote"),
+    children: parseBlocks(stripBlockquotePrefix(quoteLines), context, "quote"),
   };
   return { node, nextIndex: j };
 }
@@ -490,17 +513,20 @@ function tryParseList(
 ): ParseBlockResult | null {
   const firstItem = matchListItem(lines[i]);
   if (!firstItem) return null;
-  return parseList(lines, i, 0, firstItem.marker, context);
+  return parseList(lines, i, 0, 0, firstItem.marker, context);
 }
 
 /**
  * spec: Lists — consecutive items with the same marker type form one list.
  * Indented lines continue the item; a more indented item starts a sublist.
+ * `depth` is the nesting level (0 at the top); `minimumIndent` is the indent
+ * an item needs to stay in this list.
  */
 function parseList(
   lines: string[],
   startIndex: number,
   depth: number,
+  minimumIndent: number,
   marker: ListMarker,
   context: ParseContext
 ): { node: BulletListNode | OrderedListNode; nextIndex: number } {
@@ -515,7 +541,7 @@ function parseList(
     }
 
     const item = matchListItem(lines[i]);
-    if (!item || item.marker !== marker || item.indent < depth) break;
+    if (!item || item.marker !== marker || item.indent < minimumIndent) break;
     if (items.length === 0) start = item.start ?? 1;
 
     const textLines: string[] = [item.text];
@@ -528,7 +554,7 @@ function parseList(
     let sublist: BulletListNode | OrderedListNode | undefined;
     const nextItem = i < lines.length ? matchListItem(lines[i]) : null;
     if (nextItem && nextItem.indent > item.indent) {
-      const subResult = parseList(lines, i, nextItem.indent, nextItem.marker, context);
+      const subResult = parseList(lines, i, depth + 1, nextItem.indent, nextItem.marker, context);
       sublist = subResult.node;
       i = subResult.nextIndex;
     }

@@ -369,14 +369,14 @@ exports[`characterization of toHTML output > renders every fenced example in the
 <hr class="lbs-hr">",
   "<p class="lbs-paragraph">&lt;hr class=&quot;lbs-hr&quot;&gt;</p>",
   "<div class="lbs-code-block"><div class="lbs-code-filename">filename.js</div><pre data-language="js" data-filename="filename.js"><code class="language-js">console.log(&quot;Hello&quot;);</code></pre></div>",
-  "<p class="lbs-paragraph">&lt;div class=&quot;lbs-code-block&quot;&gt;<br>  &lt;div class=&quot;lbs-code-filename&quot;&gt;filename.js&lt;/div&gt;  &lt;!-- omitted if no filename --&gt;<br>  &lt;pre data-language=&quot;js&quot; data-filename=&quot;filename.js&quot;&gt;&lt;code&gt;…&lt;/code&gt;&lt;/pre&gt;<br>&lt;/div&gt;</p>",
+  "<p class="lbs-paragraph">&lt;div class=&quot;lbs-code-block&quot;&gt;<br>  &lt;div class=&quot;lbs-code-filename&quot;&gt;filename.js&lt;/div&gt;  &lt;!-- omitted if no filename --&gt;<br>  &lt;pre data-language=&quot;js&quot; data-filename=&quot;filename.js&quot;&gt;&lt;code class=&quot;language-js&quot;&gt;…&lt;/code&gt;&lt;/pre&gt;<br>&lt;/div&gt;</p>",
   "<blockquote class="lbs-blockquote"><p class="lbs-paragraph">Outer</p>
 <blockquote class="lbs-blockquote"><p class="lbs-paragraph">Inner</p></blockquote></blockquote>",
   "<p class="lbs-paragraph">&lt;blockquote class=&quot;lbs-blockquote&quot;&gt;…&lt;/blockquote&gt;</p>",
   "<ul class="lbs-ul lbs-ul-depth-0">
 <li class="lbs-list-item">Item</li>
 <li class="lbs-list-item">Item
-<ul class="lbs-ul lbs-ul-depth-2">
+<ul class="lbs-ul lbs-ul-depth-1">
 <li class="lbs-list-item">Nested item</li>
 </ul></li>
 </ul>",
@@ -384,11 +384,11 @@ exports[`characterization of toHTML output > renders every fenced example in the
   "<ol class="lbs-ol lbs-ol-depth-0">
 <li class="lbs-list-item">First</li>
 <li class="lbs-list-item">Second
-<ol class="lbs-ol lbs-ol-depth-3">
+<ol class="lbs-ol lbs-ol-depth-1">
 <li class="lbs-list-item">Nested</li>
 </ol></li>
 </ol>",
-  "<p class="lbs-paragraph">&lt;ol class=&quot;lbs-ol lbs-ol-depth-0&quot; start=&quot;1&quot;&gt;<br>  &lt;li class=&quot;lbs-list-item&quot;&gt;…&lt;/li&gt;<br>&lt;/ol&gt;</p>",
+  "<p class="lbs-paragraph">&lt;ol class=&quot;lbs-ol lbs-ol-depth-0&quot; start=&quot;3&quot;&gt;<br>  &lt;li class=&quot;lbs-list-item&quot;&gt;…&lt;/li&gt;<br>&lt;/ol&gt;</p>",
   "<ul class="lbs-ul lbs-ul-depth-0">
 <li class="lbs-list-item"><input type="checkbox" class="lbs-checkbox" disabled> Unchecked</li>
 <li class="lbs-list-item"><input type="checkbox" class="lbs-checkbox" checked disabled> Checked</li>

@@ -125,8 +125,8 @@ console.log("Hello");
 ```
 ````
 
-- Language: any word characters after the fence marker.
-- Filename: follows `:` after the language; may contain any character except `` ` `` and `:`.
+- Language: letters, digits, `_`, `+`, and `-` after the fence marker.
+- Filename: follows `:` after the language; the rest of the line is the filename.
 - Language may be omitted while filename is still specified: ` ````:filename `.
 - Content is treated as plain text (no Markdown parsing).
 
@@ -135,7 +135,7 @@ console.log("Hello");
 ```html
 <div class="lbs-code-block">
   <div class="lbs-code-filename">filename.js</div>  <!-- omitted if no filename -->
-  <pre data-language="js" data-filename="filename.js"><code>…</code></pre>
+  <pre data-language="js" data-filename="filename.js"><code class="language-js">…</code></pre>
 </div>
 ```
 
@@ -143,7 +143,7 @@ console.log("Hello");
 
 ### Blockquote
 
-Lines starting with `>`. Consecutive `>` lines (or continuation lines) without a blank line form one blockquote block. Nesting is achieved by stacking `>`:
+Lines starting with `>`. Consecutive `>` lines form one blockquote block. A following line without `>` continues the quote when it continues a quoted paragraph (not a quoted code block) and does not start another block. Nesting is achieved by stacking `>`:
 
 ```
 > Outer
@@ -174,7 +174,7 @@ Markers: `-`, `*`, `+`
   - Nested item
 ```
 
-Items with more indentation than the parent become sub-items. The nesting depth is tracked per list node.
+Items with more indentation than the parent become sub-items. `lbs-ul-depth-N` / `lbs-ol-depth-N` give the nesting level: 0 at the top, 1 for a sub-list, and so on.
 
 **HTML output:**
 
@@ -194,12 +194,12 @@ Marker: `N.` where N is any integer.
    1. Nested
 ```
 
-`N\.` (backslash-escaped dot) is treated as plain text, not a list marker. The `start` attribute reflects the first item's number.
+`N\.` (backslash-escaped dot) is treated as plain text, not a list marker. The `start` attribute reflects the first item's number and is omitted when it is 1.
 
 **HTML output:**
 
 ```html
-<ol class="lbs-ol lbs-ol-depth-0" start="1">
+<ol class="lbs-ol lbs-ol-depth-0" start="3">
   <li class="lbs-list-item">…</li>
 </ol>
 ```
