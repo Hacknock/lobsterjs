@@ -75,6 +75,12 @@ describe("Header", () => {
     );
   });
 
+  it("ignores a header or footer nested inside it", () => {
+    expect(toHTML(":::header\n:::header\nX\n:::\n:::footer\nY\n:::\nSite\n:::")).toBe(
+      `<header class="lbs-header">${paragraph("Site")}</header>`
+    );
+  });
+
   it("uses the last header", () => {
     expect(toHTML(":::header\nA\n:::\n\n:::header\nB\n:::")).toBe(`<header class="lbs-header">${paragraph("B")}</header>`);
   });
@@ -98,6 +104,16 @@ describe("Details", () => {
   it("takes the rest of the opening line as an escaped, unparsed title", () => {
     expect(toHTML(":::details **Bold** & <x>\ncontent\n:::")).toBe(
       details("**Bold** &amp; &lt;x&gt;", paragraph("content"))
+    );
+  });
+
+  it("closes at the right ::: when it contains a warp", () => {
+    expect(toHTML(":::details T\n:::warp w\nW\n:::\nx\n:::\n\n[~w]")).toBe(`${details("T", paragraph("x"))}\n${paragraph("W")}`);
+  });
+
+  it("closes at the ::: after an unknown :::note inside it", () => {
+    expect(toHTML(":::details T\n:::note\ninner\n:::\nafter\n:::")).toBe(
+      `${details("T", paragraph(":::note<br>inner"))}\n${paragraph("after")}\n${paragraph(":::")}`
     );
   });
 
@@ -145,6 +161,20 @@ describe("Warp", () => {
     expect(toHTML(":::warp a\n# Title\n\ntext\n:::\n\n[~a]")).toBe(`<h1 class="lbs-heading-1">Title</h1>\n${paragraph("text")}`);
   });
 
+  it("can be defined inside another ::: block and referenced from it", () => {
+    expect(toHTML(":::header\n~ | [~icon] |\n~ | - |\n\n:::warp icon\nI\n:::\n\n:::\n\nbody")).toBe(
+      `<header class="lbs-header">${table(`<th>${paragraph("I")}</th>`, "", "lbs-table lbs-table-silent")}</header>\n${paragraph("body")}`
+    );
+  });
+
+  it("wins over an inline link that starts at the same [", () => {
+    expect(toHTML("[~missing](http://x)")).toBe(paragraph("[~missing](http://x)"));
+  });
+
+  it("embeds the warp's blocks when the reference is in the middle of a paragraph (not recommended)", () => {
+    expect(toHTML(":::warp a\nx\n:::\n\ntext [~a] more")).toBe(paragraph(`text ${paragraph("x")} more`));
+  });
+
   it("uses the last definition of an id", () => {
     expect(toHTML(":::warp a\none\n:::\n\n:::warp a\ntwo\n:::\n\n[~a]")).toBe(paragraph("two"));
   });
@@ -162,8 +192,8 @@ describe("Warp", () => {
   });
 
   it("renders nothing for warps that reference each other in a loop", () => {
-    expect(toHTML(":::warp a\nA [~b]\n:::\n\n:::warp b\nB [~a]\n:::\n\n[~a]")).toBe(
-      paragraph(`A ${paragraph("B ")}`)
+    expect(toHTML(":::warp a\nA\n\n[~b]\n:::\n\n:::warp b\nB\n\n[~a]\n:::\n\n[~a]")).toBe(
+      `${paragraph("A")}\n${paragraph("B")}`
     );
   });
 

@@ -468,6 +468,7 @@ When the opening delimiter is two or more backticks, one leading and one trailin
 - No space between `^` and `[`.
 - Behaves identically to a named footnote reference but the definition is written inline.
 - Takes priority over named footnote references (left-to-right).
+- Its id is `__inline_N`, numbered from 1 in document order, skipping any `N` whose id already has a named definition.
 
 **HTML output:** same as footnote reference.
 
@@ -477,7 +478,7 @@ When the opening delimiter is two or more backticks, one leading and one trailin
 
 All custom blocks (`:::header`, `:::footer`, `:::details`, `:::warp`) are closed by a `:::` line. Leading whitespace before `:::` is ignored, so formatter-indented closing markers work correctly.
 
-A `:::` line that does not open or close one of these blocks (for example, an unknown name such as `:::note`, a `:::warp` without an id, or a `:::` with no matching opener) is treated as plain text.
+A `:::` line that does not open or close one of these blocks (for example, an unknown name such as `:::note`, a `:::details` without a title, a `:::warp` without an id, or a `:::` with no matching opener) is treated as plain text.
 
 - A fenced code block inside a `:::` block is skipped when looking for the closing `:::`. If the fence is never closed, the code block ends where the `:::` block ends.
 - The opening line of a `:::` block ends the paragraph, list, or table right before it, even without a blank line.
@@ -567,6 +568,7 @@ content
 - A reference to a warp that is already being expanded (for example, a warp that references itself) renders nothing.
 - A reference without a matching definition is plain text.
 - A paragraph that consists of only a warp reference is replaced by the warp's content, without a surrounding `<p>`.
+- A reference in the middle of a paragraph embeds the warp's blocks inside the paragraph, which is not valid HTML. Put the reference on its own line or in a table cell instead.
 
 **Example:**
 

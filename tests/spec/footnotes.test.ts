@@ -75,6 +75,10 @@ describe("Footnote Reference", () => {
     expect(toHTML("[^n]: note")).toBe("");
   });
 
+  it("uses the last definition of an id", () => {
+    expect(toHTML("a[^n]\n\n[^n]: one\n[^n]: two")).toBe(`${paragraph(`a${reference("n", "[1]")}`)}\n${section(["n", 1, "two"])}`);
+  });
+
   it("parses Markdown in definitions", () => {
     expect(toHTML("a[^n]\n\n[^n]: **bold**")).toBe(
       `${paragraph(`a${reference("n", "[1]")}`)}\n${section(["n", 1, '<span class="lbs-strong">bold</span>'])}`
