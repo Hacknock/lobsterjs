@@ -565,6 +565,8 @@ content
 
 - Typically used inside silent table cells to create multi-column layouts.
 - A reference to a warp that is already being expanded (for example, a warp that references itself) renders nothing.
+- A reference without a matching definition is plain text.
+- A paragraph that consists of only a warp reference is replaced by the warp's content, without a surrounding `<p>`.
 
 **Example:**
 

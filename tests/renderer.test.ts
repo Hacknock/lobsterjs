@@ -310,13 +310,13 @@ describe("toHTML — custom blocks", () => {
 
   it("renders nothing for a warp reference inside its own expansion", () => {
     expect(toHTML(":::warp a\nbefore [~a] after\n:::\n\n[~a]")).toBe(
-      '<p class="lbs-paragraph"><p class="lbs-paragraph">before  after</p></p>'
+      '<p class="lbs-paragraph">before  after</p>'
     );
   });
 
   it("renders nothing for warps that reference each other", () => {
     expect(toHTML(":::warp a\nA [~b]\n:::\n\n:::warp b\nB [~a]\n:::\n\n[~a]")).toBe(
-      '<p class="lbs-paragraph"><p class="lbs-paragraph">A <p class="lbs-paragraph">B </p></p></p>'
+      '<p class="lbs-paragraph">A <p class="lbs-paragraph">B </p></p>'
     );
   });
 });
