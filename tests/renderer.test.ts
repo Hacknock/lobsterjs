@@ -266,6 +266,18 @@ describe("toHTML — custom blocks", () => {
     );
   });
 
+  it("ends an unclosed code fence with the surrounding :::details", () => {
+    expect(toHTML(":::details T\n```\ncode\n:::\n\nafter")).toBe(
+      '<details class="lbs-details">\n<summary class="lbs-summary">T</summary>\n<div class="lbs-code-block"><pre><code>code</code></pre></div>\n</details>\n<p class="lbs-paragraph">after</p>'
+    );
+  });
+
+  it("ends the paragraph before a ::: block without a blank line", () => {
+    expect(toHTML("para1\n:::details T\nx\n:::\npara2")).toBe(
+      '<p class="lbs-paragraph">para1</p>\n<details class="lbs-details">\n<summary class="lbs-summary">T</summary>\n<p class="lbs-paragraph">x</p>\n</details>\n<p class="lbs-paragraph">para2</p>'
+    );
+  });
+
   it("renders text that looks like an internal placeholder as plain text", () => {
     expect(toHTML("__DETAILS_PLACEHOLDER_3__")).toBe(
       '<p class="lbs-paragraph"><span class="lbs-strong">DETAILS_PLACEHOLDER_3</span></p>'

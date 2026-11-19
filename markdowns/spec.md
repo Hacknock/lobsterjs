@@ -474,6 +474,11 @@ All custom blocks (`:::header`, `:::footer`, `:::details`, `:::warp`) are closed
 
 A `:::` line that does not open or close one of these blocks (for example, an unknown name such as `:::note`, a `:::warp` without an id, or a `:::` with no matching opener) is treated as plain text.
 
+- A fenced code block inside a `:::` block is skipped when looking for the closing `:::`. If the fence is never closed, the code block ends where the `:::` block ends.
+- The opening line of a `:::` block ends the paragraph, list, or table right before it, even without a blank line.
+- `:::` blocks are not recognized inside blockquotes; there the lines are plain text.
+- A `:::header` or `:::footer` nested inside another `:::` block is ignored, together with its content.
+
 > **Recommended style:** Place a blank line before the closing `:::`. This prevents Markdown formatters (e.g. Prettier) from treating `:::` as a continuation of the preceding block (such as a list item) and indenting it unexpectedly.
 
 ### Header (`:::header`)

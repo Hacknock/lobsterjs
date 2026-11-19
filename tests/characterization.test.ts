@@ -40,6 +40,10 @@ const edgeCases = [
   "~ | a |",
   "> :::details T\n> x\n> :::",
   "- a\n  :::note",
+  ":::details T\n```\ncode\n:::\n\nafter",
+  "para1\n:::warp a\nx\n:::\npara2",
+  "- a\n:::warp x\nX\n:::\n- b",
+  "| h |\n| - |\n| 1 |\n:::warp a\nx\n:::\n| 2 |",
 ];
 
 describe("characterization of toHTML output", () => {

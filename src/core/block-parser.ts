@@ -348,29 +348,35 @@ function isContainerCloser(line: string): boolean {
 
 /**
  * spec: Lobster Extensions — a `:::` block ends at the `:::` line that matches
- * its opener. Nested openers and fenced code are skipped. Returns
- * `lines.length` when the block is never closed.
+ * its opener. Nested openers and fenced code are skipped, but a fence that is
+ * never closed inside the block does not hide the closing `:::` (the code block
+ * then ends with the `:::` block). Returns `lines.length` when the block is
+ * never closed.
  */
 function findContainerEnd(lines: string[], openerIndex: number): number {
-  let depth = 0;
-  let openFence: string | null = null;
-  for (let i = openerIndex + 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (openFence !== null) {
-      if (isClosingFence(line, openFence)) openFence = null;
-      continue;
+  const unclosedFenceLines = new Set<number>();
+  for (;;) {
+    let depth = 0;
+    let openFence: { marker: string; line: number } | null = null;
+    for (let i = openerIndex + 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (openFence !== null) {
+        if (isClosingFence(line, openFence.marker)) openFence = null;
+        continue;
+      }
+      const fence = unclosedFenceLines.has(i) ? null : matchCodeFence(line);
+      if (fence) {
+        openFence = { marker: fence.marker, line: i };
+      } else if (matchContainerOpener(line)) {
+        depth++;
+      } else if (isContainerCloser(line)) {
+        if (depth === 0) return i;
+        depth--;
+      }
     }
-    const fence = matchCodeFence(line);
-    if (fence) {
-      openFence = fence.marker;
-    } else if (matchContainerOpener(line)) {
-      depth++;
-    } else if (isContainerCloser(line)) {
-      if (depth === 0) return i;
-      depth--;
-    }
+    if (openFence === null) return lines.length;
+    unclosedFenceLines.add(openFence.line);
   }
-  return lines.length;
 }
 
 function tryParseContainer(

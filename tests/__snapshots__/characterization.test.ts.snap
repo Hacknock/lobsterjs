@@ -249,6 +249,14 @@ exports[`characterization of toHTML output > renders edge case ":::details T\\n\
 </details>"
 `;
 
+exports[`characterization of toHTML output > renders edge case ":::details T\\n\`\`\`\\ncode\\n:::\\n\\nafter" 1`] = `
+"<details class="lbs-details">
+<summary class="lbs-summary">T</summary>
+<div class="lbs-code-block"><pre><code>code</code></pre></div>
+</details>
+<p class="lbs-paragraph">after</p>"
+`;
+
 exports[`characterization of toHTML output > renders edge case ":::details Title\\n:::note\\ninner\\n:::\\nafter\\n:::" 1`] = `
 "<details class="lbs-details">
 <summary class="lbs-summary">Title</summary>
@@ -293,11 +301,30 @@ exports[`characterization of toHTML output > renders edge case "__DETAILS_PLACEH
 
 exports[`characterization of toHTML output > renders edge case "| a |" 1`] = `"<p class="lbs-paragraph">| a |</p>"`;
 
+exports[`characterization of toHTML output > renders edge case "| h |\\n| - |\\n| 1 |\\n:::warp a\\nx\\n:::\\n| 2 |" 1`] = `
+"<table class="lbs-table">
+<thead><tr><th>h</th></tr></thead>
+<tbody>
+<tr><td>1</td></tr>
+</tbody>
+</table>
+<p class="lbs-paragraph">| 2 |</p>"
+`;
+
 exports[`characterization of toHTML output > renders edge case "~ | a |" 1`] = `"<p class="lbs-paragraph">~ | a |</p>"`;
 
 exports[`characterization of toHTML output > renders edge case "- a\\n  :::note" 1`] = `
 "<ul class="lbs-ul lbs-ul-depth-0">
 <li class="lbs-list-item">a :::note</li>
+</ul>"
+`;
+
+exports[`characterization of toHTML output > renders edge case "- a\\n:::warp x\\nX\\n:::\\n- b" 1`] = `
+"<ul class="lbs-ul lbs-ul-depth-0">
+<li class="lbs-list-item">a</li>
+</ul>
+<ul class="lbs-ul lbs-ul-depth-0">
+<li class="lbs-list-item">b</li>
 </ul>"
 `;
 
@@ -318,6 +345,11 @@ exports[`characterization of toHTML output > renders edge case "a[^x]" 1`] = `
 <li id="lbs-fn-x" class="lbs-footnote-item">[1] </li>
 </ol>
 </section>"
+`;
+
+exports[`characterization of toHTML output > renders edge case "para1\\n:::warp a\\nx\\n:::\\npara2" 1`] = `
+"<p class="lbs-paragraph">para1</p>
+<p class="lbs-paragraph">para2</p>"
 `;
 
 exports[`characterization of toHTML output > renders edge case "text\\n\\n:::" 1`] = `
