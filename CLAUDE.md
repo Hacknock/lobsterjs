@@ -51,11 +51,10 @@ docs/                     # GitHub Pages demo site (lobster.js loads its own con
 
 ### Parsing pipeline (block-parser.ts)
 
-`parseDocument` runs in three passes:
+`parseDocument` runs in two passes:
 
 1. **Pre-scan** (`collectDefinitions`): Extracts link definitions `[id]: url` and footnote definitions `[^id]: text` from all lines.
-2. **Custom block extraction** (`extractCustomBlocks`): Pulls out `:::header`, `:::footer`, `:::warp id`, and `:::details Title` blocks before main parsing. Details blocks use a placeholder string mechanism to preserve position.
-3. **Block parsing** (`parseBlocks`): Processes remaining lines via `tryParse*` functions in priority order: heading → horizontal_rule → code_block → blockquote → list → table → paragraph (fallback).
+2. **Block parsing** (`parseBlocks`): Processes the remaining lines in order. `tryParseContainer` handles `:::header`, `:::footer`, `:::details Title`, and `:::warp id` first (it finds the matching `:::` with `findContainerEnd`, skipping fenced code and nested blocks). Header, footer, and warp definitions are recorded in `ParseContext`; details stay in place. Then the `tryParse*` functions run in priority order: heading → horizontal_rule → code_block → blockquote → list → table → paragraph (fallback). A `BlockScope` decides where `:::` blocks are recognized: the document, inside other `:::` blocks, but not inside blockquotes.
 
 ### Evaluation order (per spec)
 

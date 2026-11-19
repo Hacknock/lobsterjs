@@ -4,7 +4,7 @@ exports[`characterization of toHTML output > renders docs/content.md 1`] = `
 "<header class="lbs-header"><h1 class="lbs-heading-1"><img src="./lobsterjs-light.png" alt="lobster.js" width="48" height="48" class="lbs-image"> lobster.js</h1>
 <p class="lbs-paragraph"><span class="lbs-strong">Design web pages using only Markdown.</span></p>
 <p class="lbs-paragraph">With lobster.js, you can easily create rich static websites using extended Markdown syntax.</p></header>
-<p class="lbs-paragraph">This page itself is rendered by lobster.js<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_2">[2]</a></sup>.</p>
+<p class="lbs-paragraph">This page itself is rendered by lobster.js<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_1">[1]</a></sup>.</p>
 <hr class="lbs-hr">
 <h2 class="lbs-heading-2">What plain Markdown can&#39;t do</h2>
 <p class="lbs-paragraph">Tasks requiring embedded HTML in standard Markdown can be done with simple extended syntax in lobster.js.<br>Even the 2-column layout below is possible without any HTML.</p>
@@ -55,7 +55,7 @@ exports[`characterization of toHTML output > renders docs/content.md 1`] = `
 <tr><td style="text-align:left"><code class="lbs-code-span">~~strike~~</code></td><td style="text-align:left"><span class="lbs-strikethrough">strike</span></td></tr>
 <tr><td style="text-align:left"><code class="lbs-code-span">\`code\`</code></td><td style="text-align:left"><code class="lbs-code-span">code</code></td></tr>
 <tr><td style="text-align:left"><code class="lbs-code-span">[text](url)</code></td><td style="text-align:left"><a href="https://github.com/Hacknock/lobsterjs">link</a></td></tr>
-<tr><td style="text-align:left"><code class="lbs-code-span">^[note]</code></td><td style="text-align:left">inline footnote<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_1">[1]</a></sup></td></tr>
+<tr><td style="text-align:left"><code class="lbs-code-span">^[note]</code></td><td style="text-align:left">inline footnote<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_2">[2]</a></sup></td></tr>
 </tbody>
 </table></th><th style="text-align:left"><p class="lbs-paragraph"><span class="lbs-strong">Block syntax</span></p>
 <blockquote class="lbs-blockquote"><p class="lbs-paragraph">Blockquote</p>
@@ -120,8 +120,8 @@ const html = toHTML(&quot;# Hello\\n\\nThis is **lobster**.&quot;);</code></pre>
 <hr class="lbs-hr">
 <section class="lbs-footnotes">
 <ol>
-<li id="lbs-fn-__inline_1" class="lbs-footnote-item">[1] Footnotes are collected at the end of the document.</li>
-<li id="lbs-fn-__inline_2" class="lbs-footnote-item">[2] index.html is just 15 lines. Load lobster.js, point it at a Markdown file, and you&#39;re done.</li>
+<li id="lbs-fn-__inline_1" class="lbs-footnote-item">[1] index.html is just 15 lines. Load lobster.js, point it at a Markdown file, and you&#39;re done.</li>
+<li id="lbs-fn-__inline_2" class="lbs-footnote-item">[2] Footnotes are collected at the end of the document.</li>
 </ol>
 </section>
 <footer class="lbs-footer"><p class="lbs-paragraph"><a href="https://github.com/Hacknock/lobsterjs">lobster.js on GitHub</a> — MIT License · <a href="https://Hacknock.github.io/lobster-wiki/">Wiki</a></p></footer>"
@@ -131,7 +131,7 @@ exports[`characterization of toHTML output > renders docs/content-ja.md 1`] = `
 "<header class="lbs-header"><h1 class="lbs-heading-1"><img src="./lobsterjs-light.png" alt="lobster.js" width="48" height="48" class="lbs-image"> lobster.js</h1>
 <p class="lbs-paragraph"><span class="lbs-strong">Markdownだけで、Webページを設計しよう。</span></p>
 <p class="lbs-paragraph">lobster.js を使えば拡張Markdown記法で簡単にリッチな静的Webサイトが作れます。</p></header>
-<p class="lbs-paragraph">このページ自体が lobster.js でレンダリングされています<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_2">[2]</a></sup>。</p>
+<p class="lbs-paragraph">このページ自体が lobster.js でレンダリングされています<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_1">[1]</a></sup>。</p>
 <hr class="lbs-hr">
 <h2 class="lbs-heading-2">普通の Markdown にできないこと</h2>
 <p class="lbs-paragraph">標準 Markdown では HTML の埋め込みが必要なことが、lobster.js では簡単な拡張Markdown記法で書けます。<br>下の 2 カラムレイアウトも HTML 埋め込み無しで実現できます。</p>
@@ -182,7 +182,7 @@ exports[`characterization of toHTML output > renders docs/content-ja.md 1`] = `
 <tr><td style="text-align:left"><code class="lbs-code-span">~~打ち消し~~</code></td><td style="text-align:left"><span class="lbs-strikethrough">打ち消し</span></td></tr>
 <tr><td style="text-align:left"><code class="lbs-code-span">\`コード\`</code></td><td style="text-align:left"><code class="lbs-code-span">コード</code></td></tr>
 <tr><td style="text-align:left"><code class="lbs-code-span">[text](url)</code></td><td style="text-align:left"><a href="https://github.com/Hacknock/lobsterjs">リンク</a></td></tr>
-<tr><td style="text-align:left"><code class="lbs-code-span">^[注]</code></td><td style="text-align:left">インライン脚注<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_1">[1]</a></sup></td></tr>
+<tr><td style="text-align:left"><code class="lbs-code-span">^[注]</code></td><td style="text-align:left">インライン脚注<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_2">[2]</a></sup></td></tr>
 </tbody>
 </table></th><th style="text-align:left"><p class="lbs-paragraph"><span class="lbs-strong">ブロック記法</span></p>
 <blockquote class="lbs-blockquote"><p class="lbs-paragraph">引用ブロック</p>
@@ -233,8 +233,8 @@ exports[`characterization of toHTML output > renders docs/content-ja.md 1`] = `
 <hr class="lbs-hr">
 <section class="lbs-footnotes">
 <ol>
-<li id="lbs-fn-__inline_1" class="lbs-footnote-item">[1] 脚注はドキュメント末尾にまとめて出力されます。</li>
-<li id="lbs-fn-__inline_2" class="lbs-footnote-item">[2] index.html はわずか 15 行。lobster.js を読み込み、Markdown ファイルを指定するだけで完成です。</li>
+<li id="lbs-fn-__inline_1" class="lbs-footnote-item">[1] index.html はわずか 15 行。lobster.js を読み込み、Markdown ファイルを指定するだけで完成です。</li>
+<li id="lbs-fn-__inline_2" class="lbs-footnote-item">[2] 脚注はドキュメント末尾にまとめて出力されます。</li>
 </ol>
 </section>
 <footer class="lbs-footer"><p class="lbs-paragraph"><a href="https://github.com/Hacknock/lobsterjs">lobster.js on GitHub</a> — MIT License</p></footer>"
@@ -245,9 +245,8 @@ exports[`characterization of toHTML output > renders edge case "# T {#a\\" oncli
 exports[`characterization of toHTML output > renders edge case ":::details T\\n\`\`\`\\n:::\\n\`\`\`\\n:::" 1`] = `
 "<details class="lbs-details">
 <summary class="lbs-summary">T</summary>
-<div class="lbs-code-block"><pre><code></code></pre></div>
-</details>
-<div class="lbs-code-block"><pre><code>:::</code></pre></div>"
+<div class="lbs-code-block"><pre><code>:::</code></pre></div>
+</details>"
 `;
 
 exports[`characterization of toHTML output > renders edge case ":::details Title\\n:::note\\ninner\\n:::\\nafter\\n:::" 1`] = `
@@ -284,7 +283,13 @@ exports[`characterization of toHTML output > renders edge case "> :::details T\\
 
 exports[`characterization of toHTML output > renders edge case "[a][b]" 1`] = `"<p class="lbs-paragraph">[a][b]</p>"`;
 
-exports[`characterization of toHTML output > renders edge case "__DETAILS_PLACEHOLDER_3__\\n\\n:::details T\\nx\\n:::" 1`] = `"THROWS TypeError"`;
+exports[`characterization of toHTML output > renders edge case "__DETAILS_PLACEHOLDER_3__\\n\\n:::details T\\nx\\n:::" 1`] = `
+"<p class="lbs-paragraph"><span class="lbs-strong">DETAILS_PLACEHOLDER_3</span></p>
+<details class="lbs-details">
+<summary class="lbs-summary">T</summary>
+<p class="lbs-paragraph">x</p>
+</details>"
+`;
 
 exports[`characterization of toHTML output > renders edge case "| a |" 1`] = `"<p class="lbs-paragraph">| a |</p>"`;
 

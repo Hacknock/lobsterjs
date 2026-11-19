@@ -260,6 +260,18 @@ describe("toHTML — custom blocks", () => {
     expect(toHTML(md)).toBe(expected);
   });
 
+  it("does not close :::details at a ::: line inside fenced code", () => {
+    expect(toHTML(":::details T\n```\n:::\n```\n:::")).toBe(
+      '<details class="lbs-details">\n<summary class="lbs-summary">T</summary>\n<div class="lbs-code-block"><pre><code>:::</code></pre></div>\n</details>'
+    );
+  });
+
+  it("renders text that looks like an internal placeholder as plain text", () => {
+    expect(toHTML("__DETAILS_PLACEHOLDER_3__")).toBe(
+      '<p class="lbs-paragraph"><span class="lbs-strong">DETAILS_PLACEHOLDER_3</span></p>'
+    );
+  });
+
   it("renders nothing for a warp reference inside its own expansion", () => {
     expect(toHTML(":::warp a\nbefore [~a] after\n:::\n\n[~a]")).toBe(
       '<p class="lbs-paragraph"><p class="lbs-paragraph">before  after</p></p>'

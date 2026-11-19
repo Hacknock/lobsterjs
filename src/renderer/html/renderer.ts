@@ -176,15 +176,8 @@ function renderBlockNode(node: BlockNode, ctx: RenderContext): string {
       return renderOrderedList(node as OrderedListNode, ctx);
     case "table":
       return renderTable(node as TableNode, ctx);
-    case "header_container":
-      return renderHeaderContainer(node as HeaderContainerNode, ctx);
-    case "footer_container":
-      return renderFooterContainer(node as FooterContainerNode, ctx);
     case "details":
       return renderDetails(node as DetailsNode, ctx);
-    case "warp_definition":
-      // Warp definitions are not rendered inline; they're referenced via [~id]
-      return "";
     default:
       return "";
   }

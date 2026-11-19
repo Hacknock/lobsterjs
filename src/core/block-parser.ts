@@ -1,6 +1,5 @@
 import type {
   BlockNode,
-  InlineNode,
   HeadingNode,
   ParagraphNode,
   HorizontalRuleNode,
@@ -12,10 +11,6 @@ import type {
   TableNode,
   TableCellNode,
   TableAlignment,
-  HeaderContainerNode,
-  FooterContainerNode,
-  DetailsNode,
-  WarpDefinitionNode,
   LinkDef,
   Document,
   ParseContext,
@@ -62,6 +57,11 @@ function matchCodeFence(
     language: m[2] || undefined,
     filename: m[3] || undefined,
   };
+}
+
+/** spec: Code Blocks — a closing fence repeats the opening character at least as many times */
+function isClosingFence(line: string, openingMarker: string): boolean {
+  return line.length >= openingMarker.length && line === openingMarker[0].repeat(line.length);
 }
 
 /** Returns the `>` stripped prefix lines for a blockquote block */
@@ -309,219 +309,97 @@ function collectDefinitions(lines: string[]): Definitions {
   return { linkDefs, rawFootnoteDefs };
 }
 
-/**
- * Remove link/footnote definition lines from the content.
- * Also marks warp-block lines for removal (handled by extractCustomBlocks).
- */
+/** Remove link/footnote definition lines from the content. */
 function removeDefinitionLines(lines: string[]): string[] {
   return lines.filter((l) => !LINK_DEF_RE.test(l) && !FOOTNOTE_DEF_RE.test(l));
 }
 
 // ============================================================
-// Custom block extraction (:::header, :::footer, :::warp, :::details)
+// Custom blocks (:::header, :::footer, :::details, :::warp)
 // ============================================================
 
-interface ExtractedCustomBlocks {
-  header?: HeaderContainerNode;
-  footer?: FooterContainerNode;
-  warpDefs: Record<string, WarpDefinitionNode>;
-  remainingLines: string[];
-  detailsBlocks: { startIdx: number; node: DetailsNode }[];
+/**
+ * spec: Lobster Extensions — where `:::` blocks are recognized.
+ * "document": the top level; header/footer are recorded for the page.
+ * "container": inside another `:::` block; nested header/footer are dropped.
+ * "quote": inside a blockquote; `:::` lines are plain text.
+ */
+type BlockScope = "document" | "container" | "quote";
+
+type ContainerOpener =
+  | { kind: "header" }
+  | { kind: "footer" }
+  | { kind: "details"; title: string }
+  | { kind: "warp"; id: string };
+
+function matchContainerOpener(line: string): ContainerOpener | null {
+  if (/^:::header\s*$/.test(line)) return { kind: "header" };
+  if (/^:::footer\s*$/.test(line)) return { kind: "footer" };
+  const detailsMatch = line.match(/^:::details\s+(.*?)\s*$/);
+  if (detailsMatch) return { kind: "details", title: detailsMatch[1] };
+  const warpMatch = line.match(/^:::warp\s+(\S+)\s*$/);
+  if (warpMatch) return { kind: "warp", id: warpMatch[1] };
+  return null;
 }
 
-function extractCustomBlocks(
-  lines: string[],
-  ctx: ParseContext
-): ExtractedCustomBlocks {
-  let header: HeaderContainerNode | undefined;
-  let footer: FooterContainerNode | undefined;
-  const warpDefs: Record<string, WarpDefinitionNode> = {};
-  const remainingLines: string[] = [];
-  const detailsBlocks: { startIdx: number; node: DetailsNode }[] = [];
+function isContainerCloser(line: string): boolean {
+  return /^\s*:::\s*$/.test(line);
+}
 
-  let i = 0;
-  let inCodeFence: string | null = null; // tracks the fence marker (``` or ~~~)
-  while (i < lines.length) {
+/**
+ * spec: Lobster Extensions — a `:::` block ends at the `:::` line that matches
+ * its opener. Nested openers and fenced code are skipped. Returns
+ * `lines.length` when the block is never closed.
+ */
+function findContainerEnd(lines: string[], openerIndex: number): number {
+  let depth = 0;
+  let openFence: string | null = null;
+  for (let i = openerIndex + 1; i < lines.length; i++) {
     const line = lines[i];
-
-    // Track code fences so we don't extract ::: blocks inside them
-    const fenceMatch = line.match(/^(`{3,}|~{3,})/);
-    if (fenceMatch) {
-      if (inCodeFence === null) {
-        inCodeFence = fenceMatch[1];
-      } else if (line.startsWith(inCodeFence[0]) && line.trimEnd().length >= inCodeFence.length && line.trimEnd() === inCodeFence[0].repeat(line.trimEnd().length)) {
-        inCodeFence = null;
-      }
-      remainingLines.push(line);
-      i++;
+    if (openFence !== null) {
+      if (isClosingFence(line, openFence)) openFence = null;
       continue;
     }
-
-    if (inCodeFence !== null) {
-      remainingLines.push(line);
-      i++;
-      continue;
+    const fence = matchCodeFence(line);
+    if (fence) {
+      openFence = fence.marker;
+    } else if (matchContainerOpener(line)) {
+      depth++;
+    } else if (isContainerCloser(line)) {
+      if (depth === 0) return i;
+      depth--;
     }
-
-    if (/^:::header\s*$/.test(line)) {
-      const innerLines: string[] = [];
-      i++;
-      { let depth = 0;
-        while (i < lines.length) {
-          const l = lines[i];
-          if (/^:::(header|footer)\s*$/.test(l) || /^:::warp\s+\S/.test(l) || /^:::details\s+/.test(l)) { depth++; }
-          else if (/^\s*:::\s*$/.test(l)) { if (depth === 0) break; depth--; }
-          innerLines.push(l); i++;
-        } i++; } // skip :::
-      // Recursively extract nested :::warp / :::details from this block's content
-      // so they become nodes instead of plain text
-      const nestedHeader = extractCustomBlocks(innerLines, ctx);
-      Object.assign(warpDefs, nestedHeader.warpDefs);
-      let headerChildren = parseBlocks(nestedHeader.remainingLines, ctx);
-      if (nestedHeader.detailsBlocks.length > 0) {
-        headerChildren = headerChildren.map((node) => {
-          if (node.type === "paragraph" && node.children.length === 1 && node.children[0].type === "text") {
-            const txt = (node.children[0] as { type: string; text: string }).text;
-            const pm = txt.match(/^__DETAILS_PLACEHOLDER_(\d+)__$/);
-            if (pm) {
-              const idx = parseInt(pm[1], 10);
-              if (nestedHeader.detailsBlocks[idx]) return nestedHeader.detailsBlocks[idx].node;
-            }
-          }
-          return node;
-        });
-      }
-      header = { type: "header_container", children: headerChildren };
-      continue;
-    }
-
-    if (/^:::footer\s*$/.test(line)) {
-      const innerLines: string[] = [];
-      i++;
-      { let depth = 0;
-        while (i < lines.length) {
-          const l = lines[i];
-          if (/^:::(header|footer)\s*$/.test(l) || /^:::warp\s+\S/.test(l) || /^:::details\s+/.test(l)) { depth++; }
-          else if (/^\s*:::\s*$/.test(l)) { if (depth === 0) break; depth--; }
-          innerLines.push(l); i++;
-        } i++; }
-      // Recursively extract nested :::warp / :::details from this block's content
-      // so they become nodes instead of plain text
-      const nestedFooter = extractCustomBlocks(innerLines, ctx);
-      Object.assign(warpDefs, nestedFooter.warpDefs);
-      let footerChildren = parseBlocks(nestedFooter.remainingLines, ctx);
-      if (nestedFooter.detailsBlocks.length > 0) {
-        footerChildren = footerChildren.map((node) => {
-          if (node.type === "paragraph" && node.children.length === 1 && node.children[0].type === "text") {
-            const txt = (node.children[0] as { type: string; text: string }).text;
-            const pm = txt.match(/^__DETAILS_PLACEHOLDER_(\d+)__$/);
-            if (pm) {
-              const idx = parseInt(pm[1], 10);
-              if (nestedFooter.detailsBlocks[idx]) return nestedFooter.detailsBlocks[idx].node;
-            }
-          }
-          return node;
-        });
-      }
-      footer = { type: "footer_container", children: footerChildren };
-      continue;
-    }
-
-    const warpM = line.match(/^:::warp\s+(\S+)\s*$/);
-    if (warpM) {
-      const id = warpM[1];
-      const innerLines: string[] = [];
-      i++;
-      { let depth = 0;
-        while (i < lines.length) {
-          const l = lines[i];
-          if (/^:::(header|footer)\s*$/.test(l) || /^:::warp\s+\S/.test(l) || /^:::details\s+/.test(l)) { depth++; }
-          else if (/^\s*:::\s*$/.test(l)) { if (depth === 0) break; depth--; }
-          innerLines.push(l); i++;
-        } i++; }
-      const warpNode: WarpDefinitionNode = {
-        type: "warp_definition",
-        id,
-        children: [], // filled below
-      };
-      // Recursively extract nested :::warp / :::details from this block's content
-      // so they become nodes instead of plain text
-      const nestedWarp = extractCustomBlocks(innerLines, ctx);
-      Object.assign(warpDefs, nestedWarp.warpDefs);
-      let warpChildren = parseBlocks(nestedWarp.remainingLines, ctx);
-      if (nestedWarp.detailsBlocks.length > 0) {
-        warpChildren = warpChildren.map((node) => {
-          if (node.type === "paragraph" && node.children.length === 1 && node.children[0].type === "text") {
-            const txt = (node.children[0] as { type: string; text: string }).text;
-            const pm = txt.match(/^__DETAILS_PLACEHOLDER_(\d+)__$/);
-            if (pm) {
-              const idx = parseInt(pm[1], 10);
-              if (nestedWarp.detailsBlocks[idx]) return nestedWarp.detailsBlocks[idx].node;
-            }
-          }
-          return node;
-        });
-      }
-      warpNode.children = warpChildren;
-      // If id is duplicated, treat as plain text (spec) — simple: just overwrite
-      if (warpDefs[id]) {
-        // Duplicate: mark as invalid (renderer will treat as plain text)
-        warpNode.id = `__duplicate_${id}`;
-      }
-      warpDefs[warpM[1]] = warpNode;
-      continue;
-    }
-
-    const detailsM = line.match(/^:::details\s+(.*?)\s*$/);
-    if (detailsM) {
-      const title = detailsM[1];
-      const innerLines: string[] = [];
-      const startIdx = remainingLines.length;
-      i++;
-      { let depth = 0;
-        while (i < lines.length) {
-          const l = lines[i];
-          if (/^:::(header|footer)\s*$/.test(l) || /^:::warp\s+\S/.test(l) || /^:::details\s+/.test(l)) { depth++; }
-          else if (/^\s*:::\s*$/.test(l)) { if (depth === 0) break; depth--; }
-          innerLines.push(l); i++;
-        } i++; }
-      // Recursively extract nested :::warp / :::details from this block's content
-      // so they become nodes instead of plain text
-      const nestedExtracted = extractCustomBlocks(innerLines, ctx);
-      // Bubble nested warp defs up to parent scope
-      Object.assign(warpDefs, nestedExtracted.warpDefs);
-      // Parse the cleaned content (:::warp etc. already removed)
-      let detailsChildren = parseBlocks(nestedExtracted.remainingLines, ctx);
-      // Replace any nested :::details placeholders
-      if (nestedExtracted.detailsBlocks.length > 0) {
-        detailsChildren = detailsChildren.map((node) => {
-          if (node.type === "paragraph" && node.children.length === 1 && node.children[0].type === "text") {
-            const txt = (node.children[0] as { type: string; text: string }).text;
-            const pm = txt.match(/^__DETAILS_PLACEHOLDER_(\d+)__$/);
-            if (pm) {
-              const idx = parseInt(pm[1], 10);
-              if (nestedExtracted.detailsBlocks[idx]) return nestedExtracted.detailsBlocks[idx].node;
-            }
-          }
-          return node;
-        });
-      }
-      const detailsNode: DetailsNode = {
-        type: "details",
-        title,
-        children: detailsChildren,
-      };
-      // Insert a placeholder line so position is preserved
-      remainingLines.push(`__DETAILS_PLACEHOLDER_${detailsBlocks.length}__`);
-      detailsBlocks.push({ startIdx, node: detailsNode });
-      continue;
-    }
-
-    remainingLines.push(line);
-    i++;
   }
+  return lines.length;
+}
 
-  return { header, footer, warpDefs, remainingLines, detailsBlocks };
+function tryParseContainer(
+  lines: string[],
+  i: number,
+  ctx: ParseContext,
+  scope: BlockScope
+): ContainerParseResult | null {
+  if (scope === "quote") return null;
+  const opener = matchContainerOpener(lines[i]);
+  if (!opener) return null;
+
+  const end = findContainerEnd(lines, i);
+  const children = parseBlocks(lines.slice(i + 1, end), ctx, "container");
+  const nextIndex = end + 1;
+
+  switch (opener.kind) {
+    case "header":
+      if (scope === "document") ctx.header = { type: "header_container", children };
+      return { node: null, nextIndex };
+    case "footer":
+      if (scope === "document") ctx.footer = { type: "footer_container", children };
+      return { node: null, nextIndex };
+    case "warp":
+      ctx.warpDefs[opener.id] = { type: "warp_definition", id: opener.id, children };
+      return { node: null, nextIndex };
+    case "details":
+      return { node: { type: "details", title: opener.title, children }, nextIndex };
+  }
 }
 
 // ============================================================
@@ -529,6 +407,9 @@ function extractCustomBlocks(
 // ============================================================
 
 type ParseBlockResult = { node: BlockNode; nextIndex: number };
+
+/** A `:::` block that is recorded elsewhere (header, footer, warp) has no node in place. */
+type ContainerParseResult = { node: BlockNode | null; nextIndex: number };
 
 function tryParseHeading(
   lines: string[],
@@ -563,17 +444,10 @@ function tryParseCodeBlock(
   if (!fence) return null;
 
   const codeLines: string[] = [];
-  const markerChar = fence.marker[0];
-  const markerLen = fence.marker.length;
   let j = i + 1;
 
   while (j < lines.length) {
-    // Closing fence: same char, at least same length
-    if (
-      lines[j].match(/^(`{3,}|~{3,})$/) &&
-      lines[j][0] === markerChar &&
-      lines[j].length >= markerLen
-    ) {
+    if (isClosingFence(lines[j], fence.marker)) {
       j++;
       break;
     }
@@ -607,7 +481,7 @@ function tryParseBlockquote(
   const stripped = stripBlockquotePrefix(bqLines);
   const node: BlockquoteNode = {
     type: "blockquote",
-    children: parseBlocks(stripped, ctx),
+    children: parseBlocks(stripped, ctx, "quote"),
   };
   return { node, nextIndex: j };
 }
@@ -802,7 +676,7 @@ function tryParseTable(
   // Parse data rows: pad short rows and drop cells beyond the header width
   const bodyGrid: string[][] = [];
   let j = i + 2;
-  while (j < lines.length && isTableLine(lines[j])) {
+  while (j < lines.length && isTableLine(lines[j]) && !matchContainerOpener(lines[j])) {
     const rawRow = isSilent ? lines[j].replace(/^\s*~\s*/, "") : lines[j];
     const cells = splitTableRow(rawRow).slice(0, columnCount);
     while (cells.length < columnCount) cells.push("");
@@ -830,8 +704,7 @@ function startsBlockElement(line: string): boolean {
     matchListItem(line) !== null ||
     /^\s*\|/.test(line) ||
     /^\s*~\s*\|/.test(line) ||
-    /^:::/.test(line) ||
-    /^__DETAILS_PLACEHOLDER_/.test(line)
+    /^:::/.test(line)
   );
 }
 
@@ -875,39 +748,36 @@ function parseParagraph(
 // Main block parser
 // ============================================================
 
-export function parseBlocks(lines: string[], ctx: ParseContext): BlockNode[] {
+export function parseBlocks(
+  lines: string[],
+  ctx: ParseContext,
+  scope: BlockScope = "container"
+): BlockNode[] {
   const nodes: BlockNode[] = [];
   const trimmed = trimTrailingSpaces(lines);
   let i = 0;
 
   while (i < trimmed.length) {
-    const line = trimmed[i];
-
-    if (isBlankLine(line)) {
+    if (isBlankLine(trimmed[i])) {
       i++;
       continue;
     }
 
-    // Details placeholder
-    if (/^__DETAILS_PLACEHOLDER_\d+__$/.test(line)) {
-      // Will be replaced during post-processing
-      nodes.push({ type: "paragraph", children: [{ type: "text", text: line }] });
-      i++;
+    const container = tryParseContainer(trimmed, i, ctx, scope);
+    if (container) {
+      if (container.node) nodes.push(container.node);
+      i = container.nextIndex;
       continue;
     }
 
-    let result: ParseBlockResult | null = null;
-
-    result ??= tryParseHeading(trimmed, i, ctx);
-    result ??= tryParseHorizontalRule(trimmed, i);
-    result ??= tryParseCodeBlock(trimmed, i);
-    result ??= tryParseBlockquote(trimmed, i, ctx);
-    result ??= tryParseList(trimmed, i, ctx);
-    result ??= tryParseTable(trimmed, i, ctx);
-
-    if (!result) {
-      result = parseParagraph(trimmed, i, ctx);
-    }
+    const result =
+      tryParseHeading(trimmed, i, ctx) ??
+      tryParseHorizontalRule(trimmed, i) ??
+      tryParseCodeBlock(trimmed, i) ??
+      tryParseBlockquote(trimmed, i, ctx) ??
+      tryParseList(trimmed, i, ctx) ??
+      tryParseTable(trimmed, i, ctx) ??
+      parseParagraph(trimmed, i, ctx);
 
     nodes.push(result.node);
     i = result.nextIndex;
@@ -942,41 +812,15 @@ export function parseDocument(markdown: string): Document {
     ctx.footnoteDefs[id] = parseInline(text, ctx);
   }
 
-  // Extract :::header, :::footer, :::warp, :::details blocks
-  const extracted = extractCustomBlocks(cleanLines, ctx);
-
-  // Attach warp defs to context so inline parser can resolve [~id]
-  ctx.warpDefs = extracted.warpDefs;
-
-  // Parse remaining body blocks
-  let body = parseBlocks(extracted.remainingLines, ctx);
-
-  // Replace details placeholders with actual nodes
-  if (extracted.detailsBlocks.length > 0) {
-    body = body.map((node) => {
-      if (
-        node.type === "paragraph" &&
-        node.children.length === 1 &&
-        node.children[0].type === "text"
-      ) {
-        const text = (node.children[0] as { type: string; text: string }).text;
-        const m = text.match(/^__DETAILS_PLACEHOLDER_(\d+)__$/);
-        if (m) {
-          const idx = parseInt(m[1], 10);
-          return extracted.detailsBlocks[idx].node;
-        }
-      }
-      return node;
-    });
-  }
+  const body = parseBlocks(cleanLines, ctx, "document");
 
   return {
-    header: extracted.header,
-    footer: extracted.footer,
+    header: ctx.header,
+    footer: ctx.footer,
     body,
     linkDefs,
     footnoteDefs: ctx.footnoteDefs,
     footnoteRefs: ctx.footnoteRefs,
-    warpDefs: extracted.warpDefs,
+    warpDefs: ctx.warpDefs,
   };
 }

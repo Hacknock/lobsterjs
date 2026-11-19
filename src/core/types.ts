@@ -203,10 +203,7 @@ export type BlockNode =
   | BulletListNode
   | OrderedListNode
   | TableNode
-  | HeaderContainerNode
-  | FooterContainerNode
-  | DetailsNode
-  | WarpDefinitionNode;
+  | DetailsNode;
 
 // ============================================================
 // Document
@@ -240,4 +237,8 @@ export interface ParseContext {
   footnoteRefs: string[];
   /** Counter for anonymous inline footnotes */
   inlineFootnoteCount: number;
+  /** spec: Header — the last top-level `:::header` wins */
+  header?: HeaderContainerNode;
+  /** spec: Footer — the last top-level `:::footer` wins */
+  footer?: FooterContainerNode;
 }
