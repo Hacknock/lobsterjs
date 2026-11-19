@@ -21,7 +21,7 @@ npm run build:docs # Build and copy dist/lobster.js → docs/lobster.js
 
 To run a single test file:
 ```bash
-npx vitest run tests/block-parser.test.ts
+npx vitest run tests/spec/block-elements.test.ts
 ```
 
 ## Architecture
@@ -44,7 +44,7 @@ src/
 ├── to-html.ts            # toHTML (parseDocument + renderDocument)
 ├── index.ts              # Browser entry: loadMarkdown, toHTML
 └── index.node.ts         # Node entry: toHTML
-tests/                    # Vitest tests (mirrors src/core/ and src/renderer/)
+tests/                    # spec/: toHTML tests per spec section; load-markdown.test.ts: loadMarkdown with happy-dom
 markdowns/                # Spec docs and test-case Markdown files
 docs/                     # GitHub Pages demo site (lobster.js loads its own content)
 ```
@@ -99,4 +99,4 @@ Headings are rendered as `<hN class="lbs-heading-N">` (e.g. `<h1 class="lbs-head
 - `src/core/` must be pure functions with no DOM/browser API dependencies.
 - AST nodes use union types discriminated by `type` field.
 - Comments should map implementation to the corresponding spec section.
-- Each parser function should have corresponding Vitest tests.
+- Test behavior, not internals: every rule in the spec gets a `toHTML` test in `tests/spec/` (one file per spec area, test names state the rule) that compares the exact HTML. Do not test parser functions or the AST directly.

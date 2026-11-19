@@ -139,6 +139,12 @@ describe("Code Block", () => {
     expect(toHTML("```\n\\*a\\*\n```")).toBe('<div class="lbs-code-block"><pre><code>\\*a\\*</code></pre></div>');
   });
 
+  it("keeps ::: blocks and references inside it as text", () => {
+    expect(toHTML("```markdown\n:::warp a\nx\n:::\n\n[~a]\n```")).toBe(
+      '<div class="lbs-code-block"><pre data-language="markdown"><code class="language-markdown">:::warp a\nx\n:::\n\n[~a]</code></pre></div>'
+    );
+  });
+
   it("runs to the end of the document when never closed", () => {
     expect(toHTML("```\na\n\nb")).toBe('<div class="lbs-code-block"><pre><code>a\n\nb</code></pre></div>');
   });
@@ -499,6 +505,22 @@ describe("Table", () => {
       expect(toHTML("| a | b |\n| - | - |\n| x \\\\| y |")).toBe(
         table("<th>a</th><th>b</th>", "<tr><td>x \\</td><td>y</td></tr>")
       );
+    });
+
+    it("splits at a pipe after an escaped backtick", () => {
+      expect(toHTML("| a | b |\n| - | - |\n| \\`x | y` |")).toBe(
+        table("<th>a</th><th>b</th>", "<tr><td>`x</td><td>y`</td></tr>")
+      );
+    });
+
+    it("keeps a pipe inside a multi-backtick code span in the cell", () => {
+      expect(toHTML("| a | b |\n| - | - |\n| `` x ` | y `` | z |")).toBe(
+        table("<th>a</th><th>b</th>", '<tr><td><code class="lbs-code-span">x ` | y</code></td><td>z</td></tr>')
+      );
+    });
+
+    it("shows an escaped --- in a body cell as text", () => {
+      expect(toHTML("| a |\n| - |\n| \\--- |")).toBe(table("<th>a</th>", "<tr><td>---</td></tr>"));
     });
 
     it("splits at a pipe after an unclosed backtick", () => {

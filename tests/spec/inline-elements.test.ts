@@ -65,6 +65,10 @@ describe("Backslash Escapes", () => {
     );
   });
 
+  it("does not let an escaped delimiter close emphasis", () => {
+    expect(inline("*a \\* b* *c\\**")).toBe(paragraph(`${emphasis("a * b")} ${emphasis("c*")}`));
+  });
+
   it("does not let an escaped ] close link text", () => {
     expect(toHTML("[a\\]b](http://x)")).toBe(paragraph('<a href="http://x">a]b</a>'));
   });
@@ -109,6 +113,10 @@ describe("Delimiter Rules for Emphasis, Strong, and Strikethrough", () => {
 
   it("_ followed by a supplementary-plane letter does not close", () => {
     expect(toHTML("_name_𠮷")).toBe(paragraph("_name_𠮷"));
+  });
+
+  it("_ next to a supplementary-plane non-letter can still delimit", () => {
+    expect(inline("😀 _name_ 😀")).toBe(paragraph(`😀 ${emphasis("name")} 😀`));
   });
 
   it("* works inside a word", () => {
