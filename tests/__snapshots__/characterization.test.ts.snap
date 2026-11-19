@@ -240,7 +240,7 @@ exports[`characterization of toHTML output > renders docs/content-ja.md 1`] = `
 <footer class="lbs-footer"><p class="lbs-paragraph"><a href="https://github.com/Hacknock/lobsterjs">lobster.js on GitHub</a> — MIT License</p></footer>"
 `;
 
-exports[`characterization of toHTML output > renders edge case "# T {#a\\" onclick=\\"x}" 1`] = `"<h1 class="lbs-heading-1" id="a" onclick="x">T</h1>"`;
+exports[`characterization of toHTML output > renders edge case "# T {#a\\" onclick=\\"x}" 1`] = `"<h1 class="lbs-heading-1" id="a&quot; onclick=&quot;x">T</h1>"`;
 
 exports[`characterization of toHTML output > renders edge case ":::details T\\n\`\`\`\\n:::\\n\`\`\`\\n:::" 1`] = `
 "<details class="lbs-details">
@@ -266,9 +266,9 @@ exports[`characterization of toHTML output > renders edge case ":::note\\nhello\
 
 exports[`characterization of toHTML output > renders edge case ":::warp a\\n# Hi\\n:::\\n\\ntext [~a] more" 1`] = `"<p class="lbs-paragraph">text <h1 class="lbs-heading-1">Hi</h1> more</p>"`;
 
-exports[`characterization of toHTML output > renders edge case ":::warp a\\n[~a]\\n:::\\n\\n[~a]" 1`] = `"THROWS RangeError"`;
+exports[`characterization of toHTML output > renders edge case ":::warp a\\n[~a]\\n:::\\n\\n[~a]" 1`] = `"<p class="lbs-paragraph"><p class="lbs-paragraph"></p></p>"`;
 
-exports[`characterization of toHTML output > renders edge case ":::warp a\\n[~b]\\n:::\\n\\n:::warp b\\n[~a]\\n:::\\n\\n[~a]" 1`] = `"THROWS RangeError"`;
+exports[`characterization of toHTML output > renders edge case ":::warp a\\n[~b]\\n:::\\n\\n:::warp b\\n[~a]\\n:::\\n\\n[~a]" 1`] = `"<p class="lbs-paragraph"><p class="lbs-paragraph"><p class="lbs-paragraph"></p></p></p>"`;
 
 exports[`characterization of toHTML output > renders edge case ":::warp a\\none\\n:::\\n:::warp a\\ntwo\\n:::\\n\\n[~a]" 1`] = `"<p class="lbs-paragraph"><p class="lbs-paragraph">two</p></p>"`;
 

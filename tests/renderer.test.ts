@@ -12,6 +12,12 @@ describe("toHTML — headings", () => {
     const html = toHTML("### Section");
     expect(html).toContain('class="lbs-heading-3"');
   });
+
+  it("escapes quotes in an explicit heading id", () => {
+    expect(toHTML('# T {#a" onclick="x}')).toBe(
+      '<h1 class="lbs-heading-1" id="a&quot; onclick=&quot;x">T</h1>'
+    );
+  });
 });
 
 describe("toHTML — paragraph", () => {
@@ -252,6 +258,18 @@ describe("toHTML — custom blocks", () => {
     ],
   ])("renders unrecognized ::: lines in %j as plain text", (md, expected) => {
     expect(toHTML(md)).toBe(expected);
+  });
+
+  it("renders nothing for a warp reference inside its own expansion", () => {
+    expect(toHTML(":::warp a\nbefore [~a] after\n:::\n\n[~a]")).toBe(
+      '<p class="lbs-paragraph"><p class="lbs-paragraph">before  after</p></p>'
+    );
+  });
+
+  it("renders nothing for warps that reference each other", () => {
+    expect(toHTML(":::warp a\nA [~b]\n:::\n\n:::warp b\nB [~a]\n:::\n\n[~a]")).toBe(
+      '<p class="lbs-paragraph"><p class="lbs-paragraph">A <p class="lbs-paragraph">B </p></p></p>'
+    );
   });
 });
 

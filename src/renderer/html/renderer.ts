@@ -129,8 +129,11 @@ function renderInlineNode(node: InlineNode, ctx: RenderContext): string {
     case "warp_ref": {
       const n = node as WarpRefNode;
       const warp = ctx.warpDefs[n.id];
-      if (!warp) return "";
-      return renderBlockNodes(warp.children, ctx);
+      if (!warp || ctx.expandingWarpIds.has(n.id)) return "";
+      ctx.expandingWarpIds.add(n.id);
+      const html = renderBlockNodes(warp.children, ctx);
+      ctx.expandingWarpIds.delete(n.id);
+      return html;
     }
 
     default:
@@ -147,6 +150,8 @@ interface RenderContext {
   footnoteRefCount: Record<string, number>;
   footnoteDefs: Record<string, InlineNode[]>;
   warpDefs: Record<string, WarpDefinitionNode>;
+  /** spec: Warp — a reference inside its own expansion renders nothing */
+  expandingWarpIds: Set<string>;
 }
 
 function renderBlockNodes(nodes: BlockNode[], ctx: RenderContext): string {
@@ -187,7 +192,7 @@ function renderBlockNode(node: BlockNode, ctx: RenderContext): string {
 
 function renderHeading(node: HeadingNode, ctx: RenderContext): string {
   const content = renderInlineNodes(node.children, ctx);
-  const idAttr = node.id ? ` id="${node.id}"` : "";
+  const idAttr = node.id ? ` id="${escapeHtml(node.id)}"` : "";
   return `<h${node.level} class="lbs-heading-${node.level}"${idAttr}>${content}</h${node.level}>`;
 }
 
@@ -350,6 +355,7 @@ export function renderDocument(doc: Document): string {
     footnoteRefCount: {},
     footnoteDefs: doc.footnoteDefs,
     warpDefs: doc.warpDefs,
+    expandingWarpIds: new Set(),
   };
 
   const parts: string[] = [];
