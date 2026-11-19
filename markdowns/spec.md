@@ -555,7 +555,7 @@ content
 
 - Defines a named content block that can be placed elsewhere with `[~my-id]`.
 - When the same `id` is defined more than once, the last definition wins.
-- An `id` is any run of non-space characters.
+- An `id` is any run of characters other than spaces and `]`.
 - Warp definitions are **not** rendered at their definition site; only at reference sites.
 
 **Warp reference:**

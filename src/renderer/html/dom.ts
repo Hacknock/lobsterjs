@@ -6,7 +6,7 @@ import { toHTML } from "../../to-html.js";
  * a blank line before parsing, so warp/link/footnote definitions are shared
  * across all files.
  *
- * @param src - URL(source) or path(source) to Markdown file(source)
+ * @param src - URL(s) or path(s) to Markdown file(s)
  * @param container - Target DOM element (defaults to document.body)
  */
 export async function loadMarkdown(
