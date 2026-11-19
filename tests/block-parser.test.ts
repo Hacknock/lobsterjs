@@ -194,6 +194,25 @@ describe("parseBlocks — paragraph", () => {
     expect(blocks[0].type).toBe("paragraph");
     expect(blocks[1].type).toBe("paragraph");
   });
+
+  it.each([
+    [":::"],
+    [":::note"],
+    ["| a |"],
+    ["~ | a |"],
+    ["__DETAILS_PLACEHOLDER_x"],
+  ])("treats a lone %j line that no block parser accepts as a paragraph", (line) => {
+    const blocks = parseBlocks([line], makeCtx());
+    expect(blocks).toEqual([{ type: "paragraph", children: [{ type: "text", text: line }] }]);
+  });
+
+  it("stops a paragraph before a following ::: line and keeps that line as text", () => {
+    const blocks = parseBlocks(["text", ":::"], makeCtx());
+    expect(blocks).toEqual([
+      { type: "paragraph", children: [{ type: "text", text: "text" }] },
+      { type: "paragraph", children: [{ type: "text", text: ":::" }] },
+    ]);
+  });
 });
 
 // ============================================================
