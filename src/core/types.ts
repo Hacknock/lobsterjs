@@ -101,7 +101,7 @@ export interface ParagraphNode {
   children: InlineNode[];
 }
 
-/** ---, ***, ___ */
+/** ---, *** (spec: Horizontal Rule) */
 export interface HorizontalRuleNode {
   type: "horizontal_rule";
 }
@@ -155,7 +155,7 @@ export interface TableNode {
   isSilent: boolean;
   headers: TableCellNode[];
   alignments: TableAlignment[];
-  /** spec: テーブル - セルの結合 — slots covered by colspan/rowspan are omitted. */
+  /** spec: Table / Cell Merge — slots covered by colspan/rowspan are omitted. */
   rows: TableCellNode[][];
 }
 
@@ -221,7 +221,7 @@ export interface Document {
 export interface ParseContext {
   linkDefs: Record<string, LinkDef>;
   footnoteDefs: Record<string, InlineNode[]>;
-  /** spec: Footnotes — a `[^id]` without a definition is plain text */
+  /** spec: Footnote Reference — a `[^id]` without a definition is plain text */
   definedFootnoteIds: Set<string>;
   warpDefs: Record<string, WarpDefinitionNode>;
   /** Counter for anonymous inline footnotes */

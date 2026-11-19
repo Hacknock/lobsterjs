@@ -59,18 +59,17 @@ docs/                     # GitHub Pages demo site (lobster.js loads its own con
 ### Evaluation order (per spec)
 
 ```
-header / footer / details (extracted before block parse)
-  blockquote → list → heading → horizontal_rule → code_block → silent_table → table
-    backslash_escape → image → inline_footnote → footnote_ref → warp_ref → link → inline_link
-      code_span → emphasis → strong → strikethrough
+blocks:  ::: blocks (header / footer / details / warp) → heading → horizontal_rule → code_block → blockquote → list → table / silent_table → paragraph
+inlines: backslash_escape → code_span → image → inline_footnote → footnote_ref → warp_ref → inline link → reference link → strong → emphasis → strikethrough
 ```
 
 ### Key types (types.ts)
 
-- `Document`: `{ header?, footer?, body, linkDefs, footnoteDefs, footnoteRefs, warpDefs }`
-- `BlockNode`: union of all block node types, discriminated by `type` field
+- `Document`: `{ header?, footer?, body, linkDefs, footnoteDefs, warpDefs }`
+- `BlockNode`: union of the block node types that appear in `body`, discriminated by `type` field
 - `InlineNode`: union of all inline node types, discriminated by `type` field
-- `ParseContext`: shared mutable state during parsing (linkDefs, footnoteDefs, warpDefs, footnoteRefs, inlineFootnoteCount)
+- `ParseContext`: shared mutable state during parsing (linkDefs, footnoteDefs, definedFootnoteIds, warpDefs, inlineFootnoteCount, header, footer)
+- Footnote numbers are assigned in the renderer, in the order references are rendered (`RenderContext.footnoteOrder`).
 
 ### HTML output conventions
 

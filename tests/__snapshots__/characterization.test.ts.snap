@@ -351,7 +351,8 @@ exports[`characterization of toHTML output > renders edge case "text\\n\\n:::" 1
 
 exports[`characterization of toHTML output > renders every fenced example in the specification 1`] = `
 [
-  "<p class="lbs-paragraph">Header &gt; Footer &gt;&gt;&gt; Details =&gt;<br>  Blockquote =&gt; List &gt; Heading &gt; Horizontal Rule &gt; Code Block &gt; Silent Table &gt; Table &gt;<br>    Backslash Escape &gt; Image &gt; Inline Footnote &gt; Footnote Ref &gt; Warp Ref &gt; Inline Link &gt; Link &gt;<br>      Code Span &gt; Strong &gt; Emphasis &gt; Strikethrough</p>",
+  "<p class="lbs-paragraph">::: blocks (Header, Footer, Details, Warp) &gt; Heading &gt; Horizontal Rule &gt; Code Block &gt; Blockquote &gt; List &gt; Table / Silent Table &gt; Paragraph</p>",
+  "<p class="lbs-paragraph">Backslash Escape &gt; Code Span &gt; Image &gt; Inline Footnote &gt; Footnote Ref &gt; Warp Ref &gt; Inline Link &gt; Reference Link &gt; Strong &gt; Emphasis &gt; Strikethrough</p>",
   "<h1 class="lbs-heading-1">H1</h1>
 <h2 class="lbs-heading-2">H2</h2>
 <h3 class="lbs-heading-3">H3</h3>

@@ -12,22 +12,24 @@ It provides **document structure only** — visual presentation is delegated to 
 - Parsing is **left-to-right, first-match** within each line.
 - Trailing spaces on every line are trimmed before parsing.
 - HTML tags in Markdown source are treated as **plain text** (escaped).
-- When the same definition appears multiple times, the **last one wins** (except where noted).
+- When the same definition appears multiple times, the **last one wins**.
 
 ---
 
 ## Evaluation order
 
-The parser processes elements in the following priority:
+Link definitions and footnote definitions are collected from the whole document first.
+Then blocks are parsed line by line from the top; the first block that starts at the current line wins, in this order:
 
 ```
-Header > Footer >>> Details =>
-  Blockquote => List > Heading > Horizontal Rule > Code Block > Silent Table > Table >
-    Backslash Escape > Image > Inline Footnote > Footnote Ref > Warp Ref > Inline Link > Link >
-      Code Span > Strong > Emphasis > Strikethrough
+::: blocks (Header, Footer, Details, Warp) > Heading > Horizontal Rule > Code Block > Blockquote > List > Table / Silent Table > Paragraph
 ```
 
-Block-level elements (`:::header`, `:::footer`, `:::warp`) are extracted from the document in a first pass before the body is parsed.
+Inline elements are scanned left to right; the first element that starts at the current position wins, in this order:
+
+```
+Backslash Escape > Code Span > Image > Inline Footnote > Footnote Ref > Warp Ref > Inline Link > Reference Link > Strong > Emphasis > Strikethrough
+```
 
 ---
 
@@ -552,8 +554,8 @@ content
 ```
 
 - Defines a named content block that can be placed elsewhere with `[~my-id]`.
-- `id` must be unique within the document; duplicate ids cause all content to be rendered as plain text.
-- Valid id characters: alphanumeric, `-`, `_`.
+- When the same `id` is defined more than once, the last definition wins.
+- An `id` is any run of non-space characters.
 - Warp definitions are **not** rendered at their definition site; only at reference sites.
 
 **Warp reference:**

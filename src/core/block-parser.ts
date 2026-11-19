@@ -22,7 +22,7 @@ import { codeSpanEndOrRunEnd, parseInline, unescapeBackslashes } from "./inline-
 // ============================================================
 
 function trimTrailingSpaces(lines: string[]): string[] {
-  return lines.map((l) => l.trimEnd());
+  return lines.map((line) => line.trimEnd());
 }
 
 function isBlankLine(line: string): boolean {
@@ -36,37 +36,37 @@ function isHorizontalRule(line: string): boolean {
 
 /** Returns heading level, content, and optional anchor id, or null */
 function matchHeading(line: string): { level: number; text: string; id?: string } | null {
-  const m = line.match(/^(#{1,6})\s+(.+?)(\s+#+\s*)?$/);
-  if (!m) return null;
-  const raw = m[2].trimEnd();
+  const headingMatch = line.match(/^(#{1,6})\s+(.+?)(\s+#+\s*)?$/);
+  if (!headingMatch) return null;
+  const raw = headingMatch[2].trimEnd();
   const idMatch = raw.match(/^(.*?)\s*\{#([^}]+)\}\s*$/);
   if (idMatch) {
-    return { level: m[1].length, text: idMatch[1].trimEnd(), id: idMatch[2] };
+    return { level: headingMatch[1].length, text: idMatch[1].trimEnd(), id: idMatch[2] };
   }
-  return { level: m[1].length, text: raw };
+  return { level: headingMatch[1].length, text: raw };
 }
 
 /** Returns code fence info (marker + language + filename) or null */
 function matchCodeFence(
   line: string
 ): { marker: string; language?: string; filename?: string } | null {
-  const m = line.match(/^(`{3,}|~{3,})([\w+-]*)(?::(.+))?/);
-  if (!m) return null;
+  const fenceMatch = line.match(/^(`{3,}|~{3,})([\w+-]*)(?::(.+))?/);
+  if (!fenceMatch) return null;
   return {
-    marker: m[1],
-    language: m[2] || undefined,
-    filename: m[3] || undefined,
+    marker: fenceMatch[1],
+    language: fenceMatch[2] || undefined,
+    filename: fenceMatch[3] || undefined,
   };
 }
 
-/** spec: Code Blocks — a closing fence repeats the opening character at least as many times */
+/** spec: Code Block — a closing fence repeats the opening character at least as many times */
 function isClosingFence(line: string, openingMarker: string): boolean {
   return line.length >= openingMarker.length && line === openingMarker[0].repeat(line.length);
 }
 
 /** Returns the `>` stripped prefix lines for a blockquote block */
 function stripBlockquotePrefix(lines: string[]): string[] {
-  return lines.map((l) => l.replace(/^>\s?/, ""));
+  return lines.map((line) => line.replace(/^>\s?/, ""));
 }
 
 type ListMarker = "bullet" | "ordered";
@@ -79,7 +79,7 @@ interface ListItemMatch {
   text: string;
 }
 
-/** spec: Checklists — `[ ]` or `[x]` after the list marker */
+/** spec: Checklist — `[ ]` or `[x]` after the list marker */
 function splitChecklistBox(text: string): { checked?: boolean; text: string } {
   const checkboxMatch = text.match(/^\[([ xX])\]\s+(.*)/);
   if (!checkboxMatch) return { text };
@@ -109,29 +109,29 @@ function matchListItem(line: string): ListItemMatch | null {
 function splitTableRow(line: string): string[] {
   const stripped = line.replace(/^\s*~?\s*\|?/, "").trim();
   const cells: string[] = [];
-  let cur = "";
+  let currentCell = "";
   let endsWithSeparator = false;
   for (let i = 0; i < stripped.length; i++) {
-    const ch = stripped[i];
+    const character = stripped[i];
     endsWithSeparator = false;
-    if (ch === "`") {
+    if (character === "`") {
       const end = codeSpanEndOrRunEnd(stripped, i);
-      cur += stripped.slice(i, end);
+      currentCell += stripped.slice(i, end);
       i = end - 1;
     }
-    else if (ch === "\\" && i + 1 < stripped.length) { cur += ch + stripped[i + 1]; i++; }
-    else if (ch === "|") { cells.push(cur.trim()); cur = ""; endsWithSeparator = true; }
-    else { cur += ch; }
+    else if (character === "\\" && i + 1 < stripped.length) { currentCell += character + stripped[i + 1]; i++; }
+    else if (character === "|") { cells.push(currentCell.trim()); currentCell = ""; endsWithSeparator = true; }
+    else { currentCell += character; }
   }
-  if (!endsWithSeparator) cells.push(cur.trim());
+  if (!endsWithSeparator) cells.push(currentCell.trim());
   return cells;
 }
 
 /** Parse alignment row cell like `---`, `:---`, `:---:`, `---:` */
 function parseAlignment(cell: string): TableAlignment {
-  const c = cell.trim();
-  const left = c.startsWith(":");
-  const right = c.endsWith(":");
+  const trimmedCell = cell.trim();
+  const left = trimmedCell.startsWith(":");
+  const right = trimmedCell.endsWith(":");
   if (left && right) return "center";
   if (left) return "left";
   if (right) return "right";
@@ -140,7 +140,7 @@ function parseAlignment(cell: string): TableAlignment {
 
 function isAlignmentRow(line: string): boolean {
   const cells = splitTableRow(line);
-  return cells.length > 0 && cells.every((c) => /^:?-+:?$/.test(c));
+  return cells.length > 0 && cells.every((trimmedCell) => /^:?-+:?$/.test(trimmedCell));
 }
 
 const MERGE_LEFT_MARKER = "<<";
@@ -151,7 +151,7 @@ type CellPosition = { row: number; column: number };
 type MergedSpan = { colspan: number; rowspan: number };
 
 /**
- * spec: テーブル - セルの結合
+ * spec: Table / Cell Merge
  * Assigns every slot of the grid to the origin cell it belongs to.
  * `<<` follows the origin of the slot on its left and `^^` follows the
  * origin of the slot above. Markers without a neighbor are origins
@@ -176,7 +176,7 @@ function assignOrigins(grid: string[][]): CellPosition[][] {
 }
 
 /**
- * spec: テーブル - セルの結合
+ * spec: Table / Cell Merge
  * Shrinks a merged region until it is a rectangle by turning its last
  * marker in reading order back into plain text. No other slot depends on
  * that marker, because any slot that follows it would come later in
@@ -208,11 +208,11 @@ function shrinkToRectangle(
 }
 
 /**
- * spec: テーブル - セルの結合
+ * spec: Table / Cell Merge
  * Converts a grid of raw cell strings into rows of origin cells with
  * colspan/rowspan. Slots covered by a merge are omitted from the rows.
  */
-function buildMergedRows(grid: string[][], ctx: ParseContext): TableCellNode[][] {
+function buildMergedRows(grid: string[][], context: ParseContext): TableCellNode[][] {
   const origins = assignOrigins(grid);
   const slotsByOrigin = new Map<CellPosition, CellPosition[]>();
   origins.forEach((rowOrigins, row) => {
@@ -234,7 +234,7 @@ function buildMergedRows(grid: string[][], ctx: ParseContext): TableCellNode[][]
       if (origin.row !== row || origin.column !== column) return [];
       const { colspan, rowspan } = spanByOrigin.get(origin) ?? { colspan: 1, rowspan: 1 };
       return [{
-        children: parseInline(cell, ctx),
+        children: parseInline(cell, context),
         ...(colspan > 1 && { colspan }),
         ...(rowspan > 1 && { rowspan }),
       }];
@@ -262,17 +262,17 @@ function collectDefinitions(lines: string[]): Definitions {
   for (const line of lines) {
     // Footnote defs must be checked before link defs:
     // [^id]: text also matches LINK_DEF_RE (id='^id', href='text')
-    const fm = line.match(FOOTNOTE_DEF_RE);
-    if (fm) {
-      rawFootnoteDefs[fm[1]] = fm[2];
+    const footnoteMatch = line.match(FOOTNOTE_DEF_RE);
+    if (footnoteMatch) {
+      rawFootnoteDefs[footnoteMatch[1]] = footnoteMatch[2];
       continue;
     }
-    const lm = line.match(LINK_DEF_RE);
-    if (lm) {
-      const id = lm[1].toLowerCase();
-      const title = lm[3] ?? lm[4] ?? lm[5];
+    const linkMatch = line.match(LINK_DEF_RE);
+    if (linkMatch) {
+      const id = linkMatch[1].toLowerCase();
+      const title = linkMatch[3] ?? linkMatch[4] ?? linkMatch[5];
       linkDefs[id] = {
-        href: unescapeBackslashes(lm[2]),
+        href: unescapeBackslashes(linkMatch[2]),
         title: title === undefined ? undefined : unescapeBackslashes(title),
       };
       continue;
@@ -284,7 +284,7 @@ function collectDefinitions(lines: string[]): Definitions {
 
 /** Remove link/footnote definition lines from the content. */
 function removeDefinitionLines(lines: string[]): string[] {
-  return lines.filter((l) => !LINK_DEF_RE.test(l) && !FOOTNOTE_DEF_RE.test(l));
+  return lines.filter((line) => !LINK_DEF_RE.test(line) && !FOOTNOTE_DEF_RE.test(line));
 }
 
 // ============================================================
@@ -373,7 +373,7 @@ function findContainerEnd(lines: string[], openerIndex: number): number {
 function tryParseContainer(
   lines: string[],
   i: number,
-  ctx: ParseContext,
+  context: ParseContext,
   scope: BlockScope
 ): ContainerParseResult | null {
   if (scope === "quote") return null;
@@ -381,18 +381,18 @@ function tryParseContainer(
   if (!opener) return null;
 
   const end = findContainerEnd(lines, i);
-  const children = parseBlocks(lines.slice(i + 1, end), ctx, "container");
+  const children = parseBlocks(lines.slice(i + 1, end), context, "container");
   const nextIndex = end + 1;
 
   switch (opener.kind) {
     case "header":
-      if (scope === "document") ctx.header = { type: "header_container", children };
+      if (scope === "document") context.header = { type: "header_container", children };
       return { node: null, nextIndex };
     case "footer":
-      if (scope === "document") ctx.footer = { type: "footer_container", children };
+      if (scope === "document") context.footer = { type: "footer_container", children };
       return { node: null, nextIndex };
     case "warp":
-      ctx.warpDefs[opener.id] = { type: "warp_definition", id: opener.id, children };
+      context.warpDefs[opener.id] = { type: "warp_definition", id: opener.id, children };
       return { node: null, nextIndex };
     case "details":
       return { node: { type: "details", title: opener.title, children }, nextIndex };
@@ -411,15 +411,15 @@ type ContainerParseResult = { node: BlockNode | null; nextIndex: number };
 function tryParseHeading(
   lines: string[],
   i: number,
-  ctx: ParseContext
+  context: ParseContext
 ): ParseBlockResult | null {
-  const m = matchHeading(lines[i]);
-  if (!m) return null;
+  const heading = matchHeading(lines[i]);
+  if (!heading) return null;
   const node: HeadingNode = {
     type: "heading",
-    level: m.level as HeadingNode["level"],
-    ...(m.id !== undefined && { id: m.id }),
-    children: parseInline(m.text, ctx),
+    level: heading.level as HeadingNode["level"],
+    ...(heading.id !== undefined && { id: heading.id }),
+    children: parseInline(heading.text, context),
   };
   return { node, nextIndex: i + 1 };
 }
@@ -464,21 +464,21 @@ function tryParseCodeBlock(
 function tryParseBlockquote(
   lines: string[],
   i: number,
-  ctx: ParseContext
+  context: ParseContext
 ): ParseBlockResult | null {
   if (!lines[i].startsWith(">")) return null;
 
-  const bqLines: string[] = [];
+  const quoteLines: string[] = [];
   let j = i;
   while (j < lines.length && lines[j].startsWith(">")) {
-    bqLines.push(lines[j]);
+    quoteLines.push(lines[j]);
     j++;
   }
 
-  const stripped = stripBlockquotePrefix(bqLines);
+  const stripped = stripBlockquotePrefix(quoteLines);
   const node: BlockquoteNode = {
     type: "blockquote",
-    children: parseBlocks(stripped, ctx, "quote"),
+    children: parseBlocks(stripped, context, "quote"),
   };
   return { node, nextIndex: j };
 }
@@ -486,11 +486,11 @@ function tryParseBlockquote(
 function tryParseList(
   lines: string[],
   i: number,
-  ctx: ParseContext
+  context: ParseContext
 ): ParseBlockResult | null {
   const firstItem = matchListItem(lines[i]);
   if (!firstItem) return null;
-  return parseList(lines, i, 0, firstItem.marker, ctx);
+  return parseList(lines, i, 0, firstItem.marker, context);
 }
 
 /**
@@ -502,7 +502,7 @@ function parseList(
   startIndex: number,
   depth: number,
   marker: ListMarker,
-  ctx: ParseContext
+  context: ParseContext
 ): { node: BulletListNode | OrderedListNode; nextIndex: number } {
   const items: ListItemNode[] = [];
   let start = 1;
@@ -528,14 +528,14 @@ function parseList(
     let sublist: BulletListNode | OrderedListNode | undefined;
     const nextItem = i < lines.length ? matchListItem(lines[i]) : null;
     if (nextItem && nextItem.indent > item.indent) {
-      const subResult = parseList(lines, i, nextItem.indent, nextItem.marker, ctx);
+      const subResult = parseList(lines, i, nextItem.indent, nextItem.marker, context);
       sublist = subResult.node;
       i = subResult.nextIndex;
     }
 
     items.push({
       checked: item.checked,
-      children: parseInline(textLines.join(" "), ctx),
+      children: parseInline(textLines.join(" "), context),
       sublist,
     });
   }
@@ -547,29 +547,29 @@ function parseList(
   return { node, nextIndex: i };
 }
 
-/** spec: Silent Tables — every row starts with `~` */
+/** spec: Silent Table — every row starts with `~` */
 function isSilentTableLine(line: string): boolean {
   return /^\s*~\s*\|/.test(line) || /^\s*~\s+/.test(line);
 }
 
-/** spec: Tables — a row is any line containing `|` */
+/** spec: Table — a row is any line containing `|` */
 function isTableLine(line: string, isSilent: boolean): boolean {
   return isSilent ? isSilentTableLine(line) : line.includes("|");
 }
 
-/** spec: Tables — a line that can start a table ends the preceding paragraph */
+/** spec: Table — a line that can start a table ends the preceding paragraph */
 function startsWithTablePipe(line: string): boolean {
   return /^\s*(~\s*)?\|/.test(line);
 }
 
 /**
- * spec: Tables, Silent Tables — a header row and an alignment row, then body
+ * spec: Table, Silent Table — a header row and an alignment row, then body
  * rows. `splitTableRow` removes the `~` prefix of silent tables.
  */
 function tryParseTable(
   lines: string[],
   i: number,
-  ctx: ParseContext,
+  context: ParseContext,
   scope: BlockScope
 ): ParseBlockResult | null {
   const isSilent = /^\s*~\s+/.test(lines[i]);
@@ -578,7 +578,7 @@ function tryParseTable(
 
   const headerCells = splitTableRow(lines[i]);
   const columnCount = headerCells.length;
-  const [headers] = buildMergedRows([headerCells], ctx);
+  const [headers] = buildMergedRows([headerCells], context);
   const alignments = splitTableRow(lines[i + 1]).map(parseAlignment);
 
   const bodyGrid: string[][] = [];
@@ -589,7 +589,7 @@ function tryParseTable(
     bodyGrid.push(cells);
     j++;
   }
-  const rows = buildMergedRows(bodyGrid, ctx);
+  const rows = buildMergedRows(bodyGrid, context);
 
   const node: TableNode = { type: "table", isSilent, headers, alignments, rows };
   return { node, nextIndex: j };
@@ -613,7 +613,7 @@ function startsBlockElement(line: string): boolean {
 function parseParagraph(
   lines: string[],
   i: number,
-  ctx: ParseContext
+  context: ParseContext
 ): ParseBlockResult {
   const textLines: string[] = [];
   let j = i;
@@ -632,7 +632,7 @@ function parseParagraph(
 
   // Join lines with \n so inline parser can emit line_break nodes
   const text = textLines.join("\n");
-  const children = parseInline(text, ctx);
+  const children = parseInline(text, context);
 
   // Strip trailing line_break from paragraph
   while (children.length > 0 && children[children.length - 1].type === "line_break") {
@@ -649,7 +649,7 @@ function parseParagraph(
 
 export function parseBlocks(
   lines: string[],
-  ctx: ParseContext,
+  context: ParseContext,
   scope: BlockScope = "container"
 ): BlockNode[] {
   const nodes: BlockNode[] = [];
@@ -661,7 +661,7 @@ export function parseBlocks(
       continue;
     }
 
-    const container = tryParseContainer(lines, i, ctx, scope);
+    const container = tryParseContainer(lines, i, context, scope);
     if (container) {
       if (container.node) nodes.push(container.node);
       i = container.nextIndex;
@@ -669,13 +669,13 @@ export function parseBlocks(
     }
 
     const result =
-      tryParseHeading(lines, i, ctx) ??
+      tryParseHeading(lines, i, context) ??
       tryParseHorizontalRule(lines, i) ??
       tryParseCodeBlock(lines, i) ??
-      tryParseBlockquote(lines, i, ctx) ??
-      tryParseList(lines, i, ctx) ??
-      tryParseTable(lines, i, ctx, scope) ??
-      parseParagraph(lines, i, ctx);
+      tryParseBlockquote(lines, i, context) ??
+      tryParseList(lines, i, context) ??
+      tryParseTable(lines, i, context, scope) ??
+      parseParagraph(lines, i, context);
 
     nodes.push(result.node);
     i = result.nextIndex;
@@ -697,7 +697,7 @@ export function parseDocument(markdown: string): Document {
   const cleanLines = removeDefinitionLines(lines);
 
   // Build initial parse context (footnote defs parsed inline later)
-  const ctx: ParseContext = {
+  const context: ParseContext = {
     linkDefs,
     footnoteDefs: {},
     definedFootnoteIds: new Set(Object.keys(rawFootnoteDefs)),
@@ -707,17 +707,17 @@ export function parseDocument(markdown: string): Document {
 
   // Parse raw footnote def texts into inline nodes
   for (const [id, text] of Object.entries(rawFootnoteDefs)) {
-    ctx.footnoteDefs[id] = parseInline(text, ctx);
+    context.footnoteDefs[id] = parseInline(text, context);
   }
 
-  const body = parseBlocks(cleanLines, ctx, "document");
+  const body = parseBlocks(cleanLines, context, "document");
 
   return {
-    header: ctx.header,
-    footer: ctx.footer,
+    header: context.header,
+    footer: context.footer,
     body,
     linkDefs,
-    footnoteDefs: ctx.footnoteDefs,
-    warpDefs: ctx.warpDefs,
+    footnoteDefs: context.footnoteDefs,
+    warpDefs: context.warpDefs,
   };
 }
