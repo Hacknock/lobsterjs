@@ -563,16 +563,6 @@ describe("parseDocument", () => {
     expect(doc.body[0].type).toBe("details");
   });
 
-  it.each([
-    [":::note\nhello\n:::"],
-    [":::warp\nno id\n:::"],
-    ["text\n\n:::"],
-    [":::details Title\n:::note\ninner\n:::\nafter\n:::"],
-  ])("renders unrecognized ::: lines in %j as plain text instead of hanging", (md) => {
-    const doc = parseDocument(md);
-    expect(doc.body.length).toBeGreaterThan(0);
-  });
-
   it("closes :::warp with indented :::", () => {
     const md = ":::warp col\n- item\n      :::";
     const doc = parseDocument(md);

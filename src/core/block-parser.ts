@@ -374,7 +374,7 @@ function extractCustomBlocks(
           innerLines.push(l); i++;
         } i++; } // skip :::
       // Recursively extract nested :::warp / :::details from this block's content
-      // so that parseBlocks never sees raw :::xxx lines (which would cause infinite loop)
+      // so they become nodes instead of plain text
       const nestedHeader = extractCustomBlocks(innerLines, ctx);
       Object.assign(warpDefs, nestedHeader.warpDefs);
       let headerChildren = parseBlocks(nestedHeader.remainingLines, ctx);
@@ -406,7 +406,7 @@ function extractCustomBlocks(
           innerLines.push(l); i++;
         } i++; }
       // Recursively extract nested :::warp / :::details from this block's content
-      // so that parseBlocks never sees raw :::xxx lines (which would cause infinite loop)
+      // so they become nodes instead of plain text
       const nestedFooter = extractCustomBlocks(innerLines, ctx);
       Object.assign(warpDefs, nestedFooter.warpDefs);
       let footerChildren = parseBlocks(nestedFooter.remainingLines, ctx);
@@ -445,7 +445,7 @@ function extractCustomBlocks(
         children: [], // filled below
       };
       // Recursively extract nested :::warp / :::details from this block's content
-      // so that parseBlocks never sees raw :::xxx lines (which would cause infinite loop)
+      // so they become nodes instead of plain text
       const nestedWarp = extractCustomBlocks(innerLines, ctx);
       Object.assign(warpDefs, nestedWarp.warpDefs);
       let warpChildren = parseBlocks(nestedWarp.remainingLines, ctx);
@@ -486,7 +486,7 @@ function extractCustomBlocks(
           innerLines.push(l); i++;
         } i++; }
       // Recursively extract nested :::warp / :::details from this block's content
-      // so that parseBlocks never sees raw :::xxx lines (which would cause infinite loop)
+      // so they become nodes instead of plain text
       const nestedExtracted = extractCustomBlocks(innerLines, ctx);
       // Bubble nested warp defs up to parent scope
       Object.assign(warpDefs, nestedExtracted.warpDefs);
@@ -821,6 +821,20 @@ function tryParseTable(
   return { node, nextIndex: j };
 }
 
+function startsBlockElement(line: string): boolean {
+  return (
+    matchHeading(line) !== null ||
+    isHorizontalRule(line) ||
+    matchCodeFence(line) !== null ||
+    line.startsWith(">") ||
+    matchListItem(line) !== null ||
+    /^\s*\|/.test(line) ||
+    /^\s*~\s*\|/.test(line) ||
+    /^:::/.test(line) ||
+    /^__DETAILS_PLACEHOLDER_/.test(line)
+  );
+}
+
 /**
  * Parse a paragraph: lines until blank line or block-level element.
  */
@@ -836,22 +850,9 @@ function parseParagraph(
     const line = lines[j];
     if (isBlankLine(line)) break;
 
-    // Stop if the next line would start a block element.
-    // The first line is always consumed (spec: unrecognized `:::` lines are plain text).
-    if (
-      j > i && (
-      matchHeading(line) ||
-      isHorizontalRule(line) ||
-      matchCodeFence(line) ||
-      line.startsWith(">") ||
-      matchListItem(line) ||
-      /^\s*\|/.test(line) ||
-      /^\s*~\s*\|/.test(line) ||
-      /^:::/.test(line) ||
-      /^__DETAILS_PLACEHOLDER_/.test(line))
-    ) {
-      break;
-    }
+    // Every block parser has already rejected the first line, so it is always
+    // consumed as text (spec: Lobster Extensions — unrecognized `:::` lines).
+    if (j > i && startsBlockElement(line)) break;
 
     textLines.push(line);
     j++;

@@ -232,6 +232,27 @@ describe("toHTML — custom blocks", () => {
     expect(html).toContain("Click to expand");
     expect(html).toContain("Hidden content");
   });
+
+  it.each([
+    [
+      ":::note\nhello\n:::",
+      '<p class="lbs-paragraph">:::note<br>hello</p>\n<p class="lbs-paragraph">:::</p>',
+    ],
+    [
+      ":::warp\nno id\n:::",
+      '<p class="lbs-paragraph">:::warp<br>no id</p>\n<p class="lbs-paragraph">:::</p>',
+    ],
+    [
+      "text\n\n:::",
+      '<p class="lbs-paragraph">text</p>\n<p class="lbs-paragraph">:::</p>',
+    ],
+    [
+      ":::details Title\n:::note\ninner\n:::\nafter\n:::",
+      '<details class="lbs-details">\n<summary class="lbs-summary">Title</summary>\n<p class="lbs-paragraph">:::note<br>inner</p>\n</details>\n<p class="lbs-paragraph">after</p>\n<p class="lbs-paragraph">:::</p>',
+    ],
+  ])("renders unrecognized ::: lines in %j as plain text", (md, expected) => {
+    expect(toHTML(md)).toBe(expected);
+  });
 });
 
 describe("toHTML — footnotes", () => {
