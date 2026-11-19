@@ -1,0 +1,429 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`characterization of toHTML output > renders docs/content.md 1`] = `
+"<header class="lbs-header"><h1 class="lbs-heading-1"><img src="./lobsterjs-light.png" alt="lobster.js" width="48" height="48" class="lbs-image"> lobster.js</h1>
+<p class="lbs-paragraph"><span class="lbs-strong">Design web pages using only Markdown.</span></p>
+<p class="lbs-paragraph">With lobster.js, you can easily create rich static websites using extended Markdown syntax.</p></header>
+<p class="lbs-paragraph">This page itself is rendered by lobster.js<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_2">[2]</a></sup>.</p>
+<hr class="lbs-hr">
+<h2 class="lbs-heading-2">What plain Markdown can&#39;t do</h2>
+<p class="lbs-paragraph">Tasks requiring embedded HTML in standard Markdown can be done with simple extended syntax in lobster.js.<br>Even the 2-column layout below is possible without any HTML.</p>
+<table class="lbs-table lbs-table-silent">
+<thead><tr><th style="text-align:left"><h3 class="lbs-heading-3">Standard Markdown</h3>
+<ul class="lbs-ul lbs-ul-depth-0">
+<li class="lbs-list-item">Multi-column layout → <span class="lbs-strong">not possible</span></li>
+<li class="lbs-list-item">Table cell merging → <span class="lbs-strong">not possible</span></li>
+<li class="lbs-list-item">Collapsible blocks → needs <code class="lbs-code-span">&lt;details&gt;</code> tag</li>
+<li class="lbs-list-item">Page header / footer → needs HTML structure</li>
+<li class="lbs-list-item">Footnotes → parser-dependent, often unsupported</li>
+</ul></th><th style="text-align:left"><h3 class="lbs-heading-3">lobster.js</h3>
+<ul class="lbs-ul lbs-ul-depth-0">
+<li class="lbs-list-item">Multi-column → <code class="lbs-code-span">:::warp</code> + silent table</li>
+<li class="lbs-list-item">Cell merging → <code class="lbs-code-span">&lt;&lt;</code> (horizontal) / <code class="lbs-code-span">^^</code> (vertical)</li>
+<li class="lbs-list-item">Collapsible → <code class="lbs-code-span">:::details Title</code></li>
+<li class="lbs-list-item">Header / footer → <code class="lbs-code-span">:::header</code> / <code class="lbs-code-span">:::footer</code></li>
+<li class="lbs-list-item">Footnotes → <code class="lbs-code-span">[^id]</code> or inline <code class="lbs-code-span">^[text]</code></li>
+</ul></th></tr></thead>
+<tbody>
+
+</tbody>
+</table>
+<hr class="lbs-hr">
+<h2 class="lbs-heading-2">:::warp — multi-column layouts in Markdown</h2>
+<p class="lbs-paragraph">Define a named content block with <code class="lbs-code-span">:::warp id</code>, then place it anywhere using <code class="lbs-code-span">[~id]</code>.<br>Put warp references into a silent table (<code class="lbs-code-span">~ |</code>) and you get a full column layout — no HTML, no CSS required.</p>
+<table class="lbs-table lbs-table-silent">
+<thead><tr><th style="text-align:left"><h3 class="lbs-heading-3">Lightweight</h3>
+<p class="lbs-paragraph">Zero dependencies. ESM bundle is <span class="lbs-strong">26 KB</span> (gzip: 7 KB).</p>
+<p class="lbs-paragraph">One <code class="lbs-code-span">&lt;script type=&quot;module&quot;&gt;</code> line and you&#39;re running.</p></th><th style="text-align:left"><h3 class="lbs-heading-3">AST-first</h3>
+<p class="lbs-paragraph"><code class="lbs-code-span">parseDocument()</code> gives you the full intermediate AST. Build custom renderers or integrate with your own tooling.</p></th></tr></thead>
+<tbody>
+
+</tbody>
+</table>
+<hr class="lbs-hr">
+<h2 class="lbs-heading-2">:::details — collapsible blocks</h2>
+<p class="lbs-paragraph">Standard Markdown requires you to write raw <code class="lbs-code-span">&lt;details&gt;</code> HTML. With lobster.js, just wrap it with <code class="lbs-code-span">:::details</code> and <code class="lbs-code-span">:::</code>.</p>
+<details class="lbs-details">
+<summary class="lbs-summary">Inline syntax cheatsheet (click to expand)</summary>
+<table class="lbs-table lbs-table-silent">
+<thead><tr><th style="text-align:left"><p class="lbs-paragraph"><span class="lbs-strong">Inline syntax</span></p>
+<table class="lbs-table">
+<thead><tr><th style="text-align:left">Syntax</th><th style="text-align:left">Output</th></tr></thead>
+<tbody>
+<tr><td style="text-align:left"><code class="lbs-code-span">**bold**</code></td><td style="text-align:left"><span class="lbs-strong">bold</span></td></tr>
+<tr><td style="text-align:left"><code class="lbs-code-span">*italic*</code></td><td style="text-align:left"><span class="lbs-emphasis">italic</span></td></tr>
+<tr><td style="text-align:left"><code class="lbs-code-span">~~strike~~</code></td><td style="text-align:left"><span class="lbs-strikethrough">strike</span></td></tr>
+<tr><td style="text-align:left"><code class="lbs-code-span">\`code\`</code></td><td style="text-align:left"><code class="lbs-code-span">code</code></td></tr>
+<tr><td style="text-align:left"><code class="lbs-code-span">[text](url)</code></td><td style="text-align:left"><a href="https://github.com/Hacknock/lobsterjs">link</a></td></tr>
+<tr><td style="text-align:left"><code class="lbs-code-span">^[note]</code></td><td style="text-align:left">inline footnote<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_1">[1]</a></sup></td></tr>
+</tbody>
+</table></th><th style="text-align:left"><p class="lbs-paragraph"><span class="lbs-strong">Block syntax</span></p>
+<blockquote class="lbs-blockquote"><p class="lbs-paragraph">Blockquote</p>
+<blockquote class="lbs-blockquote"><p class="lbs-paragraph">Nested blockquote</p></blockquote></blockquote>
+<p class="lbs-paragraph">Checklist:</p>
+<ul class="lbs-ul lbs-ul-depth-0">
+<li class="lbs-list-item"><input type="checkbox" class="lbs-checkbox" checked disabled> Header / footer</li>
+<li class="lbs-list-item"><input type="checkbox" class="lbs-checkbox" checked disabled> Multi-column layout</li>
+<li class="lbs-list-item"><input type="checkbox" class="lbs-checkbox" checked disabled> Collapsible blocks</li>
+<li class="lbs-list-item"><input type="checkbox" class="lbs-checkbox" checked disabled> Cell-merging tables</li>
+</ul></th></tr></thead>
+<tbody>
+
+</tbody>
+</table>
+</details>
+<hr class="lbs-hr">
+<h2 class="lbs-heading-2">Table cell merging</h2>
+<p class="lbs-paragraph">Standard Markdown has no cell-merging spec. lobster.js supports <code class="lbs-code-span">&lt;&lt;</code> (merge with the cell on the left) and <code class="lbs-code-span">^^</code> (merge with the cell above).</p>
+<table class="lbs-table">
+<thead><tr><th style="text-align:left">Category</th><th style="text-align:left">Feature</th><th style="text-align:left">Syntax</th></tr></thead>
+<tbody>
+<tr><td rowspan="3" style="text-align:left">Layout</td><td style="text-align:left">Multi-column layout</td><td style="text-align:left"><code class="lbs-code-span">:::warp</code> + silent table</td></tr>
+<tr><td style="text-align:left">Collapsible block</td><td style="text-align:left"><code class="lbs-code-span">:::details Title</code></td></tr>
+<tr><td style="text-align:left">Header / footer</td><td style="text-align:left"><code class="lbs-code-span">:::header</code> / <code class="lbs-code-span">:::footer</code></td></tr>
+<tr><td rowspan="3" style="text-align:left">Tables</td><td style="text-align:left">Horizontal cell merge</td><td style="text-align:left"><code class="lbs-code-span">&lt;&lt;</code></td></tr>
+<tr><td style="text-align:left">Vertical cell merge</td><td style="text-align:left"><code class="lbs-code-span">^^</code></td></tr>
+<tr><td style="text-align:left">Silent table</td><td style="text-align:left"><code class="lbs-code-span">~ |</code> prefix</td></tr>
+</tbody>
+</table>
+<p class="lbs-paragraph">&quot;Layout&quot; and &quot;Tables&quot; in the left column each span three rows via vertical cell merging.</p>
+<hr class="lbs-hr">
+<h2 class="lbs-heading-2">Quick start</h2>
+<h3 class="lbs-heading-3">Browser</h3>
+<div class="lbs-code-block"><div class="lbs-code-filename">index.html</div><pre data-language="html" data-filename="index.html"><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;!-- starter CSS — swap for your own stylesheet --&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;https://hacknock.github.io/lobsterjs/style.css&quot;&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id=&quot;content&quot;&gt;&lt;/div&gt;
+    &lt;script type=&quot;module&quot;&gt;
+      import { loadMarkdown } from &#39;https://hacknock.github.io/lobsterjs/lobster.js&#39;;
+      loadMarkdown(&#39;./content.md&#39;, document.getElementById(&#39;content&#39;));
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></pre></div>
+<h3 class="lbs-heading-3">Node.js</h3>
+<div class="lbs-code-block"><pre data-language="sh"><code class="language-sh">npm install @hacknock/lobster</code></pre></div>
+<div class="lbs-code-block"><pre data-language="js"><code class="language-js">import { toHTML } from &quot;@hacknock/lobster&quot;;
+const html = toHTML(&quot;# Hello\\n\\nThis is **lobster**.&quot;);</code></pre></div>
+<hr class="lbs-hr">
+<h2 class="lbs-heading-2">Wiki</h2>
+<p class="lbs-paragraph">Want to see lobster.js in action across a wider set of examples?<br>The <span class="lbs-strong"><a href="https://Hacknock.github.io/lobster-wiki/">lobster-wiki</a></span> is a wiki-style site built entirely with lobster.js, covering:</p>
+<ul class="lbs-ul lbs-ul-depth-0">
+<li class="lbs-list-item">Tables, cell merging, and silent layout grids</li>
+<li class="lbs-list-item">Warp-based multi-column layouts</li>
+<li class="lbs-list-item">Image sizing and image+text layouts</li>
+<li class="lbs-list-item">Footnotes, code blocks, and collapsible details</li>
+</ul>
+<hr class="lbs-hr">
+<section class="lbs-footnotes">
+<ol>
+<li id="lbs-fn-__inline_1" class="lbs-footnote-item">[1] Footnotes are collected at the end of the document.</li>
+<li id="lbs-fn-__inline_2" class="lbs-footnote-item">[2] index.html is just 15 lines. Load lobster.js, point it at a Markdown file, and you&#39;re done.</li>
+</ol>
+</section>
+<footer class="lbs-footer"><p class="lbs-paragraph"><a href="https://github.com/Hacknock/lobsterjs">lobster.js on GitHub</a> — MIT License · <a href="https://Hacknock.github.io/lobster-wiki/">Wiki</a></p></footer>"
+`;
+
+exports[`characterization of toHTML output > renders docs/content-ja.md 1`] = `
+"<header class="lbs-header"><h1 class="lbs-heading-1"><img src="./lobsterjs-light.png" alt="lobster.js" width="48" height="48" class="lbs-image"> lobster.js</h1>
+<p class="lbs-paragraph"><span class="lbs-strong">Markdownだけで、Webページを設計しよう。</span></p>
+<p class="lbs-paragraph">lobster.js を使えば拡張Markdown記法で簡単にリッチな静的Webサイトが作れます。</p></header>
+<p class="lbs-paragraph">このページ自体が lobster.js でレンダリングされています<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_2">[2]</a></sup>。</p>
+<hr class="lbs-hr">
+<h2 class="lbs-heading-2">普通の Markdown にできないこと</h2>
+<p class="lbs-paragraph">標準 Markdown では HTML の埋め込みが必要なことが、lobster.js では簡単な拡張Markdown記法で書けます。<br>下の 2 カラムレイアウトも HTML 埋め込み無しで実現できます。</p>
+<table class="lbs-table lbs-table-silent">
+<thead><tr><th style="text-align:left"><h3 class="lbs-heading-3">標準 Markdown</h3>
+<ul class="lbs-ul lbs-ul-depth-0">
+<li class="lbs-list-item">段組レイアウト → <span class="lbs-strong">不可</span></li>
+<li class="lbs-list-item">テーブルセル結合 → <span class="lbs-strong">不可</span></li>
+<li class="lbs-list-item">折りたたみ → <code class="lbs-code-span">&lt;details&gt;</code> タグが必要</li>
+<li class="lbs-list-item">ヘッダー / フッター → HTML 構造が必要</li>
+<li class="lbs-list-item">脚注 → パーサー依存、非対応が多い</li>
+</ul></th><th style="text-align:left"><h3 class="lbs-heading-3">lobster.js</h3>
+<ul class="lbs-ul lbs-ul-depth-0">
+<li class="lbs-list-item">段組 → <code class="lbs-code-span">:::warp</code> + サイレントテーブル</li>
+<li class="lbs-list-item">セル結合 → <code class="lbs-code-span">&lt;&lt;</code>（横）/ <code class="lbs-code-span">^^</code>（縦）</li>
+<li class="lbs-list-item">折りたたみ → <code class="lbs-code-span">:::details タイトル</code></li>
+<li class="lbs-list-item">ヘッダー / フッター → <code class="lbs-code-span">:::header</code> / <code class="lbs-code-span">:::footer</code></li>
+<li class="lbs-list-item">脚注 → <code class="lbs-code-span">[^id]</code> またはインライン <code class="lbs-code-span">^[テキスト]</code></li>
+</ul></th></tr></thead>
+<tbody>
+
+</tbody>
+</table>
+<hr class="lbs-hr">
+<h2 class="lbs-heading-2">:::warp — Markdown で段組レイアウト</h2>
+<p class="lbs-paragraph"><code class="lbs-code-span">:::warp id</code> で名前付きコンテンツブロックを定義し、<code class="lbs-code-span">[~id]</code> でどこにでも配置できます。<br>ワープ参照をサイレントテーブル（<code class="lbs-code-span">~ |</code>）に並べれば、HTML も CSS も書かずに段組が完成します。</p>
+<table class="lbs-table lbs-table-silent">
+<thead><tr><th style="text-align:left"><h3 class="lbs-heading-3">軽量</h3>
+<p class="lbs-paragraph">依存ゼロ。ESM バンドルは <span class="lbs-strong">26 KB</span>（gzip: 7 KB）。</p>
+<p class="lbs-paragraph"><code class="lbs-code-span">&lt;script type=&quot;module&quot;&gt;</code> 1 行で動き始めます。</p></th><th style="text-align:left"><h3 class="lbs-heading-3">AST ファースト</h3>
+<p class="lbs-paragraph"><code class="lbs-code-span">parseDocument()</code> で完全な中間 AST を取得できます。カスタムレンダラーの構築や独自ツールへの統合が可能です。</p></th></tr></thead>
+<tbody>
+
+</tbody>
+</table>
+<hr class="lbs-hr">
+<h2 class="lbs-heading-2">:::details — 折りたたみブロック</h2>
+<p class="lbs-paragraph">標準 Markdown では <code class="lbs-code-span">&lt;details&gt;</code> タグを書く必要があります。lobster.js なら<code class="lbs-code-span">:::details</code>と<code class="lbs-code-span">:::</code>で囲むだけです。</p>
+<details class="lbs-details">
+<summary class="lbs-summary">インライン記法チートシート（クリックで展開）</summary>
+<table class="lbs-table lbs-table-silent">
+<thead><tr><th style="text-align:left"><p class="lbs-paragraph"><span class="lbs-strong">インライン記法</span></p>
+<table class="lbs-table">
+<thead><tr><th style="text-align:left">記法</th><th style="text-align:left">出力</th></tr></thead>
+<tbody>
+<tr><td style="text-align:left"><code class="lbs-code-span">**太字**</code></td><td style="text-align:left"><span class="lbs-strong">太字</span></td></tr>
+<tr><td style="text-align:left"><code class="lbs-code-span">*斜体*</code></td><td style="text-align:left"><span class="lbs-emphasis">斜体</span></td></tr>
+<tr><td style="text-align:left"><code class="lbs-code-span">~~打ち消し~~</code></td><td style="text-align:left"><span class="lbs-strikethrough">打ち消し</span></td></tr>
+<tr><td style="text-align:left"><code class="lbs-code-span">\`コード\`</code></td><td style="text-align:left"><code class="lbs-code-span">コード</code></td></tr>
+<tr><td style="text-align:left"><code class="lbs-code-span">[text](url)</code></td><td style="text-align:left"><a href="https://github.com/Hacknock/lobsterjs">リンク</a></td></tr>
+<tr><td style="text-align:left"><code class="lbs-code-span">^[注]</code></td><td style="text-align:left">インライン脚注<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_1">[1]</a></sup></td></tr>
+</tbody>
+</table></th><th style="text-align:left"><p class="lbs-paragraph"><span class="lbs-strong">ブロック記法</span></p>
+<blockquote class="lbs-blockquote"><p class="lbs-paragraph">引用ブロック</p>
+<blockquote class="lbs-blockquote"><p class="lbs-paragraph">ネストした引用</p></blockquote></blockquote>
+<p class="lbs-paragraph">チェックリスト:</p>
+<ul class="lbs-ul lbs-ul-depth-0">
+<li class="lbs-list-item"><input type="checkbox" class="lbs-checkbox" checked disabled> ヘッダー / フッター</li>
+<li class="lbs-list-item"><input type="checkbox" class="lbs-checkbox" checked disabled> 段組レイアウト</li>
+<li class="lbs-list-item"><input type="checkbox" class="lbs-checkbox" checked disabled> 折りたたみブロック</li>
+<li class="lbs-list-item"><input type="checkbox" class="lbs-checkbox" checked disabled> セル結合テーブル</li>
+</ul></th></tr></thead>
+<tbody>
+
+</tbody>
+</table>
+</details>
+<hr class="lbs-hr">
+<h2 class="lbs-heading-2">テーブルセル結合</h2>
+<p class="lbs-paragraph">標準 Markdown にはセル結合の仕様がありません。lobster.js は <code class="lbs-code-span">&lt;&lt;</code>（左のセルと結合）と <code class="lbs-code-span">^^</code>（上のセルと結合）をサポートします。</p>
+<table class="lbs-table">
+<thead><tr><th style="text-align:left">カテゴリ</th><th style="text-align:left">機能</th><th style="text-align:left">記法</th></tr></thead>
+<tbody>
+<tr><td rowspan="3" style="text-align:left">レイアウト</td><td style="text-align:left">段組レイアウト</td><td style="text-align:left"><code class="lbs-code-span">:::warp</code> + サイレントテーブル</td></tr>
+<tr><td style="text-align:left">折りたたみブロック</td><td style="text-align:left"><code class="lbs-code-span">:::details タイトル</code></td></tr>
+<tr><td style="text-align:left">ヘッダー / フッター</td><td style="text-align:left"><code class="lbs-code-span">:::header</code> / <code class="lbs-code-span">:::footer</code></td></tr>
+<tr><td rowspan="3" style="text-align:left">テーブル</td><td style="text-align:left">横方向セル結合</td><td style="text-align:left"><code class="lbs-code-span">&lt;&lt;</code></td></tr>
+<tr><td style="text-align:left">縦方向セル結合</td><td style="text-align:left"><code class="lbs-code-span">^^</code></td></tr>
+<tr><td style="text-align:left">サイレントテーブル</td><td style="text-align:left"><code class="lbs-code-span">~ |</code> プレフィックス</td></tr>
+</tbody>
+</table>
+<p class="lbs-paragraph">左列の「レイアウト」と「テーブル」はそれぞれ 3 行にわたって縦方向セル結合しています。</p>
+<hr class="lbs-hr">
+<h2 class="lbs-heading-2">クイックスタート</h2>
+<div class="lbs-code-block"><div class="lbs-code-filename">index.html</div><pre data-language="html" data-filename="index.html"><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;!-- スターター CSS — 自分のスタイルシートに差し替えてください --&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;https://hacknock.github.io/lobsterjs/style.css&quot;&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id=&quot;content&quot;&gt;&lt;/div&gt;
+    &lt;script type=&quot;module&quot;&gt;
+      import { loadMarkdown } from &#39;https://hacknock.github.io/lobsterjs/lobster.js&#39;;
+      loadMarkdown(&#39;./content.md&#39;, document.getElementById(&#39;content&#39;));
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></pre></div>
+<hr class="lbs-hr">
+<section class="lbs-footnotes">
+<ol>
+<li id="lbs-fn-__inline_1" class="lbs-footnote-item">[1] 脚注はドキュメント末尾にまとめて出力されます。</li>
+<li id="lbs-fn-__inline_2" class="lbs-footnote-item">[2] index.html はわずか 15 行。lobster.js を読み込み、Markdown ファイルを指定するだけで完成です。</li>
+</ol>
+</section>
+<footer class="lbs-footer"><p class="lbs-paragraph"><a href="https://github.com/Hacknock/lobsterjs">lobster.js on GitHub</a> — MIT License</p></footer>"
+`;
+
+exports[`characterization of toHTML output > renders edge case "# T {#a\\" onclick=\\"x}" 1`] = `"<h1 class="lbs-heading-1" id="a" onclick="x">T</h1>"`;
+
+exports[`characterization of toHTML output > renders edge case ":::details T\\n\`\`\`\\n:::\\n\`\`\`\\n:::" 1`] = `
+"<details class="lbs-details">
+<summary class="lbs-summary">T</summary>
+<div class="lbs-code-block"><pre><code></code></pre></div>
+</details>
+<div class="lbs-code-block"><pre><code>:::</code></pre></div>"
+`;
+
+exports[`characterization of toHTML output > renders edge case ":::details Title\\n:::note\\ninner\\n:::\\nafter\\n:::" 1`] = `
+"<details class="lbs-details">
+<summary class="lbs-summary">Title</summary>
+<p class="lbs-paragraph">:::note<br>inner</p>
+</details>
+<p class="lbs-paragraph">after</p>
+<p class="lbs-paragraph">:::</p>"
+`;
+
+exports[`characterization of toHTML output > renders edge case ":::note\\nhello\\n:::" 1`] = `
+"<p class="lbs-paragraph">:::note<br>hello</p>
+<p class="lbs-paragraph">:::</p>"
+`;
+
+exports[`characterization of toHTML output > renders edge case ":::warp a\\n# Hi\\n:::\\n\\ntext [~a] more" 1`] = `"<p class="lbs-paragraph">text <h1 class="lbs-heading-1">Hi</h1> more</p>"`;
+
+exports[`characterization of toHTML output > renders edge case ":::warp a\\n[~a]\\n:::\\n\\n[~a]" 1`] = `"THROWS RangeError"`;
+
+exports[`characterization of toHTML output > renders edge case ":::warp a\\n[~b]\\n:::\\n\\n:::warp b\\n[~a]\\n:::\\n\\n[~a]" 1`] = `"THROWS RangeError"`;
+
+exports[`characterization of toHTML output > renders edge case ":::warp a\\none\\n:::\\n:::warp a\\ntwo\\n:::\\n\\n[~a]" 1`] = `"<p class="lbs-paragraph"><p class="lbs-paragraph">two</p></p>"`;
+
+exports[`characterization of toHTML output > renders edge case ":::warp\\nno id\\n:::" 1`] = `
+"<p class="lbs-paragraph">:::warp<br>no id</p>
+<p class="lbs-paragraph">:::</p>"
+`;
+
+exports[`characterization of toHTML output > renders edge case "> :::details T\\n> x\\n> :::" 1`] = `
+"<blockquote class="lbs-blockquote"><p class="lbs-paragraph">:::details T<br>x</p>
+<p class="lbs-paragraph">:::</p></blockquote>"
+`;
+
+exports[`characterization of toHTML output > renders edge case "[a][b]" 1`] = `"<p class="lbs-paragraph">[a][b]</p>"`;
+
+exports[`characterization of toHTML output > renders edge case "__DETAILS_PLACEHOLDER_3__\\n\\n:::details T\\nx\\n:::" 1`] = `"THROWS TypeError"`;
+
+exports[`characterization of toHTML output > renders edge case "| a |" 1`] = `"<p class="lbs-paragraph">| a |</p>"`;
+
+exports[`characterization of toHTML output > renders edge case "~ | a |" 1`] = `"<p class="lbs-paragraph">~ | a |</p>"`;
+
+exports[`characterization of toHTML output > renders edge case "- a\\n  :::note" 1`] = `
+"<ul class="lbs-ul lbs-ul-depth-0">
+<li class="lbs-list-item">a :::note</li>
+</ul>"
+`;
+
+exports[`characterization of toHTML output > renders edge case "a[^1]\\n\\n[^1]: one\\n[^2]: two [^3]\\n[^3]: three" 1`] = `
+"<p class="lbs-paragraph">a<sup class="lbs-footnote-ref"><a href="#lbs-fn-1" id="lbs-fnref-1-0">[2]</a></sup></p>
+<section class="lbs-footnotes">
+<ol>
+<li id="lbs-fn-3" class="lbs-footnote-item">[1] three</li>
+<li id="lbs-fn-1" class="lbs-footnote-item">[2] one</li>
+</ol>
+</section>"
+`;
+
+exports[`characterization of toHTML output > renders edge case "a[^x]" 1`] = `
+"<p class="lbs-paragraph">a<sup class="lbs-footnote-ref"><a href="#lbs-fn-x" id="lbs-fnref-x-0">[1]</a></sup></p>
+<section class="lbs-footnotes">
+<ol>
+<li id="lbs-fn-x" class="lbs-footnote-item">[1] </li>
+</ol>
+</section>"
+`;
+
+exports[`characterization of toHTML output > renders edge case "text\\n\\n:::" 1`] = `
+"<p class="lbs-paragraph">text</p>
+<p class="lbs-paragraph">:::</p>"
+`;
+
+exports[`characterization of toHTML output > renders every fenced example in the specification 1`] = `
+[
+  "<p class="lbs-paragraph">Header &gt; Footer &gt;&gt;&gt; Details =&gt;<br>  Blockquote =&gt; List &gt; Heading &gt; Horizontal Rule &gt; Code Block &gt; Silent Table &gt; Table &gt;<br>    Backslash Escape &gt; Image &gt; Inline Footnote &gt; Footnote Ref &gt; Warp Ref &gt; Inline Link &gt; Link &gt;<br>      Code Span &gt; Strong &gt; Emphasis &gt; Strikethrough</p>",
+  "<h1 class="lbs-heading-1">H1</h1>
+<h2 class="lbs-heading-2">H2</h2>
+<h3 class="lbs-heading-3">H3</h3>
+<h4 class="lbs-heading-4">H4</h4>
+<h5 class="lbs-heading-5">H5</h5>
+<h6 class="lbs-heading-6">H6</h6>",
+  "<h2 class="lbs-heading-2" id="my-section">My Section</h2>",
+  "<p class="lbs-paragraph">&lt;h1 class=&quot;lbs-heading-1&quot;&gt;…&lt;/h1&gt;<br>&lt;!-- through --&gt;<br>&lt;h6 class=&quot;lbs-heading-6&quot;&gt;…&lt;/h6&gt;</p>
+<p class="lbs-paragraph">&lt;!-- with anchor id --&gt;<br>&lt;h2 class=&quot;lbs-heading-2&quot; id=&quot;my-section&quot;&gt;My Section&lt;/h2&gt;</p>",
+  "<p class="lbs-paragraph">&lt;p class=&quot;lbs-paragraph&quot;&gt;…&lt;/p&gt;</p>",
+  "<hr class="lbs-hr">
+<hr class="lbs-hr">
+<hr class="lbs-hr">
+<hr class="lbs-hr">",
+  "<p class="lbs-paragraph">&lt;hr class=&quot;lbs-hr&quot;&gt;</p>",
+  "<div class="lbs-code-block"><div class="lbs-code-filename">filename.js</div><pre data-language="js" data-filename="filename.js"><code class="language-js">console.log(&quot;Hello&quot;);</code></pre></div>",
+  "<p class="lbs-paragraph">&lt;div class=&quot;lbs-code-block&quot;&gt;<br>  &lt;div class=&quot;lbs-code-filename&quot;&gt;filename.js&lt;/div&gt;  &lt;!-- omitted if no filename --&gt;<br>  &lt;pre data-language=&quot;js&quot; data-filename=&quot;filename.js&quot;&gt;&lt;code&gt;…&lt;/code&gt;&lt;/pre&gt;<br>&lt;/div&gt;</p>",
+  "<blockquote class="lbs-blockquote"><p class="lbs-paragraph">Outer</p>
+<blockquote class="lbs-blockquote"><p class="lbs-paragraph">Inner</p></blockquote></blockquote>",
+  "<p class="lbs-paragraph">&lt;blockquote class=&quot;lbs-blockquote&quot;&gt;…&lt;/blockquote&gt;</p>",
+  "<ul class="lbs-ul lbs-ul-depth-0">
+<li class="lbs-list-item">Item</li>
+<li class="lbs-list-item">Item
+<ul class="lbs-ul lbs-ul-depth-2">
+<li class="lbs-list-item">Nested item</li>
+</ul></li>
+</ul>",
+  "<p class="lbs-paragraph">&lt;ul class=&quot;lbs-ul lbs-ul-depth-0&quot;&gt;<br>  &lt;li class=&quot;lbs-list-item&quot;&gt;…&lt;/li&gt;<br>&lt;/ul&gt;</p>",
+  "<ol class="lbs-ol lbs-ol-depth-0">
+<li class="lbs-list-item">First</li>
+<li class="lbs-list-item">Second
+<ol class="lbs-ol lbs-ol-depth-3">
+<li class="lbs-list-item">Nested</li>
+</ol></li>
+</ol>",
+  "<p class="lbs-paragraph">&lt;ol class=&quot;lbs-ol lbs-ol-depth-0&quot; start=&quot;1&quot;&gt;<br>  &lt;li class=&quot;lbs-list-item&quot;&gt;…&lt;/li&gt;<br>&lt;/ol&gt;</p>",
+  "<ul class="lbs-ul lbs-ul-depth-0">
+<li class="lbs-list-item"><input type="checkbox" class="lbs-checkbox" disabled> Unchecked</li>
+<li class="lbs-list-item"><input type="checkbox" class="lbs-checkbox" checked disabled> Checked</li>
+<li class="lbs-list-item"><input type="checkbox" class="lbs-checkbox" checked disabled> Also checked</li>
+</ul>",
+  "<p class="lbs-paragraph">&lt;li class=&quot;lbs-list-item&quot;&gt;<br>  &lt;input type=&quot;checkbox&quot; class=&quot;lbs-checkbox&quot; disabled&gt; …<br>  &lt;!-- &quot;checked&quot; attribute added for [x]/[X] --&gt;<br>&lt;/li&gt;</p>",
+  "<table class="lbs-table">
+<thead><tr><th>Name</th><th>Age</th></tr></thead>
+<tbody>
+<tr><td>Alice</td><td>30</td></tr>
+</tbody>
+</table>",
+  "<table class="lbs-table">
+<thead><tr><th style="text-align:left">Time</th><th style="text-align:left">Mon</th><th style="text-align:left">Tue</th><th style="text-align:left">Wed</th></tr></thead>
+<tbody>
+<tr><td style="text-align:left">1st</td><td rowspan="2" style="text-align:left">Math</td><td colspan="2" style="text-align:left">English</td></tr>
+<tr><td style="text-align:left">2nd</td><td style="text-align:left">Japanese</td><td style="text-align:left">Science</td></tr>
+<tr><td style="text-align:left">3rd</td><td colspan="3" style="text-align:left">Assembly</td></tr>
+</tbody>
+</table>",
+  "<p class="lbs-paragraph">&lt;table class=&quot;lbs-table&quot;&gt;<br>  &lt;thead&gt;&lt;tr&gt;&lt;th&gt;…&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;<br>  &lt;tbody&gt;&lt;tr&gt;&lt;td&gt;…&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;<br>&lt;/table&gt;</p>",
+  "<p class="lbs-paragraph">*not emphasis*<br># not a heading<br>1. not a list</p>",
+  "<p class="lbs-paragraph"><a href="url" title="title">text</a>         ← reference</p>",
+  "<p class="lbs-paragraph">&lt;img src=&quot;url&quot; alt=&quot;alt&quot; title=&quot;title&quot; width=&quot;800&quot; height=&quot;600&quot; class=&quot;lbs-image&quot;&gt;</p>",
+  "<p class="lbs-paragraph"><sup class="lbs-footnote-ref"><a href="#lbs-fn-id" id="lbs-fnref-id-0">[1]</a></sup>              ← reference (inline)</p>
+<section class="lbs-footnotes">
+<ol>
+<li id="lbs-fn-id" class="lbs-footnote-item">[1] text        ← definition (anywhere in document)</li>
+</ol>
+</section>",
+  "<p class="lbs-paragraph">&lt;sup class=&quot;lbs-footnote-ref&quot;&gt;&lt;a href=&quot;#lbs-fn-id&quot;&gt;[1]&lt;/a&gt;&lt;/sup&gt;</p>",
+  "<p class="lbs-paragraph">&lt;section class=&quot;lbs-footnotes&quot;&gt;<br>  &lt;ol&gt;<br>    &lt;li id=&quot;lbs-fn-id&quot; class=&quot;lbs-footnote-item&quot;&gt;[1] …&lt;/li&gt;<br>  &lt;/ol&gt;<br>&lt;/section&gt;</p>",
+  "<header class="lbs-header"><p class="lbs-paragraph">content</p></header>",
+  "<p class="lbs-paragraph">&lt;header class=&quot;lbs-header&quot;&gt;…&lt;/header&gt;</p>",
+  "<footer class="lbs-footer"><p class="lbs-paragraph">content</p></footer>",
+  "<p class="lbs-paragraph">&lt;footer class=&quot;lbs-footer&quot;&gt;…&lt;/footer&gt;</p>",
+  "<details class="lbs-details">
+<summary class="lbs-summary">Summary title</summary>
+<p class="lbs-paragraph">content</p>
+</details>",
+  "<p class="lbs-paragraph">&lt;details class=&quot;lbs-details&quot;&gt;<br>  &lt;summary class=&quot;lbs-summary&quot;&gt;Summary title&lt;/summary&gt;<br>  …<br>&lt;/details&gt;</p>",
+  "",
+  "<table class="lbs-table lbs-table-silent">
+<thead><tr><th style="text-align:left"><p class="lbs-paragraph">Left column content</p></th><th style="text-align:left"><p class="lbs-paragraph">Right column content</p></th></tr></thead>
+<tbody>
+
+</tbody>
+</table>",
+  "<table class="lbs-table lbs-table-silent">
+<thead><tr><th style="text-align:left">left</th><th style="text-align:left">right</th></tr></thead>
+<tbody>
+<tr><td style="text-align:left"><p class="lbs-paragraph">Left column content</p></td><td style="text-align:left"><p class="lbs-paragraph">Right column content</p></td></tr>
+</tbody>
+</table>",
+  "<table class="lbs-table lbs-table-silent">
+<thead><tr><th>Col1</th><th>Col2</th></tr></thead>
+<tbody>
+<tr><td>A</td><td>B</td></tr>
+</tbody>
+</table>",
+  "<p class="lbs-paragraph">&lt;table class=&quot;lbs-table lbs-table-silent&quot;&gt;…&lt;/table&gt;</p>",
+  "<p class="lbs-paragraph">import { toHTML, parseDocument, renderDocument } from &#39;lobsterjs&#39;;</p>
+<p class="lbs-paragraph">// Convenience: Markdown → HTML string<br>const html = toHTML(markdownString);</p>
+<p class="lbs-paragraph">// Step-by-step (useful for tooling or custom renderers)<br>const doc = parseDocument(markdownString);  // → Document AST<br>const html = renderDocument(doc);           // → HTML string</p>
+<p class="lbs-paragraph">// Browser: fetch and render a Markdown file into a DOM element<br>import { loadMarkdown } from &#39;lobsterjs&#39;;<br>await loadMarkdown(&#39;./content.md&#39;, document.getElementById(&#39;content&#39;));</p>",
+  "<p class="lbs-paragraph">interface Document {<br>  header?: HeaderContainerNode;<br>  footer?: FooterContainerNode;<br>  body: BlockNode[];<br>  linkDefs: Record&lt;string, LinkDef&gt;;<br>  footnoteDefs: Record&lt;string, InlineNode[]&gt;;<br>  footnoteRefs: string[];<br>  warpDefs: Record&lt;string, WarpDefinitionNode&gt;;<br>}</p>",
+]
+`;
