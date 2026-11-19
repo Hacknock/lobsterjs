@@ -335,6 +335,31 @@ describe("toHTML — footnotes", () => {
     expect(html).toContain("lbs-footnotes");
     expect(html).toContain("Note content");
   });
+
+  it("numbers footnotes referenced only from definitions after the body's footnotes", () => {
+    expect(toHTML("a[^1]\n\n[^1]: one [^2]\n[^2]: two\n[^3]: unused")).toBe(
+      '<p class="lbs-paragraph">a<sup class="lbs-footnote-ref"><a href="#lbs-fn-1" id="lbs-fnref-1-0">[1]</a></sup></p>\n' +
+      '<section class="lbs-footnotes">\n<ol>\n' +
+      '<li id="lbs-fn-1" class="lbs-footnote-item">[1] one <sup class="lbs-footnote-ref"><a href="#lbs-fn-2" id="lbs-fnref-2-0">[2]</a></sup></li>\n' +
+      '<li id="lbs-fn-2" class="lbs-footnote-item">[2] two</li>\n' +
+      "</ol>\n</section>"
+    );
+  });
+
+  it("lists footer footnotes before the footer", () => {
+    expect(toHTML(":::footer\nf[^a]\n:::\n\nbody[^b]\n\n[^a]: A\n[^b]: B")).toBe(
+      '<p class="lbs-paragraph">body<sup class="lbs-footnote-ref"><a href="#lbs-fn-b" id="lbs-fnref-b-0">[1]</a></sup></p>\n' +
+      '<section class="lbs-footnotes">\n<ol>\n' +
+      '<li id="lbs-fn-b" class="lbs-footnote-item">[1] B</li>\n' +
+      '<li id="lbs-fn-a" class="lbs-footnote-item">[2] A</li>\n' +
+      "</ol>\n</section>\n" +
+      '<footer class="lbs-footer"><p class="lbs-paragraph">f<sup class="lbs-footnote-ref"><a href="#lbs-fn-a" id="lbs-fnref-a-0">[2]</a></sup></p></footer>'
+    );
+  });
+
+  it("renders a reference without a definition as plain text", () => {
+    expect(toHTML("a[^x]")).toBe('<p class="lbs-paragraph">a[^x]</p>');
+  });
 });
 
 describe("toHTML — backslash escapes and delimiter boundaries", () => {

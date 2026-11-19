@@ -16,17 +16,6 @@ import type {
   FooterContainerNode,
   DetailsNode,
   WarpDefinitionNode,
-  TextNode,
-  EmphasisNode,
-  StrongNode,
-  StrikethroughNode,
-  CodeSpanNode,
-  InlineLinkNode,
-  LinkNode,
-  ImageNode,
-  FootnoteRefNode,
-  InlineFootnoteNode,
-  WarpRefNode,
 } from "../../core/types.js";
 
 // ============================================================
@@ -43,101 +32,81 @@ function escapeHtml(text: string): string {
 }
 
 // ============================================================
+// Render context
+// ============================================================
+
+interface RenderContext {
+  footnoteDefs: Record<string, InlineNode[]>;
+  /** spec: Footnotes — ids in the order they are first rendered; the number is the position + 1 */
+  footnoteOrder: string[];
+  /** How many times each footnote has been referenced so far, for `[1:1]` labels */
+  footnoteReferenceCounts: Map<string, number>;
+  warpDefs: Record<string, WarpDefinitionNode>;
+  /** spec: Warp — a reference inside its own expansion renders nothing */
+  expandingWarpIds: Set<string>;
+}
+
+// ============================================================
 // Inline renderer
 // ============================================================
 
 function renderInlineNodes(nodes: InlineNode[], ctx: RenderContext): string {
-  return nodes.map((n) => renderInlineNode(n, ctx)).join("");
+  return nodes.map((node) => renderInlineNode(node, ctx)).join("");
+}
+
+function titleAttribute(title: string | undefined): string {
+  return title ? ` title="${escapeHtml(title)}"` : "";
+}
+
+/**
+ * spec: Footnotes — references are numbered in the order they are rendered.
+ * Repeated references to the same footnote are labelled `[1:1]`, `[1:2]`, …
+ */
+function renderFootnoteReference(id: string, ctx: RenderContext): string {
+  if (!ctx.footnoteOrder.includes(id)) ctx.footnoteOrder.push(id);
+  const number = ctx.footnoteOrder.indexOf(id) + 1;
+  const referenceCount = ctx.footnoteReferenceCounts.get(id) ?? 0;
+  ctx.footnoteReferenceCounts.set(id, referenceCount + 1);
+  const label = referenceCount === 0 ? `[${number}]` : `[${number}:${referenceCount}]`;
+  const escapedId = escapeHtml(id);
+  return `<sup class="lbs-footnote-ref"><a href="#lbs-fn-${escapedId}" id="lbs-fnref-${escapedId}-${referenceCount}">${label}</a></sup>`;
+}
+
+function renderWarpReference(id: string, ctx: RenderContext): string {
+  const warp = ctx.warpDefs[id];
+  if (!warp || ctx.expandingWarpIds.has(id)) return "";
+  ctx.expandingWarpIds.add(id);
+  const html = renderBlockNodes(warp.children, ctx);
+  ctx.expandingWarpIds.delete(id);
+  return html;
 }
 
 function renderInlineNode(node: InlineNode, ctx: RenderContext): string {
   switch (node.type) {
     case "text":
-      return escapeHtml((node as TextNode).text);
-
+      return escapeHtml(node.text);
     case "line_break":
       return "<br>";
-
-    case "emphasis": {
-      const n = node as EmphasisNode;
-      return `<span class="lbs-emphasis">${renderInlineNodes(n.children, ctx)}</span>`;
-    }
-
-    case "strong": {
-      const n = node as StrongNode;
-      return `<span class="lbs-strong">${renderInlineNodes(n.children, ctx)}</span>`;
-    }
-
-    case "strikethrough": {
-      const n = node as StrikethroughNode;
-      return `<span class="lbs-strikethrough">${renderInlineNodes(n.children, ctx)}</span>`;
-    }
-
-    case "code_span": {
-      const n = node as CodeSpanNode;
-      return `<code class="lbs-code-span">${escapeHtml(n.code)}</code>`;
-    }
-
-    case "inline_link": {
-      const n = node as InlineLinkNode;
-      const title = n.title ? ` title="${escapeHtml(n.title)}"` : "";
-      return `<a href="${escapeHtml(n.href)}"${title}>${renderInlineNodes(n.text, ctx)}</a>`;
-    }
-
-    case "link": {
-      const n = node as LinkNode;
-      const title = n.title ? ` title="${escapeHtml(n.title)}"` : "";
-      return `<a href="${escapeHtml(n.href)}"${title}>${renderInlineNodes(n.text, ctx)}</a>`;
-    }
-
+    case "emphasis":
+      return `<span class="lbs-emphasis">${renderInlineNodes(node.children, ctx)}</span>`;
+    case "strong":
+      return `<span class="lbs-strong">${renderInlineNodes(node.children, ctx)}</span>`;
+    case "strikethrough":
+      return `<span class="lbs-strikethrough">${renderInlineNodes(node.children, ctx)}</span>`;
+    case "code_span":
+      return `<code class="lbs-code-span">${escapeHtml(node.code)}</code>`;
+    case "link":
+      return `<a href="${escapeHtml(node.href)}"${titleAttribute(node.title)}>${renderInlineNodes(node.text, ctx)}</a>`;
     case "image": {
-      const n = node as ImageNode;
-      const title = n.title ? ` title="${escapeHtml(n.title)}"` : "";
-      const width = n.width ? ` width="${n.width}"` : "";
-      const height = n.height ? ` height="${n.height}"` : "";
-      return `<img src="${escapeHtml(n.src)}" alt="${escapeHtml(n.alt)}"${title}${width}${height} class="lbs-image">`;
+      const width = node.width ? ` width="${node.width}"` : "";
+      const height = node.height ? ` height="${node.height}"` : "";
+      return `<img src="${escapeHtml(node.src)}" alt="${escapeHtml(node.alt)}"${titleAttribute(node.title)}${width}${height} class="lbs-image">`;
     }
-
-    case "footnote_ref": {
-      const n = node as FootnoteRefNode;
-      const idx = ctx.footnoteRefs.indexOf(n.id);
-      const num = idx + 1;
-      const refCount = ctx.footnoteRefCount[n.id] ?? 0;
-      ctx.footnoteRefCount[n.id] = refCount + 1;
-      const suffix = refCount === 0 ? "" : `:${refCount}`;
-      const label = `[${num}${suffix}]`;
-      return `<sup class="lbs-footnote-ref"><a href="#lbs-fn-${escapeHtml(n.id)}" id="lbs-fnref-${escapeHtml(n.id)}-${refCount}">${label}</a></sup>`;
-    }
-
-    case "inline_footnote": {
-      const n = node as InlineFootnoteNode;
-      // The id was already registered in ctx.footnoteRefs during parsing
-      // Find the id by matching children (they're stored in footnoteDefs)
-      // We use the order from footnoteRefs for inline footnotes
-      const id = ctx.footnoteRefs.find((r) =>
-        r.startsWith("__inline_") && ctx.footnoteDefs[r] === n.children
-      );
-      if (!id) {
-        // Fallback: just render the content
-        return renderInlineNodes(n.children, ctx);
-      }
-      const idx = ctx.footnoteRefs.indexOf(id);
-      const num = idx + 1;
-      return `<sup class="lbs-footnote-ref"><a href="#lbs-fn-${escapeHtml(id)}">[${num}]</a></sup>`;
-    }
-
-    case "warp_ref": {
-      const n = node as WarpRefNode;
-      const warp = ctx.warpDefs[n.id];
-      if (!warp || ctx.expandingWarpIds.has(n.id)) return "";
-      ctx.expandingWarpIds.add(n.id);
-      const html = renderBlockNodes(warp.children, ctx);
-      ctx.expandingWarpIds.delete(n.id);
-      return html;
-    }
-
-    default:
-      return "";
+    case "footnote_ref":
+    case "inline_footnote":
+      return renderFootnoteReference(node.id, ctx);
+    case "warp_ref":
+      return renderWarpReference(node.id, ctx);
   }
 }
 
@@ -145,41 +114,30 @@ function renderInlineNode(node: InlineNode, ctx: RenderContext): string {
 // Block renderer
 // ============================================================
 
-interface RenderContext {
-  footnoteRefs: string[];
-  footnoteRefCount: Record<string, number>;
-  footnoteDefs: Record<string, InlineNode[]>;
-  warpDefs: Record<string, WarpDefinitionNode>;
-  /** spec: Warp — a reference inside its own expansion renders nothing */
-  expandingWarpIds: Set<string>;
-}
-
 function renderBlockNodes(nodes: BlockNode[], ctx: RenderContext): string {
-  return nodes.map((n) => renderBlockNode(n, ctx)).join("\n");
+  return nodes.map((node) => renderBlockNode(node, ctx)).join("\n");
 }
 
 function renderBlockNode(node: BlockNode, ctx: RenderContext): string {
   switch (node.type) {
     case "heading":
-      return renderHeading(node as HeadingNode, ctx);
+      return renderHeading(node, ctx);
     case "paragraph":
-      return renderParagraph(node as ParagraphNode, ctx);
+      return renderParagraph(node, ctx);
     case "horizontal_rule":
       return `<hr class="lbs-hr">`;
     case "code_block":
-      return renderCodeBlock(node as CodeBlockNode);
+      return renderCodeBlock(node);
     case "blockquote":
-      return renderBlockquote(node as BlockquoteNode, ctx);
+      return renderBlockquote(node, ctx);
     case "bullet_list":
-      return renderBulletList(node as BulletListNode, ctx);
+      return renderBulletList(node, ctx);
     case "ordered_list":
-      return renderOrderedList(node as OrderedListNode, ctx);
+      return renderOrderedList(node, ctx);
     case "table":
-      return renderTable(node as TableNode, ctx);
+      return renderTable(node, ctx);
     case "details":
-      return renderDetails(node as DetailsNode, ctx);
-    default:
-      return "";
+      return renderDetails(node, ctx);
   }
 }
 
@@ -322,16 +280,18 @@ function renderDetails(node: DetailsNode, ctx: RenderContext): string {
 // Footnote section
 // ============================================================
 
-function renderFootnotes(doc: Document, ctx: RenderContext): string {
-  if (ctx.footnoteRefs.length === 0) return "";
-
-  const items = ctx.footnoteRefs.map((id, i) => {
-    const num = i + 1;
-    const defNodes = ctx.footnoteDefs[id];
-    const content = defNodes ? renderInlineNodes(defNodes, ctx) : "";
-    return `<li id="lbs-fn-${escapeHtml(id)}" class="lbs-footnote-item">[${num}] ${content}</li>`;
-  });
-
+/**
+ * spec: Footnotes — one entry per referenced footnote, in number order.
+ * References inside a definition are appended while the section renders.
+ */
+function renderFootnotes(ctx: RenderContext): string {
+  const items: string[] = [];
+  for (let index = 0; index < ctx.footnoteOrder.length; index++) {
+    const id = ctx.footnoteOrder[index];
+    const content = renderInlineNodes(ctx.footnoteDefs[id] ?? [], ctx);
+    items.push(`<li id="lbs-fn-${escapeHtml(id)}" class="lbs-footnote-item">[${index + 1}] ${content}</li>`);
+  }
+  if (items.length === 0) return "";
   return `<section class="lbs-footnotes">\n<ol>\n${items.join("\n")}\n</ol>\n</section>`;
 }
 
@@ -341,31 +301,22 @@ function renderFootnotes(doc: Document, ctx: RenderContext): string {
 
 /**
  * Converts a parsed Document AST into an HTML string.
+ * spec: Footer — the footer is placed after the footnote section, but it is
+ * rendered before it so that its footnotes are numbered and listed.
  */
 export function renderDocument(doc: Document): string {
   const ctx: RenderContext = {
-    footnoteRefs: doc.footnoteRefs,
-    footnoteRefCount: {},
     footnoteDefs: doc.footnoteDefs,
+    footnoteOrder: [],
+    footnoteReferenceCounts: new Map(),
     warpDefs: doc.warpDefs,
     expandingWarpIds: new Set(),
   };
 
-  const parts: string[] = [];
+  const header = doc.header ? renderHeaderContainer(doc.header, ctx) : "";
+  const body = renderBlockNodes(doc.body, ctx);
+  const footer = doc.footer ? renderFooterContainer(doc.footer, ctx) : "";
+  const footnotes = renderFootnotes(ctx);
 
-  if (doc.header) {
-    parts.push(renderHeaderContainer(doc.header, ctx));
-  }
-
-  parts.push(renderBlockNodes(doc.body, ctx));
-
-  if (doc.footnoteRefs.length > 0) {
-    parts.push(renderFootnotes(doc, ctx));
-  }
-
-  if (doc.footer) {
-    parts.push(renderFooterContainer(doc.footer, ctx));
-  }
-
-  return parts.filter(Boolean).join("\n");
+  return [header, body, footnotes, footer].filter(Boolean).join("\n");
 }

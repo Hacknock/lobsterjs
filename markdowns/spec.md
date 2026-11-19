@@ -434,14 +434,16 @@ When the opening delimiter is two or more backticks, one leading and one trailin
 ```
 
 - No spaces inside `[^id]` or `[^id]:`.
+- Footnotes are numbered in the order their first reference appears on the page: the header, the body (a warp counts where it is referenced), then the footer. References inside footnote definitions are numbered after those.
 - Multiple references to the same footnote are numbered `[1]`, `[1:1]`, `[1:2]`, …
+- A reference without a matching definition is plain text.
 - Definition lines are **not** rendered as content.
-- Definitions are rendered as a footnote section at the bottom of the document.
+- Only referenced footnotes are rendered, as a footnote section after the body and before the footer.
 
 **HTML output (reference):**
 
 ```html
-<sup class="lbs-footnote-ref"><a href="#lbs-fn-id">[1]</a></sup>
+<sup class="lbs-footnote-ref"><a href="#lbs-fn-id" id="lbs-fnref-id-0">[1]</a></sup>
 ```
 
 **HTML output (footnote section):**

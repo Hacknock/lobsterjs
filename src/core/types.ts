@@ -31,15 +31,7 @@ export interface CodeSpanNode {
   code: string;
 }
 
-/** Inline link: [text](url "title") */
-export interface InlineLinkNode {
-  type: "inline_link";
-  text: InlineNode[];
-  href: string;
-  title?: string;
-}
-
-/** Reference link: [text][id] or [text][] */
+/** Inline link [text](url "title"), reference link [text][id], or implicit link [text] */
 export interface LinkNode {
   type: "link";
   text: InlineNode[];
@@ -63,10 +55,10 @@ export interface FootnoteRefNode {
   id: string;
 }
 
-/** Inline footnote: ^[text] */
+/** Inline footnote: ^[text] — its content is stored in footnoteDefs under `id` */
 export interface InlineFootnoteNode {
   type: "inline_footnote";
-  children: InlineNode[];
+  id: string;
 }
 
 /** Warp reference used inside silent table cells: [~id] */
@@ -85,7 +77,6 @@ export type InlineNode =
   | StrongNode
   | StrikethroughNode
   | CodeSpanNode
-  | InlineLinkNode
   | LinkNode
   | ImageNode
   | FootnoteRefNode
@@ -220,8 +211,6 @@ export interface Document {
   body: BlockNode[];
   linkDefs: Record<string, LinkDef>;
   footnoteDefs: Record<string, InlineNode[]>;
-  /** Ordered list of footnote IDs in the order they're first referenced */
-  footnoteRefs: string[];
   warpDefs: Record<string, WarpDefinitionNode>;
 }
 
@@ -232,9 +221,9 @@ export interface Document {
 export interface ParseContext {
   linkDefs: Record<string, LinkDef>;
   footnoteDefs: Record<string, InlineNode[]>;
+  /** spec: Footnotes — a `[^id]` without a definition is plain text */
+  definedFootnoteIds: Set<string>;
   warpDefs: Record<string, WarpDefinitionNode>;
-  /** Mutated during inline parsing to record footnote reference order */
-  footnoteRefs: string[];
   /** Counter for anonymous inline footnotes */
   inlineFootnoteCount: number;
   /** spec: Header — the last top-level `:::header` wins */

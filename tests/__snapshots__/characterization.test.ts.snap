@@ -4,7 +4,7 @@ exports[`characterization of toHTML output > renders docs/content.md 1`] = `
 "<header class="lbs-header"><h1 class="lbs-heading-1"><img src="./lobsterjs-light.png" alt="lobster.js" width="48" height="48" class="lbs-image"> lobster.js</h1>
 <p class="lbs-paragraph"><span class="lbs-strong">Design web pages using only Markdown.</span></p>
 <p class="lbs-paragraph">With lobster.js, you can easily create rich static websites using extended Markdown syntax.</p></header>
-<p class="lbs-paragraph">This page itself is rendered by lobster.js<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_1">[1]</a></sup>.</p>
+<p class="lbs-paragraph">This page itself is rendered by lobster.js<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_1" id="lbs-fnref-__inline_1-0">[1]</a></sup>.</p>
 <hr class="lbs-hr">
 <h2 class="lbs-heading-2">What plain Markdown can&#39;t do</h2>
 <p class="lbs-paragraph">Tasks requiring embedded HTML in standard Markdown can be done with simple extended syntax in lobster.js.<br>Even the 2-column layout below is possible without any HTML.</p>
@@ -55,7 +55,7 @@ exports[`characterization of toHTML output > renders docs/content.md 1`] = `
 <tr><td style="text-align:left"><code class="lbs-code-span">~~strike~~</code></td><td style="text-align:left"><span class="lbs-strikethrough">strike</span></td></tr>
 <tr><td style="text-align:left"><code class="lbs-code-span">\`code\`</code></td><td style="text-align:left"><code class="lbs-code-span">code</code></td></tr>
 <tr><td style="text-align:left"><code class="lbs-code-span">[text](url)</code></td><td style="text-align:left"><a href="https://github.com/Hacknock/lobsterjs">link</a></td></tr>
-<tr><td style="text-align:left"><code class="lbs-code-span">^[note]</code></td><td style="text-align:left">inline footnote<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_2">[2]</a></sup></td></tr>
+<tr><td style="text-align:left"><code class="lbs-code-span">^[note]</code></td><td style="text-align:left">inline footnote<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_2" id="lbs-fnref-__inline_2-0">[2]</a></sup></td></tr>
 </tbody>
 </table></th><th style="text-align:left"><p class="lbs-paragraph"><span class="lbs-strong">Block syntax</span></p>
 <blockquote class="lbs-blockquote"><p class="lbs-paragraph">Blockquote</p>
@@ -131,7 +131,7 @@ exports[`characterization of toHTML output > renders docs/content-ja.md 1`] = `
 "<header class="lbs-header"><h1 class="lbs-heading-1"><img src="./lobsterjs-light.png" alt="lobster.js" width="48" height="48" class="lbs-image"> lobster.js</h1>
 <p class="lbs-paragraph"><span class="lbs-strong">Markdownだけで、Webページを設計しよう。</span></p>
 <p class="lbs-paragraph">lobster.js を使えば拡張Markdown記法で簡単にリッチな静的Webサイトが作れます。</p></header>
-<p class="lbs-paragraph">このページ自体が lobster.js でレンダリングされています<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_1">[1]</a></sup>。</p>
+<p class="lbs-paragraph">このページ自体が lobster.js でレンダリングされています<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_1" id="lbs-fnref-__inline_1-0">[1]</a></sup>。</p>
 <hr class="lbs-hr">
 <h2 class="lbs-heading-2">普通の Markdown にできないこと</h2>
 <p class="lbs-paragraph">標準 Markdown では HTML の埋め込みが必要なことが、lobster.js では簡単な拡張Markdown記法で書けます。<br>下の 2 カラムレイアウトも HTML 埋め込み無しで実現できます。</p>
@@ -182,7 +182,7 @@ exports[`characterization of toHTML output > renders docs/content-ja.md 1`] = `
 <tr><td style="text-align:left"><code class="lbs-code-span">~~打ち消し~~</code></td><td style="text-align:left"><span class="lbs-strikethrough">打ち消し</span></td></tr>
 <tr><td style="text-align:left"><code class="lbs-code-span">\`コード\`</code></td><td style="text-align:left"><code class="lbs-code-span">コード</code></td></tr>
 <tr><td style="text-align:left"><code class="lbs-code-span">[text](url)</code></td><td style="text-align:left"><a href="https://github.com/Hacknock/lobsterjs">リンク</a></td></tr>
-<tr><td style="text-align:left"><code class="lbs-code-span">^[注]</code></td><td style="text-align:left">インライン脚注<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_2">[2]</a></sup></td></tr>
+<tr><td style="text-align:left"><code class="lbs-code-span">^[注]</code></td><td style="text-align:left">インライン脚注<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_2" id="lbs-fnref-__inline_2-0">[2]</a></sup></td></tr>
 </tbody>
 </table></th><th style="text-align:left"><p class="lbs-paragraph"><span class="lbs-strong">ブロック記法</span></p>
 <blockquote class="lbs-blockquote"><p class="lbs-paragraph">引用ブロック</p>
@@ -329,23 +329,15 @@ exports[`characterization of toHTML output > renders edge case "- a\\n:::warp x\
 `;
 
 exports[`characterization of toHTML output > renders edge case "a[^1]\\n\\n[^1]: one\\n[^2]: two [^3]\\n[^3]: three" 1`] = `
-"<p class="lbs-paragraph">a<sup class="lbs-footnote-ref"><a href="#lbs-fn-1" id="lbs-fnref-1-0">[2]</a></sup></p>
+"<p class="lbs-paragraph">a<sup class="lbs-footnote-ref"><a href="#lbs-fn-1" id="lbs-fnref-1-0">[1]</a></sup></p>
 <section class="lbs-footnotes">
 <ol>
-<li id="lbs-fn-3" class="lbs-footnote-item">[1] three</li>
-<li id="lbs-fn-1" class="lbs-footnote-item">[2] one</li>
+<li id="lbs-fn-1" class="lbs-footnote-item">[1] one</li>
 </ol>
 </section>"
 `;
 
-exports[`characterization of toHTML output > renders edge case "a[^x]" 1`] = `
-"<p class="lbs-paragraph">a<sup class="lbs-footnote-ref"><a href="#lbs-fn-x" id="lbs-fnref-x-0">[1]</a></sup></p>
-<section class="lbs-footnotes">
-<ol>
-<li id="lbs-fn-x" class="lbs-footnote-item">[1] </li>
-</ol>
-</section>"
-`;
+exports[`characterization of toHTML output > renders edge case "a[^x]" 1`] = `"<p class="lbs-paragraph">a[^x]</p>"`;
 
 exports[`characterization of toHTML output > renders edge case "para1\\n:::warp a\\nx\\n:::\\npara2" 1`] = `
 "<p class="lbs-paragraph">para1</p>
@@ -426,7 +418,7 @@ exports[`characterization of toHTML output > renders every fenced example in the
 <li id="lbs-fn-id" class="lbs-footnote-item">[1] text        ← definition (anywhere in document)</li>
 </ol>
 </section>",
-  "<p class="lbs-paragraph">&lt;sup class=&quot;lbs-footnote-ref&quot;&gt;&lt;a href=&quot;#lbs-fn-id&quot;&gt;[1]&lt;/a&gt;&lt;/sup&gt;</p>",
+  "<p class="lbs-paragraph">&lt;sup class=&quot;lbs-footnote-ref&quot;&gt;&lt;a href=&quot;#lbs-fn-id&quot; id=&quot;lbs-fnref-id-0&quot;&gt;[1]&lt;/a&gt;&lt;/sup&gt;</p>",
   "<p class="lbs-paragraph">&lt;section class=&quot;lbs-footnotes&quot;&gt;<br>  &lt;ol&gt;<br>    &lt;li id=&quot;lbs-fn-id&quot; class=&quot;lbs-footnote-item&quot;&gt;[1] …&lt;/li&gt;<br>  &lt;/ol&gt;<br>&lt;/section&gt;</p>",
   "<header class="lbs-header"><p class="lbs-paragraph">content</p></header>",
   "<p class="lbs-paragraph">&lt;header class=&quot;lbs-header&quot;&gt;…&lt;/header&gt;</p>",

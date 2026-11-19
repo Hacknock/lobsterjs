@@ -5,7 +5,6 @@ import type {
   StrongNode,
   StrikethroughNode,
   CodeSpanNode,
-  InlineLinkNode,
   LinkNode,
   ImageNode,
   FootnoteRefNode,
@@ -258,11 +257,7 @@ function tryMatchCodeSpan(text: string, pos: number): MatchResult | null {
  * Image: ![alt](url "title" =WxH)
  * spec: 画像
  */
-function tryMatchImage(
-  text: string,
-  pos: number,
-  ctx: ParseContext
-): MatchResult | null {
+function tryMatchImage(text: string, pos: number): MatchResult | null {
   if (text[pos] !== "!" || text[pos + 1] !== "[") return null;
 
   const altEnd = findClosingBracket(text, pos + 2);
@@ -277,9 +272,6 @@ function tryMatchImage(
   const { href, title, width, height } = parseImageContent(
     text.slice(altEnd + 2, urlEnd)
   );
-
-  // suppress unused ctx warning — ctx available for future use (e.g. base URL)
-  void ctx;
 
   const node: ImageNode = { type: "image", alt, src: href, title, width, height };
   return { node, end: urlEnd + 1 };
@@ -299,15 +291,11 @@ function tryMatchInlineFootnote(
   const end = findClosingBracket(text, pos + 2);
   if (end === -1) return null;
 
-  const content = text.slice(pos + 2, end);
   ctx.inlineFootnoteCount++;
   const id = `__inline_${ctx.inlineFootnoteCount}`;
-  ctx.footnoteRefs.push(id);
-  const children = parseInline(content, ctx);
-  // Store the parsed content so the renderer can output it
-  ctx.footnoteDefs[id] = children;
+  ctx.footnoteDefs[id] = parseInline(text.slice(pos + 2, end), ctx);
 
-  const node: InlineFootnoteNode = { type: "inline_footnote", children };
+  const node: InlineFootnoteNode = { type: "inline_footnote", id };
   return { node, end: end + 1 };
 }
 
@@ -325,11 +313,7 @@ function tryMatchFootnoteRef(
   const end = text.indexOf("]", pos + 2);
   if (end === -1) return null;
   const id = text.slice(pos + 2, end);
-  if (id.includes(" ")) return null;
-
-  if (!ctx.footnoteRefs.includes(id)) {
-    ctx.footnoteRefs.push(id);
-  }
+  if (id.includes(" ") || !ctx.definedFootnoteIds.has(id)) return null;
 
   const node: FootnoteRefNode = { type: "footnote_ref", id };
   return { node, end: end + 1 };
@@ -373,68 +357,33 @@ function tryMatchBracketExpression(
   const linkText = text.slice(pos + 1, textEnd);
   const afterBracket = textEnd + 1;
 
+  const linkNode = (href: string, title: string | undefined, end: number): MatchResult => {
+    const node: LinkNode = { type: "link", text: parseInline(linkText, ctx), href, title };
+    return { node, end };
+  };
+
   // Inline link: [text](url)
   if (text[afterBracket] === "(") {
     const urlEnd = findClosingParen(text, afterBracket + 1);
     if (urlEnd !== -1) {
-      const { href, title } = parseLinkContent(
-        text.slice(afterBracket + 1, urlEnd)
-      );
-      const node: InlineLinkNode = {
-        type: "inline_link",
-        text: parseInline(linkText, ctx),
-        href,
-        title,
-      };
-      return { node, end: urlEnd + 1 };
+      const { href, title } = parseLinkContent(text.slice(afterBracket + 1, urlEnd));
+      return linkNode(href, title, urlEnd + 1);
     }
   }
 
-  // Reference link: [text][id]
+  // Reference link: [text][id], or [text][] using the text as id
   if (text[afterBracket] === "[") {
     const idEnd = text.indexOf("]", afterBracket + 1);
     if (idEnd !== -1) {
       const id = (text.slice(afterBracket + 1, idEnd).trim() || linkText.trim()).toLowerCase();
-      const def = ctx.linkDefs[id];
-      if (def) {
-        const node: LinkNode = {
-          type: "link",
-          text: parseInline(linkText, ctx),
-          href: def.href,
-          title: def.title,
-        };
-        return { node, end: idEnd + 1 };
-      }
+      const definition = ctx.linkDefs[id];
+      if (definition) return linkNode(definition.href, definition.title, idEnd + 1);
     }
   }
 
-  // Implicit shortcut: [text][]
-  if (text[afterBracket] === "[" && text[afterBracket + 1] === "]") {
-    const id = linkText.trim().toLowerCase();
-    const def = ctx.linkDefs[id];
-    if (def) {
-      const node: LinkNode = {
-        type: "link",
-        text: parseInline(linkText, ctx),
-        href: def.href,
-        title: def.title,
-      };
-      return { node, end: afterBracket + 2 };
-    }
-  }
-
-  // Implicit link (no bracket after): [text] if id matches
-  const implicitId = linkText.trim().toLowerCase();
-  const implicitDef = ctx.linkDefs[implicitId];
-  if (implicitDef) {
-    const node: LinkNode = {
-      type: "link",
-      text: parseInline(linkText, ctx),
-      href: implicitDef.href,
-      title: implicitDef.title,
-    };
-    return { node, end: afterBracket };
-  }
+  // Implicit link: [text] whose text matches a link definition
+  const implicitDefinition = ctx.linkDefs[linkText.trim().toLowerCase()];
+  if (implicitDefinition) return linkNode(implicitDefinition.href, implicitDefinition.title, afterBracket);
 
   return null;
 }
@@ -575,7 +524,7 @@ export function parseInline(text: string, ctx: ParseContext): InlineNode[] {
         continue;
       }
     } else if (ch === "!" && text[pos + 1] === "[") {
-      result = tryMatchImage(text, pos, ctx);
+      result = tryMatchImage(text, pos);
     } else if (ch === "^" && text[pos + 1] === "[") {
       result = tryMatchInlineFootnote(text, pos, ctx);
     } else if (ch === "[") {

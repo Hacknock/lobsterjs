@@ -700,8 +700,8 @@ export function parseDocument(markdown: string): Document {
   const ctx: ParseContext = {
     linkDefs,
     footnoteDefs: {},
+    definedFootnoteIds: new Set(Object.keys(rawFootnoteDefs)),
     warpDefs: {},
-    footnoteRefs: [],
     inlineFootnoteCount: 0,
   };
 
@@ -718,7 +718,6 @@ export function parseDocument(markdown: string): Document {
     body,
     linkDefs,
     footnoteDefs: ctx.footnoteDefs,
-    footnoteRefs: ctx.footnoteRefs,
     warpDefs: ctx.warpDefs,
   };
 }
