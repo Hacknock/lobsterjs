@@ -15,7 +15,7 @@ import type {
   Document,
   ParseContext,
 } from "./types.js";
-import { parseInline, unescapeBackslashes } from "./inline-parser.js";
+import { codeSpanEndOrRunEnd, parseInline, unescapeBackslashes } from "./inline-parser.js";
 
 // ============================================================
 // Helpers
@@ -69,66 +69,39 @@ function stripBlockquotePrefix(lines: string[]): string[] {
   return lines.map((l) => l.replace(/^>\s?/, ""));
 }
 
-/** Returns list item info if line starts a list item */
-function matchListItem(line: string): {
+type ListMarker = "bullet" | "ordered";
+
+interface ListItemMatch {
   indent: number;
-  marker: "bullet" | "ordered";
+  marker: ListMarker;
   start?: number;
   checked?: boolean;
-  textStart: number;
   text: string;
-} | null {
-  // Bullet list
-  const bulletM = line.match(/^(\s*)([-*+])\s+(.*)/);
-  if (bulletM) {
-    const indent = bulletM[1].length;
-    const textStart = indent + 2; // marker + space
-    let text = bulletM[3];
-    let checked: boolean | undefined;
-
-    // Checklist
-    const checkM = text.match(/^\[([ xX])\]\s+(.*)/);
-    if (checkM) {
-      checked = checkM[1] !== " ";
-      text = checkM[2];
-    }
-    return { indent, marker: "bullet", checked, textStart, text };
-  }
-
-  // Ordered list (but not `N\.`)
-  const orderedM = line.match(/^(\s*)(\d+)\.\s+(.*)/);
-  if (orderedM) {
-    // Escaped: `N\.` → not a list (handled before calling this)
-    const indent = orderedM[1].length;
-    const start = parseInt(orderedM[2], 10);
-    const textStart = indent + orderedM[2].length + 2;
-    let text = orderedM[3];
-    let checked: boolean | undefined;
-    const checkM = text.match(/^\[([ xX])\]\s+(.*)/);
-    if (checkM) {
-      checked = checkM[1] !== " ";
-      text = checkM[2];
-    }
-    return { indent, marker: "ordered", start, checked, textStart, text };
-  }
-
-  return null;
 }
 
-function codeSpanEnd(text: string, start: number): number {
-  let runLength = 0;
-  while (text[start + runLength] === "`") runLength++;
-  const fence = "`".repeat(runLength);
-  let searchFrom = start + runLength;
-  while (searchFrom < text.length) {
-    const closeIndex = text.indexOf(fence, searchFrom);
-    if (closeIndex === -1) break;
-    let closeLength = 0;
-    while (text[closeIndex + closeLength] === "`") closeLength++;
-    if (closeLength === runLength) return closeIndex + runLength;
-    searchFrom = closeIndex + closeLength;
+/** spec: Checklists — `[ ]` or `[x]` after the list marker */
+function splitChecklistBox(text: string): { checked?: boolean; text: string } {
+  const checkboxMatch = text.match(/^\[([ xX])\]\s+(.*)/);
+  if (!checkboxMatch) return { text };
+  return { checked: checkboxMatch[1] !== " ", text: checkboxMatch[2] };
+}
+
+/** spec: Lists — `-`, `*`, `+` or `N.` followed by a space */
+function matchListItem(line: string): ListItemMatch | null {
+  const bulletMatch = line.match(/^(\s*)[-*+]\s+(.*)/);
+  if (bulletMatch) {
+    return { indent: bulletMatch[1].length, marker: "bullet", ...splitChecklistBox(bulletMatch[2]) };
   }
-  return start + runLength;
+  const orderedMatch = line.match(/^(\s*)(\d+)\.\s+(.*)/);
+  if (orderedMatch) {
+    return {
+      indent: orderedMatch[1].length,
+      marker: "ordered",
+      start: parseInt(orderedMatch[2], 10),
+      ...splitChecklistBox(orderedMatch[3]),
+    };
+  }
+  return null;
 }
 
 /** Parse `| a | b | c |` into cell strings (strips leading/trailing `|`).
@@ -142,7 +115,7 @@ function splitTableRow(line: string): string[] {
     const ch = stripped[i];
     endsWithSeparator = false;
     if (ch === "`") {
-      const end = codeSpanEnd(stripped, i);
+      const end = codeSpanEndOrRunEnd(stripped, i);
       cur += stripped.slice(i, end);
       i = end - 1;
     }
@@ -510,10 +483,6 @@ function tryParseBlockquote(
   return { node, nextIndex: j };
 }
 
-/**
- * Parse a run of list items (bullet or ordered) starting at line i.
- * Returns a BulletListNode or OrderedListNode at depth 0.
- */
 function tryParseList(
   lines: string[],
   i: number,
@@ -521,148 +490,81 @@ function tryParseList(
 ): ParseBlockResult | null {
   const firstItem = matchListItem(lines[i]);
   if (!firstItem) return null;
-
-  return firstItem.marker === "bullet"
-    ? parseBulletList(lines, i, 0, ctx)
-    : parseOrderedList(lines, i, 0, ctx);
-}
-
-function parseBulletList(
-  lines: string[],
-  startI: number,
-  depth: number,
-  ctx: ParseContext
-): ParseBlockResult {
-  const items: ListItemNode[] = [];
-  let i = startI;
-
-  while (i < lines.length) {
-    if (isBlankLine(lines[i])) {
-      i++;
-      continue;
-    }
-
-    const itemInfo = matchListItem(lines[i]);
-    if (!itemInfo || itemInfo.marker !== "bullet") break;
-    if (itemInfo.indent < depth) break;
-
-    // Collect continuation lines and sub-items
-    const textLines: string[] = [itemInfo.text];
-    i++;
-
-    while (i < lines.length) {
-      if (isBlankLine(lines[i])) break;
-      const next = matchListItem(lines[i]);
-      if (next) {
-        if (next.indent > itemInfo.indent) {
-          // Sub-list: will be parsed below
-          break;
-        } else {
-          break;
-        }
-      }
-      // Continuation line: must be indented past the item's text start
-      if (lines[i].match(/^\s/)) {
-        textLines.push(lines[i].trimStart());
-        i++;
-      } else {
-        break;
-      }
-    }
-
-    // Check for sub-list
-    let sublist: BulletListNode | OrderedListNode | undefined;
-    if (i < lines.length) {
-      const next = matchListItem(lines[i]);
-      if (next && next.indent > itemInfo.indent) {
-        const subResult =
-          next.marker === "bullet"
-            ? parseBulletList(lines, i, next.indent, ctx)
-            : parseOrderedList(lines, i, next.indent, ctx);
-        sublist = subResult.node as BulletListNode | OrderedListNode;
-        i = subResult.nextIndex;
-      }
-    }
-
-    items.push({
-      checked: itemInfo.checked,
-      children: parseInline(textLines.join(" "), ctx),
-      sublist,
-    });
-  }
-
-  const node: BulletListNode = { type: "bullet_list", depth, items };
-  return { node, nextIndex: i };
-}
-
-function parseOrderedList(
-  lines: string[],
-  startI: number,
-  depth: number,
-  ctx: ParseContext
-): ParseBlockResult {
-  const items: ListItemNode[] = [];
-  let i = startI;
-  let start = 1;
-  let firstItem = true;
-
-  while (i < lines.length) {
-    if (isBlankLine(lines[i])) {
-      i++;
-      continue;
-    }
-
-    const itemInfo = matchListItem(lines[i]);
-    if (!itemInfo || itemInfo.marker !== "ordered") break;
-    if (itemInfo.indent < depth) break;
-
-    if (firstItem) {
-      start = itemInfo.start ?? 1;
-      firstItem = false;
-    }
-
-    const textLines: string[] = [itemInfo.text];
-    i++;
-
-    while (i < lines.length) {
-      if (isBlankLine(lines[i])) break;
-      const next = matchListItem(lines[i]);
-      if (next) break;
-      if (lines[i].match(/^\s/)) {
-        textLines.push(lines[i].trimStart());
-        i++;
-      } else {
-        break;
-      }
-    }
-
-    let sublist: BulletListNode | OrderedListNode | undefined;
-    if (i < lines.length) {
-      const next = matchListItem(lines[i]);
-      if (next && next.indent > itemInfo.indent) {
-        const subResult =
-          next.marker === "bullet"
-            ? parseBulletList(lines, i, next.indent, ctx)
-            : parseOrderedList(lines, i, next.indent, ctx);
-        sublist = subResult.node as BulletListNode | OrderedListNode;
-        i = subResult.nextIndex;
-      }
-    }
-
-    items.push({
-      checked: itemInfo.checked,
-      children: parseInline(textLines.join(" "), ctx),
-      sublist,
-    });
-  }
-
-  const node: OrderedListNode = { type: "ordered_list", depth, start, items };
-  return { node, nextIndex: i };
+  return parseList(lines, i, 0, firstItem.marker, ctx);
 }
 
 /**
- * Parse table (standard `| ... |` or silent `~ | ... |`).
- * spec: テーブル, サイレントテーブル
+ * spec: Lists — consecutive items with the same marker type form one list.
+ * Indented lines continue the item; a more indented item starts a sublist.
+ */
+function parseList(
+  lines: string[],
+  startIndex: number,
+  depth: number,
+  marker: ListMarker,
+  ctx: ParseContext
+): { node: BulletListNode | OrderedListNode; nextIndex: number } {
+  const items: ListItemNode[] = [];
+  let start = 1;
+  let i = startIndex;
+
+  while (i < lines.length) {
+    if (isBlankLine(lines[i])) {
+      i++;
+      continue;
+    }
+
+    const item = matchListItem(lines[i]);
+    if (!item || item.marker !== marker || item.indent < depth) break;
+    if (items.length === 0) start = item.start ?? 1;
+
+    const textLines: string[] = [item.text];
+    i++;
+    while (i < lines.length && !isBlankLine(lines[i]) && !matchListItem(lines[i]) && /^\s/.test(lines[i])) {
+      textLines.push(lines[i].trimStart());
+      i++;
+    }
+
+    let sublist: BulletListNode | OrderedListNode | undefined;
+    const nextItem = i < lines.length ? matchListItem(lines[i]) : null;
+    if (nextItem && nextItem.indent > item.indent) {
+      const subResult = parseList(lines, i, nextItem.indent, nextItem.marker, ctx);
+      sublist = subResult.node;
+      i = subResult.nextIndex;
+    }
+
+    items.push({
+      checked: item.checked,
+      children: parseInline(textLines.join(" "), ctx),
+      sublist,
+    });
+  }
+
+  const node: BulletListNode | OrderedListNode =
+    marker === "bullet"
+      ? { type: "bullet_list", depth, items }
+      : { type: "ordered_list", depth, start, items };
+  return { node, nextIndex: i };
+}
+
+/** spec: Silent Tables — every row starts with `~` */
+function isSilentTableLine(line: string): boolean {
+  return /^\s*~\s*\|/.test(line) || /^\s*~\s+/.test(line);
+}
+
+/** spec: Tables — a row is any line containing `|` */
+function isTableLine(line: string, isSilent: boolean): boolean {
+  return isSilent ? isSilentTableLine(line) : line.includes("|");
+}
+
+/** spec: Tables — a line that can start a table ends the preceding paragraph */
+function startsWithTablePipe(line: string): boolean {
+  return /^\s*(~\s*)?\|/.test(line);
+}
+
+/**
+ * spec: Tables, Silent Tables — a header row and an alignment row, then body
+ * rows. `splitTableRow` removes the `~` prefix of silent tables.
  */
 function tryParseTable(
   lines: string[],
@@ -670,53 +572,26 @@ function tryParseTable(
   ctx: ParseContext,
   scope: BlockScope
 ): ParseBlockResult | null {
-  const line = lines[i];
-  const isSilent = /^\s*~\s+\|/.test(line) || /^\s*~\s+/.test(line);
+  const isSilent = /^\s*~\s+/.test(lines[i]);
+  if (!isTableLine(lines[i], isSilent)) return null;
+  if (i + 1 >= lines.length || !isAlignmentRow(lines[i + 1])) return null;
 
-  const isTableLine = (l: string): boolean => {
-    if (isSilent) return /^\s*~\s*\|/.test(l) || /^\s*~\s+/.test(l);
-    return /^\s*\|/.test(l) || l.includes("|");
-  };
-
-  if (!isTableLine(line)) return null;
-
-  // We need at least header + alignment rows
-  if (i + 1 >= lines.length) return null;
-  if (!isAlignmentRow(lines[i + 1]) && !(isSilent && isAlignmentRow(lines[i + 1].replace(/^\s*~\s*/, "")))) {
-    return null;
-  }
-
-  // Parse header row
-  const rawHeader = isSilent ? line.replace(/^\s*~\s*/, "") : line;
-  const headerCells = splitTableRow(rawHeader);
+  const headerCells = splitTableRow(lines[i]);
   const columnCount = headerCells.length;
   const [headers] = buildMergedRows([headerCells], ctx);
+  const alignments = splitTableRow(lines[i + 1]).map(parseAlignment);
 
-  // Parse alignment row
-  const rawAlign = isSilent
-    ? lines[i + 1].replace(/^\s*~\s*/, "")
-    : lines[i + 1];
-  const alignments: TableAlignment[] = splitTableRow(rawAlign).map(parseAlignment);
-
-  // Parse data rows: pad short rows and drop cells beyond the header width
   const bodyGrid: string[][] = [];
   let j = i + 2;
-  while (j < lines.length && isTableLine(lines[j]) && !(scope !== "quote" && matchContainerOpener(lines[j]))) {
-    const rawRow = isSilent ? lines[j].replace(/^\s*~\s*/, "") : lines[j];
-    const cells = splitTableRow(rawRow).slice(0, columnCount);
+  while (j < lines.length && isTableLine(lines[j], isSilent) && !(scope !== "quote" && matchContainerOpener(lines[j]))) {
+    const cells = splitTableRow(lines[j]).slice(0, columnCount);
     while (cells.length < columnCount) cells.push("");
     bodyGrid.push(cells);
     j++;
   }
   const rows = buildMergedRows(bodyGrid, ctx);
 
-  const node: TableNode = {
-    type: "table",
-    isSilent,
-    headers,
-    alignments,
-    rows,
-  };
+  const node: TableNode = { type: "table", isSilent, headers, alignments, rows };
   return { node, nextIndex: j };
 }
 
@@ -727,8 +602,7 @@ function startsBlockElement(line: string): boolean {
     matchCodeFence(line) !== null ||
     line.startsWith(">") ||
     matchListItem(line) !== null ||
-    /^\s*\|/.test(line) ||
-    /^\s*~\s*\|/.test(line) ||
+    startsWithTablePipe(line) ||
     /^:::/.test(line)
   );
 }
@@ -779,16 +653,15 @@ export function parseBlocks(
   scope: BlockScope = "container"
 ): BlockNode[] {
   const nodes: BlockNode[] = [];
-  const trimmed = trimTrailingSpaces(lines);
   let i = 0;
 
-  while (i < trimmed.length) {
-    if (isBlankLine(trimmed[i])) {
+  while (i < lines.length) {
+    if (isBlankLine(lines[i])) {
       i++;
       continue;
     }
 
-    const container = tryParseContainer(trimmed, i, ctx, scope);
+    const container = tryParseContainer(lines, i, ctx, scope);
     if (container) {
       if (container.node) nodes.push(container.node);
       i = container.nextIndex;
@@ -796,13 +669,13 @@ export function parseBlocks(
     }
 
     const result =
-      tryParseHeading(trimmed, i, ctx) ??
-      tryParseHorizontalRule(trimmed, i) ??
-      tryParseCodeBlock(trimmed, i) ??
-      tryParseBlockquote(trimmed, i, ctx) ??
-      tryParseList(trimmed, i, ctx) ??
-      tryParseTable(trimmed, i, ctx, scope) ??
-      parseParagraph(trimmed, i, ctx);
+      tryParseHeading(lines, i, ctx) ??
+      tryParseHorizontalRule(lines, i) ??
+      tryParseCodeBlock(lines, i) ??
+      tryParseBlockquote(lines, i, ctx) ??
+      tryParseList(lines, i, ctx) ??
+      tryParseTable(lines, i, ctx, scope) ??
+      parseParagraph(lines, i, ctx);
 
     nodes.push(result.node);
     i = result.nextIndex;

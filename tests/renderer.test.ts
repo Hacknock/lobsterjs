@@ -59,6 +59,16 @@ describe("toHTML — inline decorations", () => {
   });
 });
 
+describe("toHTML — code span backtick runs", () => {
+  it("closes only at a backtick run of the same length", () => {
+    expect(toHTML("``a```b``")).toBe('<p class="lbs-paragraph"><code class="lbs-code-span">a```b</code></p>');
+  });
+
+  it("keeps an unclosed backtick run as literal text", () => {
+    expect(toHTML("x ```a`")).toBe('<p class="lbs-paragraph">x ```a`</p>');
+  });
+});
+
 describe("toHTML — horizontal rule", () => {
   it("--- renders <hr>", () => {
     const html = toHTML("---");

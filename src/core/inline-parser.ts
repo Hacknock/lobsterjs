@@ -205,37 +205,53 @@ function parseImageContent(content: string): {
 // Individual inline matchers
 // ============================================================
 
+function backtickRunLength(text: string, start: number): number {
+  let length = 0;
+  while (text[start + length] === "`") length++;
+  return length;
+}
+
+/**
+ * spec: Code Spans — a code span closes at the next backtick run of exactly
+ * the same length. Returns the index of that closing run, or -1.
+ */
+function findCodeSpanClose(text: string, openStart: number, runLength: number): number {
+  const fence = "`".repeat(runLength);
+  let searchFrom = openStart + runLength;
+  while (searchFrom < text.length) {
+    const closeStart = text.indexOf(fence, searchFrom);
+    if (closeStart === -1) return -1;
+    const closeLength = backtickRunLength(text, closeStart);
+    if (closeLength === runLength) return closeStart;
+    searchFrom = closeStart + closeLength;
+  }
+  return -1;
+}
+
+/**
+ * Returns the end of the code span opening at `start`, or the end of the
+ * backtick run when it is never closed (the run is then literal text).
+ */
+export function codeSpanEndOrRunEnd(text: string, start: number): number {
+  const runLength = backtickRunLength(text, start);
+  const closeStart = findCodeSpanClose(text, start, runLength);
+  return closeStart === -1 ? start + runLength : closeStart + runLength;
+}
+
 /**
  * Code span: `code`, `` `code` `` (n backticks)
- * spec: コードスパン
+ * spec: Code Spans
  */
 function tryMatchCodeSpan(text: string, pos: number): MatchResult | null {
-  if (text[pos] !== "`") return null;
-
-  // Count opening backticks
-  let count = 0;
-  while (pos + count < text.length && text[pos + count] === "`") count++;
-
-  const openStr = "`".repeat(count);
-  const contentStart = pos + count;
-  let searchPos = contentStart;
-
-  while (searchPos < text.length) {
-    const closeIdx = text.indexOf(openStr, searchPos);
-    if (closeIdx === -1) return null;
-    // Make sure it's not n+1 backticks
-    if (text[closeIdx + count] !== "`") {
-      let code = text.slice(contentStart, closeIdx);
-      // Strip one leading/trailing space if count > 1 and both present
-      if (count > 1 && code.startsWith(" ") && code.endsWith(" ")) {
-        code = code.slice(1, -1);
-      }
-      const node: CodeSpanNode = { type: "code_span", code };
-      return { node, end: closeIdx + count };
-    }
-    searchPos = closeIdx + 1;
+  const runLength = backtickRunLength(text, pos);
+  const closeStart = findCodeSpanClose(text, pos, runLength);
+  if (closeStart === -1) return null;
+  let code = text.slice(pos + runLength, closeStart);
+  if (runLength > 1 && code.startsWith(" ") && code.endsWith(" ")) {
+    code = code.slice(1, -1);
   }
-  return null;
+  const node: CodeSpanNode = { type: "code_span", code };
+  return { node, end: closeStart + runLength };
 }
 
 /**
@@ -554,6 +570,10 @@ export function parseInline(text: string, ctx: ParseContext): InlineNode[] {
 
     if (ch === "`") {
       result = tryMatchCodeSpan(text, pos);
+      if (!result) {
+        pos += backtickRunLength(text, pos);
+        continue;
+      }
     } else if (ch === "!" && text[pos + 1] === "[") {
       result = tryMatchImage(text, pos, ctx);
     } else if (ch === "^" && text[pos + 1] === "[") {
