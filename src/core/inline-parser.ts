@@ -291,8 +291,11 @@ function tryMatchInlineFootnote(
   const end = findClosingBracket(text, pos + 2);
   if (end === -1) return null;
 
-  ctx.inlineFootnoteCount++;
-  const id = `__inline_${ctx.inlineFootnoteCount}`;
+  let id: string;
+  do {
+    ctx.inlineFootnoteCount++;
+    id = `__inline_${ctx.inlineFootnoteCount}`;
+  } while (ctx.definedFootnoteIds.has(id));
   ctx.footnoteDefs[id] = parseInline(text.slice(pos + 2, end), ctx);
 
   const node: InlineFootnoteNode = { type: "inline_footnote", id };

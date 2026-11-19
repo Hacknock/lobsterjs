@@ -357,6 +357,15 @@ describe("toHTML — footnotes", () => {
     );
   });
 
+  it("does not let a named footnote replace an inline footnote with the same generated id", () => {
+    expect(toHTML("body^[inner]\n\n[^__inline_1]: named")).toBe(
+      '<p class="lbs-paragraph">body<sup class="lbs-footnote-ref"><a href="#lbs-fn-__inline_2" id="lbs-fnref-__inline_2-0">[1]</a></sup></p>\n' +
+      '<section class="lbs-footnotes">\n<ol>\n' +
+      '<li id="lbs-fn-__inline_2" class="lbs-footnote-item">[1] inner</li>\n' +
+      "</ol>\n</section>"
+    );
+  });
+
   it("renders a reference without a definition as plain text", () => {
     expect(toHTML("a[^x]")).toBe('<p class="lbs-paragraph">a[^x]</p>');
   });
