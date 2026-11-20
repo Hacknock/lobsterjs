@@ -182,6 +182,48 @@ describe("Blockquote", () => {
     );
   });
 
+  it("does not continue a quoted silent table", () => {
+    expect(toHTML("> ~ h\n> ~ -\n> ~ 1\nlazy")).toBe(
+      '<blockquote class="lbs-blockquote"><table class="lbs-table lbs-table-silent">\n<thead><tr><th>h</th></tr></thead>\n' +
+        "<tbody>\n<tr><td>1</td></tr>\n</tbody>\n</table></blockquote>\n" +
+        paragraph("lazy")
+    );
+  });
+
+  it("treats a quoted line that looks like a nested quote as a row of a quoted table", () => {
+    expect(toHTML("> | h |\n> | - |\n> > row | value\nlazy")).toBe(
+      '<blockquote class="lbs-blockquote"><table class="lbs-table">\n<thead><tr><th>h</th></tr></thead>\n' +
+        "<tbody>\n<tr><td>&gt; row</td></tr>\n</tbody>\n</table></blockquote>\n" +
+        paragraph("lazy")
+    );
+  });
+
+  it("treats a quoted line that looks like a fence as a row of a quoted table", () => {
+    expect(toHTML("> | h |\n> | - |\n> ```x | y\n> text\nlazy")).toBe(
+      '<blockquote class="lbs-blockquote"><table class="lbs-table">\n<thead><tr><th>h</th></tr></thead>\n' +
+        "<tbody>\n<tr><td>```x</td></tr>\n</tbody>\n</table>\n" +
+        `${paragraph("text<br>lazy")}</blockquote>`
+    );
+  });
+
+  it("continues a quoted paragraph whose later lines look like a table without a leading pipe", () => {
+    expect(toHTML("> intro\n> a | b\n> --|--\nlazy")).toBe(
+      `<blockquote class="lbs-blockquote">${paragraph("intro<br>a | b<br>--|--<br>lazy")}</blockquote>`
+    );
+  });
+
+  it("continues a quoted paragraph with lines that look like a table without a leading pipe", () => {
+    expect(toHTML("> quote\na | b\n--|--\n1 | 2")).toBe(
+      `<blockquote class="lbs-blockquote">${paragraph("quote<br>a | b<br>--|--<br>1 | 2")}</blockquote>`
+    );
+  });
+
+  it("continues a quoted paragraph that follows a horizontal rule", () => {
+    expect(toHTML("> - - -\n>   text\nlazy")).toBe(
+      `<blockquote class="lbs-blockquote"><hr class="lbs-hr">\n${paragraph("  text<br>lazy")}</blockquote>`
+    );
+  });
+
   it("continues a paragraph after a closed code block in a nested quote", () => {
     expect(toHTML("> > ```\n> > x\n> > ```\n> > code\nlazy")).toBe(
       '<blockquote class="lbs-blockquote"><blockquote class="lbs-blockquote"><div class="lbs-code-block"><pre><code>x</code></pre></div>\n' +

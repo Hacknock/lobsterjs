@@ -461,71 +461,91 @@ function tryParseCodeBlock(
 }
 
 /**
- * spec: Blockquote — what the quoted text ends in, tracked line by line so
- * that a following line without `>` can be checked in constant time.
+ * spec: Blockquote — the block the quoted text ends in, tracked line by line
+ * with the same precedence as `parseBlocks`, so that a following line without
+ * `>` can be checked in constant time.
  */
+type QuotedBlock = "none" | "paragraph" | "list" | "table" | "code" | "quote";
+
 interface QuoteState {
-  paragraphOpen: boolean;
-  openFence: string | null;
-  inList: boolean;
-  inTable: boolean;
-  previousLineHasPipe: boolean;
+  block: QuotedBlock;
+  fenceMarker: string;
+  isSilentTable: boolean;
+  mayBeTableHeader: boolean;
   nestedQuote: QuoteState | null;
 }
 
 function createQuoteState(): QuoteState {
-  return {
-    paragraphOpen: false,
-    openFence: null,
-    inList: false,
-    inTable: false,
-    previousLineHasPipe: false,
-    nestedQuote: null,
-  };
+  return { block: "none", fenceMarker: "", isSilentTable: false, mayBeTableHeader: false, nestedQuote: null };
+}
+
+function endsInOpenParagraph(state: QuoteState): boolean {
+  if (state.block === "quote") return state.nestedQuote !== null && endsInOpenParagraph(state.nestedQuote);
+  return state.block === "paragraph";
 }
 
 /** spec: Blockquote — a line without `>` continues the quote only after an open paragraph */
 function continuesQuotedParagraph(state: QuoteState, line: string): boolean {
-  return state.paragraphOpen && !isBlankLine(line) && !startsBlockElement(line);
+  return endsInOpenParagraph(state) && !isBlankLine(line) && !startsBlockElement(line);
 }
 
 /** Feeds one line of the quote's content (one level of `>` already removed). */
 function advanceQuoteState(state: QuoteState, text: string): void {
-  if (state.openFence !== null) {
-    if (isClosingFence(text, state.openFence)) state.openFence = null;
+  if (!continuesQuotedBlock(state, text)) startQuotedBlock(state, text);
+}
+
+function continuesQuotedBlock(state: QuoteState, text: string): boolean {
+  switch (state.block) {
+    case "none":
+      return false;
+    case "code":
+      if (isClosingFence(text, state.fenceMarker)) state.block = "none";
+      return true;
+    case "table":
+      return isTableLine(text, state.isSilentTable);
+    case "list":
+      return !isBlankLine(text) && (matchListItem(text) !== null || /^\s/.test(text));
+    case "quote": {
+      const nestedQuote = state.nestedQuote;
+      if (nestedQuote === null) return false;
+      if (text.startsWith(">")) {
+        advanceQuoteState(nestedQuote, stripQuotePrefix(text));
+        return true;
+      }
+      if (!continuesQuotedParagraph(nestedQuote, text)) return false;
+      advanceQuoteState(nestedQuote, text);
+      return true;
+    }
+    case "paragraph":
+      if (state.mayBeTableHeader && isAlignmentRow(text)) {
+        state.block = "table";
+        return true;
+      }
+      state.mayBeTableHeader = false;
+      return !isBlankLine(text) && !startsBlockElement(text);
+  }
+}
+
+function startQuotedBlock(state: QuoteState, text: string): void {
+  Object.assign(state, createQuoteState());
+  if (isBlankLine(text) || matchHeading(text) || isHorizontalRule(text)) return;
+  const fence = matchCodeFence(text);
+  if (fence) {
+    Object.assign(state, { block: "code", fenceMarker: fence.marker });
     return;
   }
   if (text.startsWith(">")) {
-    state.nestedQuote ??= createQuoteState();
+    state.block = "quote";
+    state.nestedQuote = createQuoteState();
     advanceQuoteState(state.nestedQuote, stripQuotePrefix(text));
-    Object.assign(state, { inList: false, inTable: false, previousLineHasPipe: false });
-    state.paragraphOpen = state.nestedQuote.paragraphOpen;
     return;
   }
-  if (state.nestedQuote !== null && continuesQuotedParagraph(state.nestedQuote, text)) {
-    advanceQuoteState(state.nestedQuote, text);
+  if (matchListItem(text)) {
+    state.block = "list";
     return;
   }
-  state.nestedQuote = null;
-
-  const fence = isBlankLine(text) ? null : matchCodeFence(text);
-  if (isBlankLine(text) || fence) {
-    Object.assign(state, createQuoteState(), { openFence: fence?.marker ?? null });
-    return;
-  }
-  if (state.inTable && text.includes("|")) return;
-  state.inTable = false;
-  if (state.previousLineHasPipe && isAlignmentRow(text)) {
-    Object.assign(state, { inTable: true, paragraphOpen: false, previousLineHasPipe: false });
-    return;
-  }
-  state.previousLineHasPipe = text.includes("|");
-  if (matchListItem(text) || (state.inList && /^\s/.test(text))) {
-    Object.assign(state, { inList: true, paragraphOpen: false });
-    return;
-  }
-  state.inList = false;
-  state.paragraphOpen = !matchHeading(text) && !isHorizontalRule(text);
+  const isSilentTable = startsSilentTable(text);
+  Object.assign(state, { block: "paragraph", isSilentTable, mayBeTableHeader: isTableLine(text, isSilentTable) });
 }
 
 function tryParseBlockquote(
@@ -630,6 +650,10 @@ function isSilentTableLine(line: string): boolean {
   return /^\s*~\s*\|/.test(line) || /^\s*~\s+/.test(line);
 }
 
+function startsSilentTable(line: string): boolean {
+  return /^\s*~\s+/.test(line);
+}
+
 /** spec: Table — a row is any line containing `|` */
 function isTableLine(line: string, isSilent: boolean): boolean {
   return isSilent ? isSilentTableLine(line) : line.includes("|");
@@ -650,7 +674,7 @@ function tryParseTable(
   context: ParseContext,
   scope: BlockScope
 ): ParseBlockResult | null {
-  const isSilent = /^\s*~\s+/.test(lines[i]);
+  const isSilent = startsSilentTable(lines[i]);
   if (!isTableLine(lines[i], isSilent)) return null;
   if (i + 1 >= lines.length || !isAlignmentRow(lines[i + 1])) return null;
 
