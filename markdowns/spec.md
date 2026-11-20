@@ -125,17 +125,18 @@ console.log("Hello");
 ```
 ````
 
-- Language: any word characters after the fence marker.
-- Filename: follows `:` after the language; may contain any character except `` ` `` and `:`.
+- Language: letters, digits, `_`, `+`, and `-` after the fence marker.
+- Filename: follows `:` after the language; the rest of the line is the filename.
 - Language may be omitted while filename is still specified: ` ````:filename `.
 - Content is treated as plain text (no Markdown parsing).
+- A code block that is never closed runs to the end of the document (or of the `:::` block it is in).
 
 **HTML output:**
 
 ```html
 <div class="lbs-code-block">
   <div class="lbs-code-filename">filename.js</div>  <!-- omitted if no filename -->
-  <pre data-language="js" data-filename="filename.js"><code>…</code></pre>
+  <pre data-language="js" data-filename="filename.js"><code class="language-js">…</code></pre>
 </div>
 ```
 
@@ -143,7 +144,7 @@ console.log("Hello");
 
 ### Blockquote
 
-Lines starting with `>`. Consecutive `>` lines (or continuation lines) without a blank line form one blockquote block. Nesting is achieved by stacking `>`:
+Lines starting with `>`. Consecutive `>` lines form one blockquote block. A following line without `>` continues the quote when it continues a quoted paragraph (not a quoted code block) and does not start another block. Nesting is achieved by stacking `>`:
 
 ```
 > Outer
@@ -174,7 +175,7 @@ Markers: `-`, `*`, `+`
   - Nested item
 ```
 
-Items with more indentation than the parent become sub-items. The nesting depth is tracked per list node.
+An indented line that is not a list item continues the item; it is joined to the item text with a space. Items with more indentation than the parent become sub-items. `lbs-ul-depth-N` / `lbs-ol-depth-N` give the nesting level: 0 at the top, 1 for a sub-list, and so on.
 
 **HTML output:**
 
@@ -194,12 +195,12 @@ Marker: `N.` where N is any integer.
    1. Nested
 ```
 
-`N\.` (backslash-escaped dot) is treated as plain text, not a list marker. The `start` attribute reflects the first item's number.
+`N\.` (backslash-escaped dot) is treated as plain text, not a list marker. The `start` attribute reflects the first item's number and is omitted when it is 1.
 
 **HTML output:**
 
 ```html
-<ol class="lbs-ol lbs-ol-depth-0" start="1">
+<ol class="lbs-ol lbs-ol-depth-0" start="3">
   <li class="lbs-list-item">…</li>
 </ol>
 ```
@@ -467,6 +468,7 @@ When the opening delimiter is two or more backticks, one leading and one trailin
 - No space between `^` and `[`.
 - Behaves identically to a named footnote reference but the definition is written inline.
 - Takes priority over named footnote references (left-to-right).
+- Its id is `__inline_N`, numbered from 1 in document order, skipping any `N` whose id already has a named definition.
 
 **HTML output:** same as footnote reference.
 
@@ -476,7 +478,7 @@ When the opening delimiter is two or more backticks, one leading and one trailin
 
 All custom blocks (`:::header`, `:::footer`, `:::details`, `:::warp`) are closed by a `:::` line. Leading whitespace before `:::` is ignored, so formatter-indented closing markers work correctly.
 
-A `:::` line that does not open or close one of these blocks (for example, an unknown name such as `:::note`, a `:::warp` without an id, or a `:::` with no matching opener) is treated as plain text.
+A `:::` line that does not open or close one of these blocks (for example, an unknown name such as `:::note`, a `:::details` without a title, a `:::warp` without an id, or a `:::` with no matching opener) is treated as plain text.
 
 - A fenced code block inside a `:::` block is skipped when looking for the closing `:::`. If the fence is never closed, the code block ends where the `:::` block ends.
 - The opening line of a `:::` block ends the paragraph, list, or table right before it, even without a blank line.
@@ -564,6 +566,9 @@ content
 
 - Typically used inside silent table cells to create multi-column layouts.
 - A reference to a warp that is already being expanded (for example, a warp that references itself) renders nothing.
+- A reference without a matching definition is plain text.
+- A paragraph that consists of only a warp reference is replaced by the warp's content, without a surrounding `<p>`.
+- A reference in the middle of a paragraph embeds the warp's blocks inside the paragraph, which is not valid HTML. Put the reference on its own line or in a table cell instead.
 
 **Example:**
 

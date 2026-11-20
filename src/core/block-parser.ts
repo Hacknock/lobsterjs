@@ -64,9 +64,8 @@ function isClosingFence(line: string, openingMarker: string): boolean {
   return line.length >= openingMarker.length && line === openingMarker[0].repeat(line.length);
 }
 
-/** Returns the `>` stripped prefix lines for a blockquote block */
-function stripBlockquotePrefix(lines: string[]): string[] {
-  return lines.map((line) => line.replace(/^>\s?/, ""));
+function stripQuotePrefix(line: string): string {
+  return line.replace(/^>\s?/, "");
 }
 
 type ListMarker = "bullet" | "ordered";
@@ -461,6 +460,94 @@ function tryParseCodeBlock(
   return { node, nextIndex: j };
 }
 
+/**
+ * spec: Blockquote — the block the quoted text ends in, tracked line by line
+ * with the same precedence as `parseBlocks`, so that a following line without
+ * `>` can be checked in constant time.
+ */
+type QuotedBlock = "none" | "paragraph" | "list" | "table" | "code" | "quote";
+
+interface QuoteState {
+  block: QuotedBlock;
+  fenceMarker: string;
+  isSilentTable: boolean;
+  mayBeTableHeader: boolean;
+  nestedQuote: QuoteState | null;
+}
+
+function createQuoteState(): QuoteState {
+  return { block: "none", fenceMarker: "", isSilentTable: false, mayBeTableHeader: false, nestedQuote: null };
+}
+
+function endsInOpenParagraph(state: QuoteState): boolean {
+  if (state.block === "quote") return state.nestedQuote !== null && endsInOpenParagraph(state.nestedQuote);
+  return state.block === "paragraph";
+}
+
+/** spec: Blockquote — a line without `>` continues the quote only after an open paragraph */
+function continuesQuotedParagraph(state: QuoteState, line: string): boolean {
+  return endsInOpenParagraph(state) && !isBlankLine(line) && !startsBlockElement(line);
+}
+
+/** Feeds one line of the quote's content (one level of `>` already removed). */
+function advanceQuoteState(state: QuoteState, text: string): void {
+  if (!continuesQuotedBlock(state, text)) startQuotedBlock(state, text);
+}
+
+function continuesQuotedBlock(state: QuoteState, text: string): boolean {
+  switch (state.block) {
+    case "none":
+      return false;
+    case "code":
+      if (isClosingFence(text, state.fenceMarker)) state.block = "none";
+      return true;
+    case "table":
+      return isTableLine(text, state.isSilentTable);
+    case "list":
+      return !isBlankLine(text) && (matchListItem(text) !== null || /^\s/.test(text));
+    case "quote": {
+      const nestedQuote = state.nestedQuote;
+      if (nestedQuote === null) return false;
+      if (text.startsWith(">")) {
+        advanceQuoteState(nestedQuote, stripQuotePrefix(text));
+        return true;
+      }
+      if (!continuesQuotedParagraph(nestedQuote, text)) return false;
+      advanceQuoteState(nestedQuote, text);
+      return true;
+    }
+    case "paragraph":
+      if (state.mayBeTableHeader && isAlignmentRow(text)) {
+        state.block = "table";
+        return true;
+      }
+      state.mayBeTableHeader = false;
+      return !isBlankLine(text) && !startsBlockElement(text);
+  }
+}
+
+function startQuotedBlock(state: QuoteState, text: string): void {
+  Object.assign(state, createQuoteState());
+  if (isBlankLine(text) || matchHeading(text) || isHorizontalRule(text)) return;
+  const fence = matchCodeFence(text);
+  if (fence) {
+    Object.assign(state, { block: "code", fenceMarker: fence.marker });
+    return;
+  }
+  if (text.startsWith(">")) {
+    state.block = "quote";
+    state.nestedQuote = createQuoteState();
+    advanceQuoteState(state.nestedQuote, stripQuotePrefix(text));
+    return;
+  }
+  if (matchListItem(text)) {
+    state.block = "list";
+    return;
+  }
+  const isSilentTable = startsSilentTable(text);
+  Object.assign(state, { block: "paragraph", isSilentTable, mayBeTableHeader: isTableLine(text, isSilentTable) });
+}
+
 function tryParseBlockquote(
   lines: string[],
   i: number,
@@ -469,16 +556,24 @@ function tryParseBlockquote(
   if (!lines[i].startsWith(">")) return null;
 
   const quoteLines: string[] = [];
+  const state = createQuoteState();
   let j = i;
-  while (j < lines.length && lines[j].startsWith(">")) {
-    quoteLines.push(lines[j]);
+  while (j < lines.length) {
+    const line = lines[j];
+    if (line.startsWith(">")) {
+      advanceQuoteState(state, stripQuotePrefix(line));
+    } else if (continuesQuotedParagraph(state, line)) {
+      advanceQuoteState(state, line);
+    } else {
+      break;
+    }
+    quoteLines.push(line);
     j++;
   }
 
-  const stripped = stripBlockquotePrefix(quoteLines);
   const node: BlockquoteNode = {
     type: "blockquote",
-    children: parseBlocks(stripped, context, "quote"),
+    children: parseBlocks(quoteLines.map(stripQuotePrefix), context, "quote"),
   };
   return { node, nextIndex: j };
 }
@@ -490,17 +585,20 @@ function tryParseList(
 ): ParseBlockResult | null {
   const firstItem = matchListItem(lines[i]);
   if (!firstItem) return null;
-  return parseList(lines, i, 0, firstItem.marker, context);
+  return parseList(lines, i, 0, 0, firstItem.marker, context);
 }
 
 /**
  * spec: Lists — consecutive items with the same marker type form one list.
  * Indented lines continue the item; a more indented item starts a sublist.
+ * `depth` is the nesting level (0 at the top); `minimumIndent` is the indent
+ * an item needs to stay in this list.
  */
 function parseList(
   lines: string[],
   startIndex: number,
   depth: number,
+  minimumIndent: number,
   marker: ListMarker,
   context: ParseContext
 ): { node: BulletListNode | OrderedListNode; nextIndex: number } {
@@ -515,7 +613,7 @@ function parseList(
     }
 
     const item = matchListItem(lines[i]);
-    if (!item || item.marker !== marker || item.indent < depth) break;
+    if (!item || item.marker !== marker || item.indent < minimumIndent) break;
     if (items.length === 0) start = item.start ?? 1;
 
     const textLines: string[] = [item.text];
@@ -528,7 +626,7 @@ function parseList(
     let sublist: BulletListNode | OrderedListNode | undefined;
     const nextItem = i < lines.length ? matchListItem(lines[i]) : null;
     if (nextItem && nextItem.indent > item.indent) {
-      const subResult = parseList(lines, i, nextItem.indent, nextItem.marker, context);
+      const subResult = parseList(lines, i, depth + 1, nextItem.indent, nextItem.marker, context);
       sublist = subResult.node;
       i = subResult.nextIndex;
     }
@@ -552,6 +650,10 @@ function isSilentTableLine(line: string): boolean {
   return /^\s*~\s*\|/.test(line) || /^\s*~\s+/.test(line);
 }
 
+function startsSilentTable(line: string): boolean {
+  return /^\s*~\s+/.test(line);
+}
+
 /** spec: Table — a row is any line containing `|` */
 function isTableLine(line: string, isSilent: boolean): boolean {
   return isSilent ? isSilentTableLine(line) : line.includes("|");
@@ -572,7 +674,7 @@ function tryParseTable(
   context: ParseContext,
   scope: BlockScope
 ): ParseBlockResult | null {
-  const isSilent = /^\s*~\s+/.test(lines[i]);
+  const isSilent = startsSilentTable(lines[i]);
   if (!isTableLine(lines[i], isSilent)) return null;
   if (i + 1 >= lines.length || !isAlignmentRow(lines[i + 1])) return null;
 

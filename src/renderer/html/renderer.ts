@@ -72,9 +72,14 @@ function renderFootnoteReference(id: string, context: RenderContext): string {
   return `<sup class="lbs-footnote-ref"><a href="#lbs-fn-${escapedId}" id="lbs-fnref-${escapedId}-${referenceCount}">${label}</a></sup>`;
 }
 
+/**
+ * spec: Warp — a reference without a definition is plain text, and a
+ * reference inside its own expansion renders nothing.
+ */
 function renderWarpReference(id: string, context: RenderContext): string {
   const warp = context.warpDefs[id];
-  if (!warp || context.expandingWarpIds.has(id)) return "";
+  if (!warp) return escapeHtml(`[~${id}]`);
+  if (context.expandingWarpIds.has(id)) return "";
   context.expandingWarpIds.add(id);
   const html = renderBlockNodes(warp.children, context);
   context.expandingWarpIds.delete(id);
@@ -115,7 +120,10 @@ function renderInlineNode(node: InlineNode, context: RenderContext): string {
 // ============================================================
 
 function renderBlockNodes(nodes: BlockNode[], context: RenderContext): string {
-  return nodes.map((node) => renderBlockNode(node, context)).join("\n");
+  return nodes
+    .map((node) => renderBlockNode(node, context))
+    .filter((html) => html !== "")
+    .join("\n");
 }
 
 function renderBlockNode(node: BlockNode, context: RenderContext): string {
@@ -147,7 +155,12 @@ function renderHeading(node: HeadingNode, context: RenderContext): string {
   return `<h${node.level} class="lbs-heading-${node.level}"${idAttribute}>${content}</h${node.level}>`;
 }
 
+/** spec: Warp — a paragraph that is only a warp reference is replaced by the warp's blocks */
 function renderParagraph(node: ParagraphNode, context: RenderContext): string {
+  const [onlyChild] = node.children;
+  if (node.children.length === 1 && onlyChild.type === "warp_ref" && context.warpDefs[onlyChild.id]) {
+    return renderWarpReference(onlyChild.id, context);
+  }
   const content = renderInlineNodes(node.children, context);
   return `<p class="lbs-paragraph">${content}</p>`;
 }
