@@ -161,7 +161,7 @@ Silent table (layout grid, `~ |` prefix):
 | `` `code` `` | `<code class="lbs-code-span">code</code>` |
 | `[text](url)` | `<a href="url">text</a>` |
 | `![alt](url =200x100)` | `<img src="url" alt="alt" width="200" height="100" class="lbs-image">` |
-| `[^id]` | `<sup class="lbs-footnote-ref"><a href="#lbs-fn-id">[1]</a></sup>` |
+| `[^id]` | `<sup class="lbs-footnote-ref"><a href="#lbs-fn-id" id="lbs-fnref-id-0">[1]</a></sup>` |
 
 ---
 
