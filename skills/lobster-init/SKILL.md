@@ -45,7 +45,7 @@ Create both files with content tailored to the description.
   <body>
     <div id="content"></div>
     <script type="module">
-      import { loadMarkdown } from "https://hacknock.github.io/lobsterjs/lobster.js";
+      import { loadMarkdown } from "https://cdn.jsdelivr.net/npm/@hacknock/lobster@0.6/dist/lobster.js";
       loadMarkdown("./content.md", document.getElementById("content"));
     </script>
   </body>

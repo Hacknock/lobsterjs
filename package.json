@@ -1,6 +1,6 @@
 {
   "name": "@hacknock/lobster",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Build web pages from Markdown only — extended parser with layout blocks, no build step, CSS-first",
   "keywords": [
     "markdown",
