@@ -35,9 +35,9 @@ Use the design description from the user's message. If no description is given, 
 <p class="lbs-paragraph"> … </p>
 
 <!-- Inline -->
-<em class="lbs-emphasis"> … </em>
-<strong class="lbs-strong"> … </strong>
-<del class="lbs-strikethrough"> … </del>
+<span class="lbs-emphasis"> … </span>
+<span class="lbs-strong"> … </span>
+<span class="lbs-strikethrough"> … </span>
 <code class="lbs-code-span"> … </code>
 
 <!-- Horizontal rule -->
@@ -46,7 +46,7 @@ Use the design description from the user's message. If no description is given, 
 <!-- Code block -->
 <div class="lbs-code-block">
   <div class="lbs-code-filename">filename.js</div>   <!-- optional -->
-  <pre data-language="js"><code class="language-js"> … </code></pre>
+  <pre data-language="js" data-filename="filename.js"><code class="language-js"> … </code></pre>
 </div>
 
 <!-- Blockquote -->
@@ -54,13 +54,15 @@ Use the design description from the user's message. If no description is given, 
   <p class="lbs-paragraph"> … </p>
 </blockquote>
 
-<!-- Lists -->
-<ul class="lbs-ul">
-  <li class="lbs-list-item"> … </li>
+<!-- Lists (depth = nesting level, starts at 0) -->
+<ul class="lbs-ul lbs-ul-depth-0">
+  <li class="lbs-list-item"> …
+    <ul class="lbs-ul lbs-ul-depth-1"> … </ul>  <!-- nested list -->
+  </li>
 </ul>
-<ol class="lbs-ol">
+<ol class="lbs-ol lbs-ol-depth-0">
   <li class="lbs-list-item">
-    <input type="checkbox" class="lbs-checkbox" /> … <!-- task list -->
+    <input type="checkbox" class="lbs-checkbox" disabled /> … <!-- task list -->
   </li>
 </ol>
 
@@ -93,10 +95,10 @@ Use the design description from the user's message. If no description is given, 
 </details>
 
 <!-- Footnotes -->
-<span class="lbs-footnote-ref"><a href="#fn-1">[1]</a></span>
+<sup class="lbs-footnote-ref"><a href="#lbs-fn-1" id="lbs-fnref-1-0">[1]</a></sup>
 <section class="lbs-footnotes">
   <ol>
-    <li class="lbs-footnote-item"> … </li>
+    <li id="lbs-fn-1" class="lbs-footnote-item">[1] … </li>
   </ol>
 </section>
 ```
