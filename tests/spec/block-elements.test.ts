@@ -476,6 +476,25 @@ describe("Table", () => {
       );
     });
 
+    it("aligns the cells after a ^^ by their own columns", () => {
+      expect(toHTML("| A | B | C |\n| :- | :-: | -: |\n| tall | wide | << |\n| ^^ | x | y |")).toBe(
+        table(
+          '<th style="text-align:left">A</th><th style="text-align:center">B</th><th style="text-align:right">C</th>',
+          '<tr><td rowspan="2" style="text-align:left">tall</td><td colspan="2" style="text-align:center">wide</td></tr>\n' +
+            '<tr><td style="text-align:center">x</td><td style="text-align:right">y</td></tr>'
+        )
+      );
+    });
+
+    it("aligns a merged header cell by the column it starts in", () => {
+      expect(toHTML("| A | B | << | C |\n| :- | :-: | - | -: |\n| 1 | 2 | 3 | 4 |")).toBe(
+        table(
+          '<th style="text-align:left">A</th><th colspan="2" style="text-align:center">B</th><th style="text-align:right">C</th>',
+          '<tr><td style="text-align:left">1</td><td style="text-align:center">2</td><td>3</td><td style="text-align:right">4</td></tr>'
+        )
+      );
+    });
+
     it("resolves large non-rectangular regions quickly", () => {
       const rows = Array.from({ length: 300 }, () => "| x | << | << | << |\n| ^^ | ^^ | y | << |").join("\n");
       const start = performance.now();
